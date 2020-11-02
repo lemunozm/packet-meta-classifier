@@ -1,21 +1,21 @@
-use crate::rules::rules::{Rule};
-use crate::rules::matching_rules::{MatchingRuleValues};
+use crate::rules::rule::{Rule};
+use crate::packet_info::{PacketInfo};
 
 use std::collections::{HashMap};
 use std::hash::{Hash};
 
 pub struct ClassificationRules<T> {
-    rules: Vec<(T, Rule)>, // Must remain inmutable
+    rules: Vec<(Rule, T)>, // Must remain inmutable
     indexes: HashMap<T, usize>,
 }
 
 impl<T> ClassificationRules<T>
 where T: Hash + Clone + Eq {
-    pub fn new(rules: Vec<(T, Rule)>) -> ClassificationRules<T> {
+    pub fn new(rules: Vec<(Rule, T)>) -> ClassificationRules<T> {
         let indexes = rules
             .iter()
             .enumerate()
-            .map(|(index, (tag, _))| (tag.clone(), index)).collect();
+            .map(|(index, (_, tag))| (tag.clone(), index)).collect();
 
         ClassificationRules {
             indexes,
@@ -23,9 +23,9 @@ where T: Hash + Clone + Eq {
         }
     }
 
-    pub fn classify(&self, rule_values: &MatchingRuleValues) -> Option<&T> {
-        for (tag, rule) in &self.rules {
-            if rule_values.match_rule(&rule) {
+    pub fn classify(&self, packet_info: &PacketInfo) -> Option<&T> {
+        for (rule, tag) in &self.rules {
+            if rule.check(&packet_info) {
                 return Some(tag)
             }
         }
@@ -33,7 +33,7 @@ where T: Hash + Clone + Eq {
     }
 
     pub fn rule(&self, tag: &T) -> Option<&Rule> {
-        self.indexes.get(&tag).map(|index| &self.rules[*index].1)
+        self.indexes.get(&tag).map(|index| &self.rules[*index].0)
     }
 
     pub fn priority(&self, tag: &T) -> Option<&usize> {
