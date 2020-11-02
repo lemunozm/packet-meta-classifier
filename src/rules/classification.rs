@@ -10,7 +10,7 @@ pub struct ClassificationRules<T> {
 }
 
 impl<T> ClassificationRules<T>
-where T: Hash + Clone + Eq {
+where T: Hash + Clone + Eq + std::fmt::Debug {
     pub fn new(rules: Vec<(Rule, T)>) -> ClassificationRules<T> {
         let indexes = rules
             .iter()

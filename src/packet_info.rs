@@ -22,3 +22,11 @@ pub struct PacketInfo {
     pub tcp: Option<TcpInfo>,
 }
 
+impl PacketInfo {
+    pub fn new() -> PacketInfo {
+        PacketInfo {
+            ip: None,
+            tcp: None,
+        }
+    }
+}
