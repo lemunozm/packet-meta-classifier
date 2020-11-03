@@ -1,10 +1,10 @@
 use packet_classifier::configuration::{Configuration};
-use packet_classifier::analyzers::eth::rules::{Eth, L3};
-use packet_classifier::analyzers::ip::rules::{Ip, L4};
-use packet_classifier::analyzers::tcp::rules::{Tcp};
 use packet_classifier::rules::expression::{Exp};
 use packet_classifier::rules::classification::{ClassificationRules};
 use packet_classifier::engine::{Engine};
+use packet_classifier::analyzers::eth::rules::{Eth, L3};
+use packet_classifier::analyzers::ip::rules::{Ip, L4};
+use packet_classifier::analyzers::tcp::rules::{Tcp};
 
 use pcap_file::pcap::PcapReader;
 use std::fs::File;

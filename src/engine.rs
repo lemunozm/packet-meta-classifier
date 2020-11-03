@@ -1,6 +1,6 @@
 use crate::configuration::{Configuration};
 use crate::rules::classification::{ClassificationRules, Rule};
-use crate::packet_info::{BaseAnalyzer, Analyzer};
+use crate::analyzer::{BaseAnalyzer, Analyzer};
 
 pub struct ClassificationResult<'a, T> {
     pub rule: Option<&'a Rule<T, BaseAnalyzer>>,
