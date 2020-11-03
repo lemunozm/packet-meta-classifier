@@ -1,42 +1,38 @@
-use crate::packet_info::{PacketInfo};
-
-pub trait Value: std::fmt::Debug {
-    fn check_value(&self, packet_info: &PacketInfo) -> bool;
+pub trait Value<A>: std::fmt::Debug {
+    fn check_value(&self, analyzer: &A) -> bool;
 }
 
 #[derive(Debug)]
-pub enum Exp {
-    Value(Box<dyn Value>),
-    Not(Box<Exp>),
-    And(Vec<Exp>),
-    Or(Vec<Exp>),
+pub enum Exp<A> {
+    Value(Box<dyn Value<A>>),
+    Not(Box<Exp<A>>),
+    And(Vec<Exp<A>>),
+    Or(Vec<Exp<A>>),
 }
 
-impl Exp {
-    pub fn value(value: impl Value + 'static) -> Exp {
+impl<A> Exp<A> {
+    pub fn value(value: impl Value<A> + 'static) -> Exp<A> {
         Exp::Value(Box::new(value))
     }
 
-    pub fn not(rule: Exp) -> Exp {
+    pub fn not(rule: Exp<A>) -> Exp<A> {
         Exp::Not(Box::new(rule))
     }
 
-    pub fn and(expressions: Vec<Exp>) -> Exp {
+    pub fn and(expressions: Vec<Exp<A>>) -> Exp<A> {
         Exp::And(expressions)
     }
 
-    pub fn or(expressions: Vec<Exp>) -> Exp {
+    pub fn or(expressions: Vec<Exp<A>>) -> Exp<A> {
         Exp::Or(expressions)
     }
-}
 
-impl Exp {
-    pub fn check(&self, packet_info: &PacketInfo) -> bool {
+    pub fn check(&self, analyzer: &A) -> bool {
         match self {
-            Exp::Value(value) => value.check_value(packet_info),
-            Exp::Not(rule) => !rule.check(packet_info),
-            Exp::And(rules) => rules.iter().all(|rule| rule.check(packet_info)),
-            Exp::Or(rules) => rules.iter().any(|rule| rule.check(packet_info)),
+            Exp::Value(value) => value.check_value(analyzer),
+            Exp::Not(rule) => !rule.check(analyzer),
+            Exp::And(rules) => rules.iter().all(|rule| rule.check(analyzer)),
+            Exp::Or(rules) => rules.iter().any(|rule| rule.check(analyzer)),
         }
     }
 }

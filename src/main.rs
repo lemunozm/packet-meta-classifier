@@ -22,15 +22,13 @@ fn main() {
 
     let config = Configuration::new();
     let classification_rules = ClassificationRules::new(rules);
-
     let mut engine = Engine::new(config, classification_rules);
 
     let pcap_file = File::open("captures/http.cap").expect("Error opening file");
     let pcap_reader = PcapReader::new(pcap_file).unwrap();
 
     for (index, pcap) in pcap_reader.enumerate() {
-        let pcap = pcap.unwrap();
-        let classification_result = engine.process_packet(&pcap.data);
+        let classification_result = engine.process_packet(&pcap.unwrap().data);
 
         let rule: &dyn std::fmt::Display = match classification_result.rule {
             Some(rule) => rule.tag(),

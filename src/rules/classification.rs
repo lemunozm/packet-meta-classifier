@@ -1,18 +1,17 @@
 use crate::rules::expression::{Exp};
-use crate::packet_info::{PacketInfo};
 
-pub struct Rule<T> {
-    exp: Exp,
+pub struct Rule<T, A> {
+    exp: Exp<A>,
     tag: T,
     priority: usize,
 }
 
-impl<T> Rule<T> {
-    fn new(exp: Exp, tag: T, priority: usize) -> Rule<T> {
+impl<T, A> Rule<T, A> {
+    fn new(exp: Exp<A>, tag: T, priority: usize) -> Rule<T, A> {
         Rule { exp, tag, priority }
     }
 
-    pub fn expression(&self) -> &Exp {
+    pub fn expression(&self) -> &Exp<A> {
         &self.exp
     }
 
@@ -25,33 +24,31 @@ impl<T> Rule<T> {
     }
 }
 
-pub struct ClassificationRules<T> {
-    rules: Vec<Rule<T>>,
+pub struct ClassificationRules<T, A> {
+    rules: Vec<Rule<T, A>>,
 }
 
-impl<T> ClassificationRules<T> {
-    pub fn new(tagged_exp: Vec<(Exp, T)>) -> ClassificationRules<T> {
+impl<T, A> ClassificationRules<T, A> {
+    pub fn new(tagged_exp: Vec<(Exp<A>, T)>) -> ClassificationRules<T, A> {
         let rules = tagged_exp
             .into_iter()
             .enumerate()
             .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
             .collect();
 
-        ClassificationRules {
-            rules,
-        }
+        ClassificationRules { rules }
     }
 
-    pub fn classify(&self, packet_info: &PacketInfo) -> Option<&Rule<T>> {
+    pub fn classify(&self, analyzer: &A) -> Option<&Rule<T, A>> {
         for rule in &self.rules {
-            if rule.expression().check(&packet_info) {
+            if rule.expression().check(&analyzer) {
                 return Some(rule)
             }
         }
         None
     }
 
-    pub fn rule(&self, priority: usize) -> Option<&Rule<T>> {
+    pub fn rule(&self, priority: usize) -> Option<&Rule<T, A>> {
         self.rules.get(priority)
     }
 }
