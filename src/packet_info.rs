@@ -1,32 +1,27 @@
-use std::net::{IpAddr};
+use crate::protocols::eth::{EthInfo};
 
-#[derive(Debug, PartialEq)]
-pub enum L4 {
-    Udp,
-    Tcp,
-}
-
-pub struct IpInfo {
-    pub ip_origin: Option<IpAddr>,
-    pub ip_destination: Option<IpAddr>,
-    pub l4: L4,
-}
-
-pub struct TcpInfo {
-    pub is_syn_flood: bool,
-    pub is_teardown: bool,
+pub trait Analyzer {
+    fn analyze_packet(&mut self, data: &[u8]);
 }
 
 pub struct PacketInfo {
-    pub ip: Option<IpInfo>,
-    pub tcp: Option<TcpInfo>,
+    eth_info: Option<EthInfo>,
 }
 
 impl PacketInfo {
     pub fn new() -> PacketInfo {
-        PacketInfo {
-            ip: None,
-            tcp: None,
-        }
+        PacketInfo { eth_info: None }
+    }
+
+    pub fn eth_info(&self) -> Option<&EthInfo> {
+        self.eth_info.as_ref()
+    }
+}
+
+impl Analyzer for PacketInfo {
+    fn analyze_packet(&mut self, data: &[u8]) {
+        let mut eth_info = EthInfo::new();
+        eth_info.analyze_packet(data);
+        self.eth_info = Some(eth_info);
     }
 }

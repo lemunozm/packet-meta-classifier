@@ -28,7 +28,9 @@ impl Rule {
     pub fn or(expressions: Vec<Rule>) -> Rule {
         Rule::Or(expressions)
     }
+}
 
+impl Rule {
     pub fn check(&self, packet_info: &PacketInfo) -> bool {
         match self {
             Rule::Value(value) => value.check_value(packet_info),
