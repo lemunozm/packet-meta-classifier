@@ -1,26 +1,30 @@
-use crate::rules::rule::{RuleValue};
-use crate::packet_info::{Analyzer, PacketInfo};
-use crate::protocols::ip::{IpInfo};
+use crate::packet_info::{Analyzer};
+use crate::analyzers::ip::{IpInfo};
 
-#[derive(Debug, PartialEq)]
-pub enum L3 {
-    Ip,
-    Unknown,
-}
+pub mod rules {
+    use crate::rules::rule::{RuleValue};
+    use crate::packet_info::{PacketInfo};
 
-#[derive(Debug)]
-pub enum Eth {
-    L3(L3),
-}
+    #[derive(Debug, PartialEq)]
+    pub enum L3 {
+        Ip,
+        Unknown,
+    }
 
-impl RuleValue for Eth {
-    fn check_value(&self, packet_info: &PacketInfo) -> bool {
-        if let Some(eth_info) = &packet_info.eth_info() {
-            return match self {
-                Eth::L3(l3) => *l3 == L3::Ip && eth_info.ip_info.is_some()
+    #[derive(Debug)]
+    pub enum Eth {
+        L3(L3),
+    }
+
+    impl RuleValue for Eth {
+        fn check_value(&self, packet_info: &PacketInfo) -> bool {
+            if let Some(eth_info) = &packet_info.eth_info() {
+                return match self {
+                    Eth::L3(l3) => *l3 == L3::Ip && eth_info.ip_info.is_some()
+                }
             }
+            false
         }
-        false
     }
 }
 

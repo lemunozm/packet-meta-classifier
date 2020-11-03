@@ -1,4 +1,4 @@
-use crate::protocols::eth::{EthInfo};
+use crate::analyzers::eth::{EthInfo};
 
 pub trait Analyzer {
     fn analyze_packet(&mut self, data: &[u8]);

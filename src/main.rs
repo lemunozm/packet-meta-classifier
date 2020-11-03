@@ -1,7 +1,7 @@
 use packet_classifier::configuration::{Configuration};
-use packet_classifier::protocols::eth::{Eth, L3};
-use packet_classifier::protocols::ip::{Ip, L4};
-use packet_classifier::protocols::tcp::{Tcp};
+use packet_classifier::analyzers::eth::rules::{Eth, L3};
+use packet_classifier::analyzers::ip::rules::{Ip, L4};
+use packet_classifier::analyzers::tcp::rules::{Tcp};
 use packet_classifier::rules::rule::{Rule};
 use packet_classifier::rules::classification::{ClassificationRules};
 use packet_classifier::engine::{Engine};
