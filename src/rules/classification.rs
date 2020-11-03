@@ -1,42 +1,57 @@
-use crate::rules::rule::{Rule};
+use crate::rules::expression::{Exp};
 use crate::packet_info::{PacketInfo};
 
-use std::collections::{HashMap};
-use std::hash::{Hash};
-
-pub struct ClassificationRules<T> {
-    rules: Vec<(Rule, T)>, // Must remain inmutable
-    indexes: HashMap<T, usize>,
+pub struct Rule<T> {
+    exp: Exp,
+    tag: T,
+    priority: usize,
 }
 
-impl<T> ClassificationRules<T>
-where T: Hash + Clone + Eq {
-    pub fn new(rules: Vec<(Rule, T)>) -> ClassificationRules<T> {
-        let indexes = rules
-            .iter()
+impl<T> Rule<T> {
+    fn new(exp: Exp, tag: T, priority: usize) -> Rule<T> {
+        Rule { exp, tag, priority }
+    }
+
+    pub fn expression(&self) -> &Exp {
+        &self.exp
+    }
+
+    pub fn tag(&self) -> &T {
+        &self.tag
+    }
+
+    pub fn priority(&self) -> usize {
+        self.priority
+    }
+}
+
+pub struct ClassificationRules<T> {
+    rules: Vec<Rule<T>>,
+}
+
+impl<T> ClassificationRules<T> {
+    pub fn new(tagged_exp: Vec<(Exp, T)>) -> ClassificationRules<T> {
+        let rules = tagged_exp
+            .into_iter()
             .enumerate()
-            .map(|(index, (_, tag))| (tag.clone(), index)).collect();
+            .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
+            .collect();
 
         ClassificationRules {
-            indexes,
             rules,
         }
     }
 
-    pub fn classify(&self, packet_info: &PacketInfo) -> Option<&T> {
-        for (rule, tag) in &self.rules {
-            if rule.check(&packet_info) {
-                return Some(tag)
+    pub fn classify(&self, packet_info: &PacketInfo) -> Option<&Rule<T>> {
+        for rule in &self.rules {
+            if rule.expression().check(&packet_info) {
+                return Some(rule)
             }
         }
         None
     }
 
-    pub fn rule(&self, tag: &T) -> Option<&Rule> {
-        self.indexes.get(&tag).map(|index| &self.rules[*index].0)
-    }
-
-    pub fn priority(&self, tag: &T) -> Option<&usize> {
-        self.indexes.get(&tag)
+    pub fn rule(&self, priority: usize) -> Option<&Rule<T>> {
+        self.rules.get(priority)
     }
 }

@@ -2,7 +2,7 @@ use packet_classifier::configuration::{Configuration};
 use packet_classifier::analyzers::eth::rules::{Eth, L3};
 use packet_classifier::analyzers::ip::rules::{Ip, L4};
 use packet_classifier::analyzers::tcp::rules::{Tcp};
-use packet_classifier::rules::rule::{Rule};
+use packet_classifier::rules::expression::{Exp};
 use packet_classifier::rules::classification::{ClassificationRules};
 use packet_classifier::engine::{Engine};
 
@@ -11,13 +11,13 @@ use std::fs::File;
 
 fn main() {
     let rules = vec![
-        (Rule::value(Eth::L3(L3::Ip)), 100),
-        (Rule::value(Ip::Origin("127.x.x.x".into())), 200),
-        (Rule::or(vec![
-            Rule::value(Tcp::Teardown),
-            Rule::value(Ip::L4(L4::Udp)),
+        (Exp::value(Eth::L3(L3::Ip)), 100),
+        (Exp::value(Ip::Origin("127.x.x.x".into())), 200),
+        (Exp::or(vec![
+            Exp::value(Tcp::Teardown),
+            Exp::value(Ip::L4(L4::Udp)),
         ]), 700),
-        (Rule::value(Tcp::SynFlood), 400),
+        (Exp::value(Tcp::SynFlood), 400),
     ];
 
     let config = Configuration::new();
@@ -32,8 +32,8 @@ fn main() {
         let pcap = pcap.unwrap();
         let classification_result = engine.process_packet(&pcap.data);
 
-        let rule: &dyn std::fmt::Display = match classification_result.rule_tag {
-            Some(rule_tag) => rule_tag,
+        let rule: &dyn std::fmt::Display = match classification_result.rule {
+            Some(rule) => rule.tag(),
             None => &"<Not matching rule>"
         };
 

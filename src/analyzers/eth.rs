@@ -2,7 +2,7 @@ use crate::packet_info::{Analyzer};
 use crate::analyzers::ip::{IpInfo};
 
 pub mod rules {
-    use crate::rules::rule::{RuleValue};
+    use crate::rules::expression::{Value};
     use crate::packet_info::{PacketInfo};
 
     #[derive(Debug, PartialEq)]
@@ -16,7 +16,7 @@ pub mod rules {
         L3(L3),
     }
 
-    impl RuleValue for Eth {
+    impl Value for Eth {
         fn check_value(&self, packet_info: &PacketInfo) -> bool {
             if let Some(eth_info) = &packet_info.eth_info() {
                 return match self {

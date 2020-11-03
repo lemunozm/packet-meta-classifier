@@ -1,3 +1,3 @@
-pub mod rule;
+pub mod expression;
 pub mod classification;
 

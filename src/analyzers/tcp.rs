@@ -1,7 +1,7 @@
 use crate::packet_info::{Analyzer};
 
 pub mod rules {
-    use crate::rules::rule::{RuleValue};
+    use crate::rules::expression::{Value};
     use crate::analyzers::ip::{L4Info};
     use crate::packet_info::{PacketInfo};
 
@@ -11,7 +11,7 @@ pub mod rules {
         Teardown,
     }
 
-    impl RuleValue for Tcp {
+    impl Value for Tcp {
         fn check_value(&self, packet_info: &PacketInfo) -> bool {
             if let Some(eth_info) = &packet_info.eth_info() {
                 if let Some(ip_info) = &eth_info.ip_info() {

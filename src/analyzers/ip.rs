@@ -5,7 +5,7 @@ use std::net::{IpAddr};
 
 pub mod rules {
     use super::{L4Info, IpInfo};
-    use crate::rules::rule::{RuleValue};
+    use crate::rules::expression::{Value};
     use crate::packet_info::{PacketInfo};
 
     #[derive(Debug, PartialEq)]
@@ -42,7 +42,7 @@ pub mod rules {
         }
     }
 
-    impl RuleValue for Ip {
+    impl Value for Ip {
         fn check_value(&self, packet_info: &PacketInfo) -> bool {
             match packet_info.eth_info() {
                 Some(eth_info) => match eth_info.ip_info() {
