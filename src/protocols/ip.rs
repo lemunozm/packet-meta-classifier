@@ -63,6 +63,14 @@ pub struct IpInfo {
 }
 
 impl IpInfo {
+    pub fn new() -> IpInfo {
+        IpInfo {
+            ip_origin: None,
+            ip_destination: None,
+            l4_info: L4Info::Unknown,
+        }
+    }
+
     pub fn l4_info(&self) -> &L4Info {
         &self.l4_info
     }

@@ -1,4 +1,5 @@
 use packet_classifier::configuration::{Configuration};
+use packet_classifier::protocols::eth::{Eth, L3};
 use packet_classifier::protocols::ip::{Ip, L4};
 use packet_classifier::protocols::tcp::{Tcp};
 use packet_classifier::rules::rule::{Rule};
@@ -10,6 +11,7 @@ use std::fs::File;
 
 fn main() {
     let rules = vec![
+        (Rule::value(Eth::L3(L3::Ip)), 100),
         (Rule::value(Ip::Origin("127.x.x.x".into())), 200),
         (Rule::or(vec![
             Rule::value(Tcp::Teardown),
@@ -28,10 +30,10 @@ fn main() {
 
     for (index, pcap) in pcap_reader.enumerate() {
         let pcap = pcap.unwrap();
-        let classification = engine.process_packet(&pcap.data);
+        let classification_result = engine.process_packet(&pcap.data);
 
-        let rule: &dyn std::fmt::Display = match classification.rule_tag {
-            Some(tag) => tag,
+        let rule: &dyn std::fmt::Display = match classification_result.rule_tag {
+            Some(rule_tag) => rule_tag,
             None => &"<Not matching rule>"
         };
 
