@@ -3,4 +3,5 @@ pub mod rules;
 pub mod engine;
 pub mod analyzer;
 pub mod analyzers;
+pub mod util;
 

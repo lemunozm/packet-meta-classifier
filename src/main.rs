@@ -6,8 +6,7 @@ use packet_classifier::analyzers::eth::rules::{Eth, L3};
 use packet_classifier::analyzers::ip::rules::{Ip, L4};
 use packet_classifier::analyzers::tcp::rules::{Tcp};
 
-use pcap_file::pcap::PcapReader;
-use std::fs::File;
+use packet_classifier::util::capture::{IpCapture};
 
 fn main() {
     let rules = vec![
@@ -24,17 +23,16 @@ fn main() {
     let classification_rules = ClassificationRules::new(rules);
     let mut engine = Engine::new(config, classification_rules);
 
-    let pcap_file = File::open("captures/http.cap").expect("Error opening file");
-    let pcap_reader = PcapReader::new(pcap_file).unwrap();
+    let capture = IpCapture::open("captures/http.cap");
+    for (index, packet) in capture[0..3].iter().enumerate() {
 
-    for (index, pcap) in pcap_reader.enumerate() {
-        let classification_result = engine.process_packet(&pcap.unwrap().data);
+        let classification_result = engine.process_packet(&packet.data);
 
         let rule: &dyn std::fmt::Display = match classification_result.rule {
             Some(rule) => rule.tag(),
             None => &"<Not matching rule>"
         };
-
         println!("[{}]: {}", index, rule);
     }
 }
+
