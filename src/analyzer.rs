@@ -10,9 +10,9 @@ use std::net::{IpAddr};
 #[derive(Hash, Clone)]
 pub struct FiveTuple {
     pub protocol: L4,
-    pub origin_ip: IpAddr,
+    pub source_ip: IpAddr,
     pub destination_ip: IpAddr,
-    pub origin_port: u16,
+    pub source_port: u16,
     pub destination_port: u16,
 }
 
@@ -43,19 +43,19 @@ impl AnalyzerPipeline {
     }
 
     pub fn five_tuple(&self) -> Option<FiveTuple> {
-        let (origin_port, destination_port) = match self.l4() {
+        let (source_port, destination_port) = match self.l4() {
             L4Analyzer::Tcp(tcp) => (
-                tcp.origin_port?,
-                tcp.destination_port?,
+                tcp.source_port,
+                tcp.destination_port,
             ),
             _ => return None,
         };
 
         Some(FiveTuple {
             protocol: self.ip.protocol,
-            origin_ip: self.ip.origin?,
-            destination_ip: self.ip.destination?,
-            origin_port,
+            source_ip: IpAddr::from(self.ip.source),
+            destination_ip: IpAddr::from(self.ip.destination),
+            source_port,
             destination_port,
         })
     }

@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate arrayref;
+
 pub mod configuration;
 pub mod rules;
 pub mod engine;

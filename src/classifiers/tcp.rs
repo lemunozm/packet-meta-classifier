@@ -2,22 +2,24 @@ pub mod analyzer {
     use crate::analyzer::{Analyzer};
 
     pub struct TcpAnalyzer {
-        pub origin_port: Option<u16>,
-        pub destination_port: Option<u16>,
+        pub source_port: u16,
+        pub destination_port: u16,
     }
 
     impl TcpAnalyzer {
         pub fn new() -> TcpAnalyzer {
             TcpAnalyzer {
-                origin_port: None,
-                destination_port: None,
+                source_port: 0,
+                destination_port: 0,
             }
         }
     }
 
     impl Analyzer for TcpAnalyzer {
         fn analyze_packet<'a>(&mut self, data: &'a[u8]) -> &'a[u8] {
-            data //TODO
+            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
+            self.destination_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
+            data
         }
     }
 }
@@ -41,8 +43,8 @@ pub mod rules {
             };
 
             match self {
-                Tcp::OriginPort(port) => *port == tcp.origin_port.unwrap(),
-                Tcp::DestinationPort(port) => *port == tcp.destination_port.unwrap(),
+                Tcp::OriginPort(port) => *port == tcp.source_port,
+                Tcp::DestinationPort(port) => *port == tcp.destination_port,
             }
         }
     }
