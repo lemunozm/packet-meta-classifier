@@ -1,17 +1,17 @@
 use crate::rules::expression::{Exp};
 
-pub struct Rule<T, A> {
-    exp: Exp<A>,
+pub struct Rule<T, C> {
+    exp: Exp<C>,
     tag: T,
     priority: usize,
 }
 
-impl<T, A> Rule<T, A> {
-    fn new(exp: Exp<A>, tag: T, priority: usize) -> Rule<T, A> {
+impl<T, C> Rule<T, C> {
+    fn new(exp: Exp<C>, tag: T, priority: usize) -> Rule<T, C> {
         Rule { exp, tag, priority }
     }
 
-    pub fn expression(&self) -> &Exp<A> {
+    pub fn expression(&self) -> &Exp<C> {
         &self.exp
     }
 
@@ -24,12 +24,12 @@ impl<T, A> Rule<T, A> {
     }
 }
 
-pub struct ClassificationRules<T, A> {
-    rules: Vec<Rule<T, A>>,
+pub struct ClassificationRules<T, C> {
+    rules: Vec<Rule<T, C>>,
 }
 
-impl<T, A> ClassificationRules<T, A> {
-    pub fn new(tagged_exp: Vec<(Exp<A>, T)>) -> ClassificationRules<T, A> {
+impl<T, C> ClassificationRules<T, C> {
+    pub fn new(tagged_exp: Vec<(Exp<C>, T)>) -> ClassificationRules<T, C> {
         let rules = tagged_exp
             .into_iter()
             .enumerate()
@@ -39,7 +39,7 @@ impl<T, A> ClassificationRules<T, A> {
         ClassificationRules { rules }
     }
 
-    pub fn classify(&self, analyzer: &A) -> Option<&Rule<T, A>> {
+    pub fn classify(&self, analyzer: &C) -> Option<&Rule<T, C>> {
         for rule in &self.rules {
             if rule.expression().check(&analyzer) {
                 return Some(rule)
@@ -48,7 +48,7 @@ impl<T, A> ClassificationRules<T, A> {
         None
     }
 
-    pub fn rule(&self, priority: usize) -> Option<&Rule<T, A>> {
+    pub fn rule(&self, priority: usize) -> Option<&Rule<T, C>> {
         self.rules.get(priority)
     }
 }

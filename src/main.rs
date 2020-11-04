@@ -2,21 +2,24 @@ use packet_classifier::configuration::{Configuration};
 use packet_classifier::rules::expression::{Exp};
 use packet_classifier::rules::classification::{ClassificationRules};
 use packet_classifier::engine::{Engine};
-use packet_classifier::analyzers::eth::rules::{Eth, L3};
-use packet_classifier::analyzers::ip::rules::{Ip, L4};
-use packet_classifier::analyzers::tcp::rules::{Tcp};
+use packet_classifier::classifiers::ip::rules::{Ip, L4};
+use packet_classifier::classifiers::tcp::rules::{Tcp};
 
 use packet_classifier::util::capture::{IpCapture};
 
 fn main() {
     let rules = vec![
-        (Exp::value(Eth::L3(L3::Ip)), 100),
-        (Exp::value(Ip::Origin("127.x.x.x".into())), 200),
+        (Exp::value(Ip::Origin("127.0.0.1".into())), 200),
+        (Exp::value(Ip::L4(L4::Tcp)), 300),
+        (Exp::value(Ip::L4(L4::Udp)), 100),
         (Exp::or(vec![
-            Exp::value(Tcp::Teardown),
-            Exp::value(Ip::L4(L4::Udp)),
+            Exp::value(Tcp::OriginPort(3000)),
+            Exp::value(Tcp::OriginPort(4000)),
         ]), 700),
-        (Exp::value(Tcp::SynFlood), 400),
+        (Exp::and(vec![
+            Exp::value(Tcp::OriginPort(5000)),
+            Exp::value(Tcp::DestinationPort(6000)),
+        ]), 700),
     ];
 
     let config = Configuration::new();
