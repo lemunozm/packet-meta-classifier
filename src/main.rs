@@ -10,8 +10,9 @@ use packet_classifier::util::capture::{IpCapture};
 fn main() {
     let rules = vec![
         (Exp::value(Ip::Origin("127.0.0.1".into())), 200),
-        (Exp::value(Ip::L4(L4::Tcp)), 300),
         (Exp::value(Ip::L4(L4::Udp)), 100),
+        (Exp::value(Ip::L4(L4::Tcp)), 300),
+        (Exp::value(Ip::L4(L4::Dns)), 500),
         (Exp::or(vec![
             Exp::value(Tcp::OriginPort(3000)),
             Exp::value(Tcp::OriginPort(4000)),
@@ -19,7 +20,7 @@ fn main() {
         (Exp::and(vec![
             Exp::value(Tcp::OriginPort(5000)),
             Exp::value(Tcp::DestinationPort(6000)),
-        ]), 700),
+        ]), 800),
     ];
 
     let config = Configuration::new();
@@ -27,7 +28,7 @@ fn main() {
     let mut engine = Engine::new(config, classification_rules);
 
     let capture = IpCapture::open("captures/http.cap");
-    for (index, packet) in capture[0..3].iter().enumerate() {
+    for (index, packet) in capture[0..].iter().enumerate() {
 
         let classification_result = engine.process_packet(&packet.data);
 

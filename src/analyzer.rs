@@ -45,16 +45,16 @@ impl AnalyzerPipeline {
     pub fn five_tuple(&self) -> Option<FiveTuple> {
         let (origin_port, destination_port) = match self.l4() {
             L4Analyzer::Tcp(tcp) => (
-                tcp.origin_port.unwrap(),
-                tcp.destination_port.unwrap(),
+                tcp.origin_port?,
+                tcp.destination_port?,
             ),
             _ => return None,
         };
 
         Some(FiveTuple {
             protocol: self.ip.protocol,
-            origin_ip: self.ip.origin.unwrap(),
-            destination_ip: self.ip.destination.unwrap(),
+            origin_ip: self.ip.origin?,
+            destination_ip: self.ip.destination?,
             origin_port,
             destination_port,
         })
