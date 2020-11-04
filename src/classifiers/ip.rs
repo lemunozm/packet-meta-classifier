@@ -1,14 +1,5 @@
-#[derive(Hash, Clone, Copy, Debug, PartialEq)]
-pub enum L4 {
-    Udp,
-    Tcp,
-    Dns,
-    Unknown,
-}
-
 pub mod analyzer {
-    use super::L4;
-    use crate::analyzer::{Analyzer};
+    use crate::analyzer::{Analyzer, L4};
 
     use std::net::{Ipv4Addr};
 
@@ -52,7 +43,7 @@ pub mod analyzer {
 
 
 pub mod rules {
-    pub use super::L4;
+    pub use crate::analyzer::{L4};
     use crate::rules::expression::{Value};
     use crate::context::{Context};
     use std::net::{Ipv4Addr};

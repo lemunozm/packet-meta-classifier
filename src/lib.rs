@@ -3,9 +3,10 @@ extern crate arrayref;
 
 pub mod configuration;
 pub mod rules;
+pub mod classifiers;
 pub mod engine;
 pub mod context;
 pub mod analyzer;
-pub mod classifiers;
+pub mod flow;
 pub mod util;
 

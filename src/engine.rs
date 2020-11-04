@@ -2,6 +2,7 @@ use crate::configuration::{Configuration};
 use crate::rules::classification::{ClassificationRules, Rule};
 use crate::context::{Context};
 use crate::analyzer::{AnalyzerPipeline};
+use crate::flow::{FlowManager};
 
 pub struct ClassificationResult<'a, T> {
     pub rule: Option<&'a Rule<T, Context>>,
@@ -10,6 +11,7 @@ pub struct ClassificationResult<'a, T> {
 pub struct Engine<T> {
     config: Configuration,
     rules: ClassificationRules<T, Context>,
+    flow_manager: FlowManager,
 }
 
 impl<T> Engine<T> {
@@ -17,6 +19,7 @@ impl<T> Engine<T> {
         Engine {
             config,
             rules,
+            flow_manager: FlowManager::new(),
         }
     }
 
@@ -26,7 +29,8 @@ impl<T> Engine<T> {
         pipeline.analyze_l4(data);
 
         if let Some(five_tuple) = pipeline.five_tuple() {
-            //TODO: flows
+            let flow = self.flow_manager.get_or_create(five_tuple);
+            flow.update(&pipeline.l4());
         }
 
         let context = Context::new(pipeline);

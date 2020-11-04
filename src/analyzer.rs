@@ -2,12 +2,12 @@ pub trait Analyzer {
     fn analyze_packet<'a>(&mut self, data: &'a[u8]) -> &'a[u8];
 }
 
-use crate::classifiers::ip::{L4, analyzer::{IpAnalyzer}};
+use crate::classifiers::ip::analyzer::{IpAnalyzer};
 use crate::classifiers::tcp::analyzer::{TcpAnalyzer};
 
 use std::net::{IpAddr};
 
-#[derive(Hash, Clone)]
+#[derive(Hash, Clone, PartialEq, Eq)]
 pub struct FiveTuple {
     pub protocol: L4,
     pub source_ip: IpAddr,
@@ -16,9 +16,26 @@ pub struct FiveTuple {
     pub destination_port: u16,
 }
 
+#[derive(Hash, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum L4 {
+    Udp,
+    Tcp,
+    Dns,
+    Unknown,
+}
+
 pub enum L4Analyzer {
     Tcp(TcpAnalyzer),
     None,
+}
+
+impl L4Analyzer {
+    pub fn tcp(&self) -> &TcpAnalyzer {
+        match self {
+            L4Analyzer::Tcp(tcp) => tcp,
+            _ => panic!("L4 must be tcp"),
+        }
+    }
 }
 
 pub struct AnalyzerPipeline {

@@ -1,29 +1,3 @@
-pub mod analyzer {
-    use crate::analyzer::{Analyzer};
-
-    pub struct TcpAnalyzer {
-        pub source_port: u16,
-        pub destination_port: u16,
-    }
-
-    impl TcpAnalyzer {
-        pub fn new() -> TcpAnalyzer {
-            TcpAnalyzer {
-                source_port: 0,
-                destination_port: 0,
-            }
-        }
-    }
-
-    impl Analyzer for TcpAnalyzer {
-        fn analyze_packet<'a>(&mut self, data: &'a[u8]) -> &'a[u8] {
-            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
-            self.destination_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
-            data
-        }
-    }
-}
-
 pub mod rules {
     use crate::rules::expression::{Value};
     use crate::context::{Context};
@@ -50,3 +24,49 @@ pub mod rules {
     }
 }
 
+pub mod analyzer {
+    use crate::analyzer::{Analyzer};
+
+    pub struct TcpAnalyzer {
+        pub source_port: u16,
+        pub destination_port: u16,
+    }
+
+    impl TcpAnalyzer {
+        pub fn new() -> TcpAnalyzer {
+            TcpAnalyzer {
+                source_port: 0,
+                destination_port: 0,
+            }
+        }
+    }
+
+    impl Analyzer for TcpAnalyzer {
+        fn analyze_packet<'a>(&mut self, data: &'a[u8]) -> &'a[u8] {
+            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
+            self.destination_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
+            data
+        }
+    }
+}
+
+pub mod flow {
+    use crate::flow::{Flow};
+    use crate::analyzer::{L4Analyzer};
+
+    pub struct TcpFlow {
+
+    }
+
+    impl TcpFlow {
+        pub fn new() -> TcpFlow {
+            TcpFlow {}
+        }
+    }
+
+    impl Flow for TcpFlow {
+        fn update(&mut self, analyzer: &L4Analyzer) {
+
+        }
+    }
+}
