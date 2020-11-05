@@ -28,13 +28,16 @@ impl<T> Engine<T> {
         let data = pipeline.analyze_l3(data);
         pipeline.analyze_l4(data);
 
-        if let Some(five_tuple) = pipeline.five_tuple() {
-            let flow = self.flow_manager.get_or_create(five_tuple);
-            flow.update(&pipeline.l4());
-        }
+        let flow = match pipeline.five_tuple() {
+            Some(five_tuple) => {
+                let flow = self.flow_manager.get_or_create(five_tuple);
+                flow.update(&pipeline.l4());
+                Some(&*flow)
+            },
+            None => None
+        };
 
-        let context = Context::new(pipeline);
-
+        let context = Context::new(pipeline, /*flow*/);
         ClassificationResult {
             rule: self.rules.classify(&context),
         }
