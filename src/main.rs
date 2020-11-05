@@ -2,17 +2,16 @@ use packet_classifier::configuration::{Configuration};
 use packet_classifier::rules::expression::{Exp};
 use packet_classifier::rules::classification::{ClassificationRules};
 use packet_classifier::engine::{Engine};
-use packet_classifier::classifiers::ip::rules::{Ip, L4};
+use packet_classifier::classifiers::ipv4::rules::{Ipv4, L4};
 use packet_classifier::classifiers::tcp::rules::{Tcp};
 
 use packet_classifier::util::capture::{IpCapture};
 
 fn main() {
     let rules = vec![
-        (Exp::value(Ip::Origin("127.0.0.1".into())), 200),
-        (Exp::value(Ip::L4(L4::Udp)), 100),
-        (Exp::value(Ip::L4(L4::Tcp)), 300),
-        (Exp::value(Ip::L4(L4::Dns)), 500),
+        (Exp::value(Ipv4::Origin("127.0.0.1".into())), 200),
+        (Exp::value(Ipv4::L4(L4::Udp)), 100),
+        (Exp::value(Ipv4::L4(L4::Tcp)), 300),
         (Exp::or(vec![
             Exp::value(Tcp::OriginPort(3000)),
             Exp::value(Tcp::OriginPort(4000)),
