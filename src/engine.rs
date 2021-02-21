@@ -2,24 +2,24 @@ use crate::configuration::{Configuration};
 use crate::rules::classification::{ClassificationRules, Rule};
 use crate::context::{Context};
 use crate::analyzer::{AnalyzerPipeline};
-use crate::flow::{FlowManager};
+use crate::flow::{FlowPool};
 
 pub struct ClassificationResult<'a, T> {
-    pub rule: Option<&'a Rule<T, Context>>,
+    pub rule: Option<&'a Rule<T>>,
 }
 
 pub struct Engine<T> {
     config: Configuration,
-    rules: ClassificationRules<T, Context>,
-    flow_manager: FlowManager,
+    rules: ClassificationRules<T>,
+    flow_manager: FlowPool,
 }
 
 impl<T> Engine<T> {
-    pub fn new(config: Configuration, rules: ClassificationRules<T, Context>) -> Engine<T> {
+    pub fn new(config: Configuration, rules: ClassificationRules<T>) -> Engine<T> {
         Engine {
             config,
             rules,
-            flow_manager: FlowManager::new(),
+            flow_manager: FlowPool::new(),
         }
     }
 
@@ -37,7 +37,7 @@ impl<T> Engine<T> {
             None => None
         };
 
-        let context = Context::new(pipeline, /*flow*/);
+        let context = Context::new(pipeline, flow);
         ClassificationResult {
             rule: self.rules.classify(&context),
         }

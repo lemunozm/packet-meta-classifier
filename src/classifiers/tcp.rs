@@ -9,7 +9,7 @@ pub mod rules {
         DestinationPort(u16),
     }
 
-    impl Value<Context> for Tcp {
+    impl Value for Tcp {
         fn check_value(&self, context: &Context) -> bool {
             let tcp = match context.pipeline().l4() {
                 L4Analyzer::Tcp(tcp) => tcp,
@@ -65,7 +65,7 @@ pub mod flow {
     }
 
     impl Flow for TcpFlow {
-        fn update(&mut self, analyzer: &L4Analyzer) {
+        fn update(&mut self, _analyzer: &L4Analyzer) {
 
         }
     }

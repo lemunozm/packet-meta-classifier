@@ -7,13 +7,13 @@ pub trait Flow {
     fn update(&mut self, analyzer: &L4Analyzer);
 }
 
-pub struct FlowManager {
+pub struct FlowPool {
     flows: HashMap<FiveTuple, Box<dyn Flow>>
 }
 
-impl FlowManager {
-    pub fn new() -> FlowManager {
-        FlowManager {
+impl FlowPool {
+    pub fn new() -> FlowPool {
+        FlowPool {
             flows: HashMap::new(),
         }
     }

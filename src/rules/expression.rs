@@ -1,33 +1,35 @@
-pub trait Value<C>: std::fmt::Debug {
-    fn check_value(&self, context: &C) -> bool;
+use crate::context::{Context};
+
+pub trait Value: std::fmt::Debug {
+    fn check_value(&self, context: &Context) -> bool;
 }
 
 #[derive(Debug)]
-pub enum Exp<C> {
-    Value(Box<dyn Value<C>>),
-    Not(Box<Exp<C>>),
-    And(Vec<Exp<C>>),
-    Or(Vec<Exp<C>>),
+pub enum Exp {
+    Value(Box<dyn Value>),
+    Not(Box<Exp>),
+    And(Vec<Exp>),
+    Or(Vec<Exp>),
 }
 
-impl<C> Exp<C> {
-    pub fn value(value: impl Value<C> + 'static) -> Exp<C> {
+impl Exp {
+    pub fn value(value: impl Value + 'static) -> Exp {
         Exp::Value(Box::new(value))
     }
 
-    pub fn not(rule: Exp<C>) -> Exp<C> {
+    pub fn not(rule: Exp) -> Exp {
         Exp::Not(Box::new(rule))
     }
 
-    pub fn and(expressions: Vec<Exp<C>>) -> Exp<C> {
+    pub fn and(expressions: Vec<Exp>) -> Exp {
         Exp::And(expressions)
     }
 
-    pub fn or(expressions: Vec<Exp<C>>) -> Exp<C> {
+    pub fn or(expressions: Vec<Exp>) -> Exp {
         Exp::Or(expressions)
     }
 
-    pub fn check(&self, context: &C) -> bool {
+    pub fn check(&self, context: &Context) -> bool {
         match self {
             Exp::Value(value) => value.check_value(context),
             Exp::Not(rule) => !rule.check(context),

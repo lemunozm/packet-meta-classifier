@@ -13,7 +13,7 @@ pub mod rules {
         L4(L4),
     }
 
-    impl Value<Context> for Ipv4 {
+    impl Value for Ipv4 {
         fn check_value(&self, context: &Context) -> bool {
             let ip = match context.pipeline().l3() {
                 L3Analyzer::Ipv4(ip) => ip,

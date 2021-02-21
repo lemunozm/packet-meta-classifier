@@ -1,16 +1,16 @@
 use crate::analyzer::{AnalyzerPipeline};
-//use crate::flow::{Flow};
+use crate::flow::{Flow};
 
-pub struct Context {
+pub struct Context<'a> {
     pipeline: AnalyzerPipeline,
-    //flow: Option<&'a Box<dyn Flow>>,
+    flow: Option<&'a Box<dyn Flow>>,
 }
 
-impl Context {
-    pub fn new(pipeline: AnalyzerPipeline, /*flow: Option<&'a Box<dyn Flow>>*/) -> Context {
+impl<'a> Context<'a> {
+    pub fn new(pipeline: AnalyzerPipeline, flow: Option<&'a Box<dyn Flow>>) -> Context<'a> {
         Context {
             pipeline,
-            //flow,
+            flow,
         }
     }
 

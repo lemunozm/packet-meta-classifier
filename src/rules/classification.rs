@@ -1,17 +1,18 @@
 use crate::rules::expression::{Exp};
+use crate::context::Context;
 
-pub struct Rule<T, C> {
-    exp: Exp<C>,
+pub struct Rule<T> {
+    exp: Exp,
     tag: T,
     priority: usize,
 }
 
-impl<T, C> Rule<T, C> {
-    fn new(exp: Exp<C>, tag: T, priority: usize) -> Rule<T, C> {
+impl<T> Rule<T> {
+    fn new(exp: Exp, tag: T, priority: usize) -> Rule<T> {
         Rule { exp, tag, priority }
     }
 
-    pub fn expression(&self) -> &Exp<C> {
+    pub fn expression(&self) -> &Exp {
         &self.exp
     }
 
@@ -24,13 +25,13 @@ impl<T, C> Rule<T, C> {
     }
 }
 
-pub struct ClassificationRules<T, C> {
-    rules: Vec<Rule<T, C>>,
+pub struct ClassificationRules<T> {
+    rules: Vec<Rule<T>>,
 }
 
-impl<T, C> ClassificationRules<T, C> {
-    pub fn new(tagged_exp: Vec<(Exp<C>, T)>) -> ClassificationRules<T, C> {
-        let rules = tagged_exp
+impl<T> ClassificationRules<T> {
+    pub fn new(tagged_expr: Vec<(Exp, T)>) -> ClassificationRules<T> {
+        let rules = tagged_expr
             .into_iter()
             .enumerate()
             .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
@@ -39,16 +40,16 @@ impl<T, C> ClassificationRules<T, C> {
         ClassificationRules { rules }
     }
 
-    pub fn classify(&self, analyzer: &C) -> Option<&Rule<T, C>> {
+    pub fn rule(&self, priority: usize) -> Option<&Rule<T>> {
+        self.rules.get(priority)
+    }
+
+    pub fn classify(&self, context: &Context) -> Option<&Rule<T>> {
         for rule in &self.rules {
-            if rule.expression().check(&analyzer) {
+            if rule.expression().check(&context) {
                 return Some(rule)
             }
         }
         None
-    }
-
-    pub fn rule(&self, priority: usize) -> Option<&Rule<T, C>> {
-        self.rules.get(priority)
     }
 }
