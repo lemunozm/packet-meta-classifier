@@ -4,7 +4,7 @@ use super::ClassificationRules;
 use super::ClassificationState;
 use super::Rule;
 
-use crate::classifiers::{Analyzer, AnalyzerId, PacketInfo};
+use crate::classifiers::{Analyzer, AnalyzerId, AnalyzerStatus, PacketInfo};
 use crate::flow::FlowPool;
 
 #[derive(Default)]
@@ -33,9 +33,13 @@ impl<T> Engine<T> {
         let mut analyzers: u64 = 0;
         let mut analyzer_id = AnalyzerId::START;
 
-        loop {
+        let rule = loop {
             let analyzer = self.packet.choose_analyzer(analyzer_id);
-            let (next_analyzer_kind, next_data) = analyzer.analyze(data);
+            let analyzer_status = analyzer.analyze(data);
+            if let AnalyzerStatus::Abort = analyzer_status {
+                break None;
+            }
+
             let flow = match analyzer.identify_flow() {
                 Some(flow_def) => {
                     let flow = self
@@ -48,21 +52,22 @@ impl<T> Engine<T> {
             };
 
             match self.rules.try_classify(analyzers, analyzer, flow) {
-                ClassificationState::None => return ClassificationResult { rule: None },
+                ClassificationState::None => break None,
                 ClassificationState::Incompleted => (),
-                ClassificationState::Completed(rule) => {
-                    return ClassificationResult { rule: Some(rule) }
-                }
+                ClassificationState::Completed(rule) => break Some(rule),
             };
 
             analyzers |= analyzer_id as u64;
-            data = next_data;
-            match next_analyzer_kind {
-                Some(next_analyzer_kind) => analyzer_id = next_analyzer_kind,
-                None => break,
+            match analyzer_status {
+                AnalyzerStatus::Finished(_) => break None,
+                AnalyzerStatus::Next(next_analyzer_id, next_data) => {
+                    data = next_data;
+                    analyzer_id = next_analyzer_id;
+                }
+                _ => unreachable!(),
             }
-        }
+        };
 
-        ClassificationResult { rule: None }
+        ClassificationResult { rule }
     }
 }

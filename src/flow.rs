@@ -1,27 +1,16 @@
-use crate::classifiers::Analyzer;
+use crate::classifiers::{Analyzer, AnalyzerStatus};
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
 #[derive(Hash, Clone, PartialEq, Eq)]
-enum FlowKind {
-    Udp,
-    Tcp,
-    Http,
-}
-
-#[derive(Hash, Clone, PartialEq, Eq)]
 pub struct FlowDef {
     origin: SocketAddr,
     dest: SocketAddr,
-    kind: FlowKind,
 }
 
 pub trait GenericFlow {
-    fn update(&mut self, analyzer: &dyn Analyzer) {
-        todo!()
-    }
-
+    fn update(&mut self, analyzer: &dyn Analyzer);
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
@@ -45,7 +34,35 @@ impl FlowPool {
 
 pub trait Flow {
     type Analyzer: Analyzer;
-    fn update(&mut self, analyzer: &Self::Analyzer) {}
+    fn update(&mut self, analyzer: &Self::Analyzer);
+}
+
+#[derive(Default)]
+pub struct UnusedAnalyzer;
+impl Analyzer for UnusedAnalyzer {
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
+        unreachable!()
+    }
+
+    fn identify_flow(&self) -> Option<FlowDef> {
+        unreachable!()
+    }
+
+    fn create_flow(&self) -> Box<dyn GenericFlow> {
+        unreachable!()
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+pub struct NoFlow;
+impl Flow for NoFlow {
+    type Analyzer = UnusedAnalyzer;
+    fn update(&mut self, _analyzer: &Self::Analyzer) {
+        unreachable!()
+    }
 }
 
 /*

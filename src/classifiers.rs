@@ -37,22 +37,19 @@ impl PacketInfo {
     }
 }
 
+pub enum AnalyzerStatus<'a> {
+    Next(AnalyzerId, &'a [u8]),
+    Finished(&'a [u8]),
+    Abort,
+}
+
 impl AnalyzerId {
     pub const START: Self = Self::Ip;
 }
 
 pub trait Analyzer {
-    fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerId>, &'a [u8]) {
-        todo!()
-    }
-
-    fn identify_flow(&self) -> Option<FlowDef> {
-        todo!()
-    }
-
-    fn create_flow(&self) -> Box<dyn GenericFlow> {
-        todo!()
-    }
-
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
+    fn identify_flow(&self) -> Option<FlowDef>;
+    fn create_flow(&self) -> Box<dyn GenericFlow>;
     fn as_any(&self) -> &dyn std::any::Any;
 }
