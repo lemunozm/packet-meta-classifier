@@ -1,4 +1,5 @@
 use packet_classifier::classifiers::ip::rules::IpVersion;
+use packet_classifier::classifiers::tcp::rules::{Tcp, TcpSourcePort};
 use packet_classifier::config::Config;
 use packet_classifier::engine::Engine;
 use packet_classifier::ClassificationRules;
@@ -10,9 +11,15 @@ use util::capture::Capture;
 
 #[test]
 fn test() {
+    util::logger::init();
+
     let config = Config::new();
 
-    let rules = vec![(Exp::value(IpVersion::V4), 200)];
+    let rules = vec![
+        (Exp::value(TcpSourcePort(80)), 200),
+        (Exp::value(Tcp), 300),
+        (Exp::value(IpVersion::V4), 300),
+    ];
 
     let classification_rules = ClassificationRules::new(rules);
     let mut engine = Engine::new(config, classification_rules);

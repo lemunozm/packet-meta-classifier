@@ -105,32 +105,14 @@ pub mod rules {
     use std::net::IpAddr;
 
     #[derive(Debug)]
-    pub struct IpSource(IpAddr);
+    pub struct Ip;
 
-    impl RuleValue for IpSource {
+    impl RuleValue for Ip {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
-        fn check(&self, analyzer: &Self::Analyzer, _no_flow: &Self::Flow) -> bool {
-            match &analyzer.version {
-                Version::V4(ipv4) => ipv4.source == self.0,
-                Version::V6(ipv6) => ipv6.source == self.0,
-            }
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct IpDest(IpAddr);
-
-    impl RuleValue for IpDest {
-        type Flow = NoFlow;
-        type Analyzer = IpAnalyzer;
-
-        fn check(&self, analyzer: &Self::Analyzer, _no_flow: &Self::Flow) -> bool {
-            match &analyzer.version {
-                Version::V4(ipv4) => ipv4.dest == self.0,
-                Version::V6(ipv6) => ipv6.dest == self.0,
-            }
+        fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            true
         }
     }
 
@@ -144,10 +126,40 @@ pub mod rules {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
-        fn check(&self, analyzer: &Self::Analyzer, _no_flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             match self {
                 Self::V4 => matches!(analyzer.version, Version::V4(_)),
                 Self::V6 => matches!(analyzer.version, Version::V6(_)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct IpSource(pub IpAddr);
+
+    impl RuleValue for IpSource {
+        type Flow = NoFlow;
+        type Analyzer = IpAnalyzer;
+
+        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            match &analyzer.version {
+                Version::V4(ipv4) => ipv4.source == self.0,
+                Version::V6(ipv6) => ipv6.source == self.0,
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct IpDest(pub IpAddr);
+
+    impl RuleValue for IpDest {
+        type Flow = NoFlow;
+        type Analyzer = IpAnalyzer;
+
+        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            match &analyzer.version {
+                Version::V4(ipv4) => ipv4.dest == self.0,
+                Version::V6(ipv6) => ipv6.dest == self.0,
             }
         }
     }

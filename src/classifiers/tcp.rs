@@ -4,11 +4,24 @@ pub mod analyzer {
     use crate::Analyzer;
 
     #[derive(Default)]
-    pub struct TcpAnalyzer {}
+    pub struct TcpAnalyzer {
+        pub source_port: u16,
+        pub dest_port: u16,
+    }
 
     impl Analyzer for TcpAnalyzer {
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
-            todo!()
+            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
+            self.dest_port = u16::from_be_bytes(*array_ref![data, 2, 2]);
+
+            let header_length = (((data[12] & 0xF0) as usize) >> 4) << 2;
+
+            if self.source_port == 80 || self.source_port == 8080 {
+                //AnalyzerStatus::Next(AnalyzerId::Http, data[header_length..])
+                AnalyzerStatus::Finished(&data[header_length..])
+            } else {
+                AnalyzerStatus::Finished(&data[header_length..])
+            }
         }
 
         fn identify_flow(&self) -> Option<FlowDef> {
@@ -55,28 +68,43 @@ pub mod flow {
 
 pub mod rules {
     use super::analyzer::TcpAnalyzer;
-    use super::flow::{State, TcpFlow};
+    use super::flow::TcpFlow;
 
     use crate::RuleValue;
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum TcpState {
-        Send,
-        Recv,
-        Established,
-    }
+    #[derive(Debug)]
+    pub struct Tcp;
 
-    impl RuleValue for TcpState {
+    impl RuleValue for Tcp {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
-        fn check(&self, analyzer: &Self::Analyzer, tcp_flow: &Self::Flow) -> bool {
-            let tcp_state = match tcp_flow.state {
-                State::Send => TcpState::Send,
-                State::Recv => TcpState::Recv,
-                State::Established => TcpState::Established,
-            };
-            tcp_state == *self
+        fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            true
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpSourcePort(pub u16);
+
+    impl RuleValue for TcpSourcePort {
+        type Flow = TcpFlow;
+        type Analyzer = TcpAnalyzer;
+
+        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            self.0 == analyzer.source_port
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpDestPort(pub u16);
+
+    impl RuleValue for TcpDestPort {
+        type Flow = TcpFlow;
+        type Analyzer = TcpAnalyzer;
+
+        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+            self.0 == analyzer.dest_port
         }
     }
 }

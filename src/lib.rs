@@ -8,6 +8,7 @@ pub mod flow;
 
 use classifiers::Analyzer;
 use flow::{Flow, GenericFlow};
+use std::fmt::Display;
 use std::net::SocketAddr;
 
 #[derive(Hash, Clone, PartialEq, Eq)]
@@ -24,29 +25,29 @@ struct FlowDef {
     kind: FlowKind,
 }
 
-pub enum ClassificationState<'a, T> {
+pub enum ClassificationState<'a, T: Display> {
     None,
     Incompleted,
-    Completed(&'a Rule<T>),
+    Classified(&'a Rule<T>),
 }
 
-pub struct ClassificationRules<T> {
+pub struct ClassificationRules<T: Display> {
     rules: Vec<Rule<T>>,
 }
 
-pub struct Rule<T> {
+pub struct Rule<T: Display> {
     pub exp: Exp,
     pub tag: T,
     pub priority: usize,
 }
 
-impl<T> Rule<T> {
+impl<T: Display> Rule<T> {
     fn new(exp: Exp, tag: T, priority: usize) -> Self {
         Self { exp, tag, priority }
     }
 }
 
-impl<T> ClassificationRules<T> {
+impl<T: Display> ClassificationRules<T> {
     pub fn new(tagged_expr: Vec<(Exp, T)>) -> ClassificationRules<T> {
         let rules = tagged_expr
             .into_iter()
@@ -68,12 +69,15 @@ impl<T> ClassificationRules<T> {
         flow: Option<&dyn GenericFlow>,
     ) -> ClassificationState<T> {
         for rule in &self.rules {
+            //TODO save state: start with the rules and better save the state of the analyzing packet.
             if rule.exp.check(analyzer, flow) {
-                return ClassificationState::Completed(rule);
+                return ClassificationState::Classified(rule);
             }
         }
         ClassificationState::None
     }
+
+    pub fn reset_state() {}
 }
 
 pub trait RuleValue: std::fmt::Debug {

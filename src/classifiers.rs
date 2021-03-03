@@ -7,10 +7,11 @@ use crate::flow::{FlowDef, GenericFlow};
 
 #[derive(Debug, Clone, Copy)]
 pub enum AnalyzerId {
-    Ip = 1,
-    Tcp = 2,
-    Udp = 4,
-    Http = 8,
+    Ip = 1 << 0,
+    Tcp = 1 << 1,
+    Udp = 1 << 2,
+    Http = 1 << 3,
+    TcpHeur = 1 << 4, //really needed?
 }
 
 #[derive(Default)]
@@ -21,7 +22,6 @@ pub struct PacketInfo {
 
 impl PacketInfo {
     pub fn choose_analyzer<'a>(&mut self, id: AnalyzerId) -> &mut dyn Analyzer {
-        log::trace!("Analyze for: {:?}", id);
         match id {
             AnalyzerId::Ip => {
                 self.ip = ip::analyzer::IpAnalyzer::default();
@@ -33,6 +33,7 @@ impl PacketInfo {
             }
             AnalyzerId::Udp => todo!(),
             AnalyzerId::Http => todo!(),
+            AnalyzerId::TcpHeur => todo!(),
         }
     }
 }
