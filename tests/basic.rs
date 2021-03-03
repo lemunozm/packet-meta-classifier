@@ -1,4 +1,4 @@
-use packet_classifier::classifiers::tcp::rules::TcpState;
+use packet_classifier::classifiers::ip::rules::IpVersion;
 use packet_classifier::config::Config;
 use packet_classifier::engine::Engine;
 use packet_classifier::ClassificationRules;
@@ -6,18 +6,18 @@ use packet_classifier::Exp;
 
 mod util;
 
-use util::capture::IpCapture;
+use util::capture::Capture;
 
 #[test]
 fn test() {
     let config = Config::new();
 
-    let rules = vec![(Exp::value(TcpState::Send), 200)];
+    let rules = vec![(Exp::value(IpVersion::V4), 200)];
 
     let classification_rules = ClassificationRules::new(rules);
     let mut engine = Engine::new(config, classification_rules);
 
-    let capture = IpCapture::open("captures/http.cap");
+    let capture = Capture::open("captures/http.cap");
     for (index, packet) in capture[0..].iter().enumerate() {
         let classification_result = engine.process_packet(&packet.data);
 

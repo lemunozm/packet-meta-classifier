@@ -65,7 +65,7 @@ pub mod analyzer {
 
     impl Analyzer for IpAnalyzer {
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
-            let ip_version = data[0] & 0x0F;
+            let ip_version = (data[0] & 0xF0) >> 4;
             self.version = match ip_version {
                 4 => Version::V4(V4 {
                     source: Ipv4Addr::from(*array_ref![data, 12, 4]),
@@ -74,6 +74,7 @@ pub mod analyzer {
                 6 => todo!(),
                 _ => return AnalyzerStatus::Abort,
             };
+
             let header_length = ((data[0] & 0x0F) as usize) << 2;
             match data[9].try_into() {
                 Ok(protocol) => self.protocol = protocol,

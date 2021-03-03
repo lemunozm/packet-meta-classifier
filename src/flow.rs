@@ -57,6 +57,7 @@ impl Analyzer for UnusedAnalyzer {
     }
 }
 
+#[derive(Default)]
 pub struct NoFlow;
 impl Flow for NoFlow {
     type Analyzer = UnusedAnalyzer;
