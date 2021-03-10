@@ -77,6 +77,7 @@ pub mod analyzer {
 
             let header_length = ((data[0] & 0x0F) as usize) << 2;
             match data[9].try_into() {
+                Ok(Protocol::Udp) => return AnalyzerStatus::Abort, //TODO: remove when exists UDP analyzer.
                 Ok(protocol) => self.protocol = protocol,
                 Err(_) => return AnalyzerStatus::Abort,
             }

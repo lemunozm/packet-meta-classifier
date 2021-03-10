@@ -43,7 +43,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
         })
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "{} {:<5} {} [{}]{} {}",
+                "{} {:<5} {:<4} [{}]{} {}",
                 format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
                 level_colors.color(record.level()),
                 PACKET_NUMBER
