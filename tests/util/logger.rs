@@ -1,4 +1,7 @@
 use fern::colors::{Color, ColoredLevelConfig};
+
+use colored::Colorize;
+
 use std::sync::{Once, RwLock};
 
 // Used to init the log only one time for all tests;
@@ -8,12 +11,10 @@ lazy_static::lazy_static! {
     static ref PACKET_NUMBER: RwLock<Option<usize>> = RwLock::new(None);
 }
 
-#[allow(dead_code)]
 pub fn init() {
     INIT.call_once(|| configure_logger().unwrap());
 }
 
-#[allow(dead_code)]
 pub fn set_log_packet_number(packet_number: Option<usize>) {
     *PACKET_NUMBER.write().unwrap() = packet_number;
 }
@@ -23,7 +24,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
         .error(Color::Red)
         .warn(Color::Yellow)
         .info(Color::Cyan)
-        .debug(Color::White)
+        .debug(Color::Magenta)
         .trace(Color::White);
 
     fern::Dispatch::new()
@@ -33,17 +34,17 @@ fn configure_logger() -> Result<(), fern::InitError> {
             #[cfg(not(feature = "classification-logs"))]
             let classification = false;
 
-            #[cfg(feature = "test-logs")]
-            let test = !_metadata.target().contains("::");
-            #[cfg(not(feature = "test-logs"))]
-            let test = false;
+            #[cfg(feature = "framework-logs")]
+            let framework = _metadata.target().contains("framework");
+            #[cfg(not(feature = "framework-logs"))]
+            let framework = false;
 
-            classification || test
+            classification || framework
         })
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "{} {:<5} {}{}: {}",
-                chrono::Local::now().format("%M:%S:%3f"), // min:sec:nano
+                "{} {:<5} {} [{}]{} {}",
+                format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
                 level_colors.color(record.level()),
                 PACKET_NUMBER
                     .read()
@@ -53,8 +54,8 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 record
                     .target()
                     .strip_prefix("packet_classifier::")
-                    .map(|n| format!(" [{}]", n))
-                    .unwrap_or(String::new()),
+                    .unwrap_or(record.target()),
+                String::from(":").bright_black(),
                 message,
             ))
         })

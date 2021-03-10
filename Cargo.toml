@@ -6,7 +6,7 @@ edition = "2018"
 
 [features]
 classification-logs = []
-test-logs = []
+framework-logs = []
 
 [dependencies]
 log = "0.4"
@@ -20,4 +20,5 @@ lazy_static = "1.4"
 pcap-file = "1.1.0"
 fern = { version = "0.6", features = ["colored"] }
 chrono = "0.4.19"
+colored = "2.0.0"
 

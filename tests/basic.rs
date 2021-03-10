@@ -7,6 +7,7 @@ use packet_classifier::expression::Expr;
 mod util;
 
 use util::capture::Capture;
+use util::injector::Injector;
 use util::logger;
 
 #[test]
@@ -24,18 +25,7 @@ fn basic_http_capture() {
     let mut classifier = Classifier::new(config, rules);
 
     let capture = Capture::open("captures/http.cap");
-    for (index, packet) in capture[0..].iter().enumerate() {
-        let packet_number = index + 1;
-        logger::set_log_packet_number(Some(packet_number));
-
-        let classification_result = classifier.classify_packet(&packet.data);
-
-        let tag = match classification_result.rule {
-            Some(rule) => format!("{}", rule.tag),
-            None => String::from("<Not matching rule>"),
-        };
-        log::info!("Classified at rule {}", tag);
-    }
-
-    logger::set_log_packet_number(None);
+    let mut injector = Injector::new(&mut classifier, &capture);
+    let result = injector.inject_packets(1, 4);
+    assert_eq!(result.condensed, vec![300, 200, 300, 300])
 }

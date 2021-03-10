@@ -1,37 +1,37 @@
 use super::config::Config;
 
-use crate::analyzer::{Analyzer, AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
+use crate::analyzer::{AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
 use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
 use crate::expression::{Expr, ValidatedExpr};
 use crate::flow::FlowPool;
 
 use std::fmt::Display;
 
-pub struct Rule<T: Display> {
+struct Rule<T> {
     pub exp: Expr,
     pub tag: T,
     pub priority: usize,
 }
 
-impl<T: Display> Rule<T> {
+impl<T> Rule<T> {
     pub fn new(exp: Expr, tag: T, priority: usize) -> Self {
         Self { exp, tag, priority }
     }
 }
 
 #[derive(Default)]
-pub struct ClassificationResult<'a, T: Display> {
-    pub rule: Option<&'a Rule<T>>,
+pub struct ClassificationResult<T> {
+    pub rule: T,
 }
 
-pub struct Classifier<T: Display> {
+pub struct Classifier<T> {
     config: Config,
     rules: Vec<Rule<T>>,
     analyzers: AnalyzerRegistry,
     flow_pool: FlowPool,
 }
 
-impl<T: Display> Classifier<T> {
+impl<T: Display + Default + Clone> Classifier<T> {
     pub fn new(config: Config, rule_exp: Vec<(Expr, T)>) -> Classifier<T> {
         let rules = rule_exp
             .into_iter()
@@ -96,7 +96,9 @@ impl<T: Display> Classifier<T> {
             match validated_expression {
                 ValidatedExpr::Classified => {
                     log::trace!("Classified: rule {}", rule.tag);
-                    return ClassificationResult { rule: Some(rule) };
+                    return ClassificationResult {
+                        rule: rule.tag.clone(),
+                    };
                 }
                 ValidatedExpr::NotClassified => continue,
                 ValidatedExpr::Abort => break,
@@ -104,7 +106,7 @@ impl<T: Display> Classifier<T> {
         }
 
         log::trace!("Not classified: not rule matched");
-        ClassificationResult { rule: None }
+        ClassificationResult { rule: T::default() }
     }
 }
 
