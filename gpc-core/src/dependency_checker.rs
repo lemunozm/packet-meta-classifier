@@ -1,55 +1,53 @@
 use crate::base::id::ClassifierId;
 
-use std::collections::BTreeSet;
-
 pub enum DependencyStatus {
-    Ok,
-    NeedAnalysis,
-    None,
+    Predecessor,
+    Descendant,
+    NoPath,
 }
 
 pub struct DependencyChecker<I: ClassifierId> {
-    dependencies: Vec<BTreeSet<I>>,
-    //TODO: PERF: make it as a table.
+    dependency_matrix: Vec<bool>,
+    _index_type: std::marker::PhantomData<I>,
 }
 
 impl<I: ClassifierId> DependencyChecker<I> {
     pub fn new(dependency_list: Vec<(I, I)>) -> Self {
-        let mut dependencies: Vec<BTreeSet<I>> =
-            (0..I::TOTAL).map(|_| BTreeSet::default()).collect();
+        let mut checker = Self {
+            dependency_matrix: vec![false; I::TOTAL * I::TOTAL],
+            _index_type: std::marker::PhantomData::default(),
+        };
 
         for (id, prev_id) in dependency_list {
-            assert!(
-                dependencies[id.inner()].is_empty(),
-                "Analyzer {:?} already registered",
-                id
-            );
+            assert!(!checker.get(id, id), "Analyzer {:?} already registered", id);
 
-            dependencies[id.inner()].insert(id);
-            dependencies[prev_id.inner()].insert(id);
-            Self::dependency_tree_creation(&mut dependencies, id, prev_id);
-        }
-
-        Self { dependencies }
-    }
-
-    fn dependency_tree_creation(dependencies: &mut Vec<BTreeSet<I>>, id: I, looking_id: I) {
-        for selected_id in 0..dependencies.len() {
-            let classifier_ids = &mut dependencies[selected_id];
-            if selected_id != looking_id.into() && classifier_ids.contains(&looking_id) {
-                classifier_ids.insert(id);
-                Self::dependency_tree_creation(dependencies, id, selected_id.into());
+            checker.set(id, id, true);
+            checker.set(prev_id, id, true);
+            for i in 0..prev_id.inner() {
+                if checker.get(i.into(), prev_id) {
+                    checker.set(i.into(), id, true);
+                }
             }
         }
+
+        checker
+    }
+
+    fn get(&self, x: I, y: I) -> bool {
+        self.dependency_matrix[y.inner() * I::TOTAL + x.inner()]
+    }
+
+    fn set(&mut self, x: I, y: I, value: bool) {
+        self.dependency_matrix[y.inner() * I::TOTAL + x.inner()] = value;
     }
 
     pub fn check(&self, next: I, to: I) -> DependencyStatus {
-        if self.dependencies[next.inner()].contains(&to) {
-            DependencyStatus::NeedAnalysis
-        } else if self.dependencies[to.inner()].contains(&next) {
-            DependencyStatus::Ok
+        if self.get(next, to) {
+            DependencyStatus::Descendant
+        } else if self.get(to, next) {
+            DependencyStatus::Predecessor
         } else {
-            DependencyStatus::None
+            DependencyStatus::NoPath
         }
     }
 }

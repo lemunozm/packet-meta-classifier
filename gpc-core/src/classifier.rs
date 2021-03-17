@@ -164,7 +164,7 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                 .check(self.next_classifier_id, classifier_id);
 
             match status {
-                DependencyStatus::NeedAnalysis => {
+                DependencyStatus::Descendant => {
                     if self.finished_analysis {
                         return ClassificationStatus::CanClassify;
                     }
@@ -195,8 +195,8 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                         AnalyzerStatus::Abort => unreachable!(),
                     }
                 }
-                DependencyStatus::Ok => break ClassificationStatus::CanClassify,
-                DependencyStatus::None => break ClassificationStatus::NotClassify,
+                DependencyStatus::Predecessor => break ClassificationStatus::CanClassify,
+                DependencyStatus::NoPath => break ClassificationStatus::NotClassify,
             }
         }
     }
