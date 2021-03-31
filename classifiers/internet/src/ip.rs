@@ -1,7 +1,7 @@
 pub mod analyzer {
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerResult};
     use gpc_core::base::flow::NoFlow;
     use gpc_core::packet::{Direction, Packet};
 
@@ -45,36 +45,40 @@ pub mod analyzer {
         const PREV_ID: ClassifierId = ClassifierId::None;
         type Flow = NoFlow<Self>;
 
-        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
+        fn analyze(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;
 
-            let header_len = match ip_version {
-                4 => {
-                    self.protocol = packet.data[9];
-                    self.version = Version::V4(V4 {
-                        source: Ipv4Addr::from(*array_ref![packet.data, 12, 4]),
-                        dest: Ipv4Addr::from(*array_ref![packet.data, 16, 4]),
-                    });
-                    ((packet.data[0] & 0x0F) as usize) << 2
-                }
-                6 => {
-                    self.protocol = packet.data[6];
-                    self.version = Version::V6(V6 {
-                        source: Ipv6Addr::from(*array_ref![packet.data, 8, 16]),
-                        dest: Ipv6Addr::from(*array_ref![packet.data, 24, 16]),
-                    });
-                    40
-                }
-                _ => return AnalyzerStatus::Abort,
+            let (analyzer, header_len) = match ip_version {
+                4 => (
+                    Self {
+                        protocol: packet.data[9],
+                        version: Version::V4(V4 {
+                            source: Ipv4Addr::from(*array_ref![packet.data, 12, 4]),
+                            dest: Ipv4Addr::from(*array_ref![packet.data, 16, 4]),
+                        }),
+                    },
+                    ((packet.data[0] & 0x0F) as usize) << 2,
+                ),
+                6 => (
+                    Self {
+                        protocol: packet.data[6],
+                        version: Version::V6(V6 {
+                            source: Ipv6Addr::from(*array_ref![packet.data, 8, 16]),
+                            dest: Ipv6Addr::from(*array_ref![packet.data, 24, 16]),
+                        }),
+                    },
+                    40,
+                ),
+                _ => return AnalyzerResult::Abort,
             };
 
-            let next_classifier = match self.protocol {
+            let next_classifier = match analyzer.protocol {
                 6 => ClassifierId::Tcp,
                 //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
                 _ => ClassifierId::None,
             };
 
-            AnalyzerStatus::Next(next_classifier, header_len)
+            AnalyzerResult::Next(analyzer, next_classifier, header_len)
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {

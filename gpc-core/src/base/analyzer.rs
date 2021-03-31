@@ -5,18 +5,9 @@ use crate::packet::{Direction, Packet};
 
 use std::io::Write;
 
-pub enum AnalyzerStatus<I: ClassifierId> {
-    Next(I, usize),
+pub enum AnalyzerResult<A, I: ClassifierId> {
+    Next(A, I, usize),
     Abort,
-}
-
-impl<I: ClassifierId> AnalyzerStatus<I> {
-    pub fn next(self) -> (I, usize) {
-        match self {
-            Self::Next(classifier_id, bytes_parsed) => (classifier_id, bytes_parsed),
-            Self::Abort => panic!("Expected Next variant"),
-        }
-    }
 }
 
 pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
@@ -25,7 +16,7 @@ pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
     const PREV_ID: I;
     type Flow: Flow<I>;
 
-    fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
+    fn analyze(packet: &Packet) -> AnalyzerResult<Self, I>;
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
 }
 
@@ -36,7 +27,7 @@ impl<I: ClassifierId> Analyzer<I> for NoAnalyzer {
     const PREV_ID: I = I::NONE;
     type Flow = NoFlow<NoAnalyzer>;
 
-    fn analyze<'a>(&mut self, _packet: &Packet) -> AnalyzerStatus<I> {
+    fn analyze(_packet: &Packet) -> AnalyzerResult<NoAnalyzer, I> {
         unreachable!()
     }
 

@@ -2,7 +2,7 @@ pub mod analyzer {
     use super::flow::HttpFlow;
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -15,8 +15,8 @@ pub mod analyzer {
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
         type Flow = HttpFlow;
 
-        fn analyze(&mut self, _packet: &Packet) -> AnalyzerStatus<ClassifierId> {
-            AnalyzerStatus::Next(ClassifierId::None, 0)
+        fn analyze(_packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+            AnalyzerResult::Next(HttpAnalyzer {}, ClassifierId::None, 0)
         }
 
         fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {

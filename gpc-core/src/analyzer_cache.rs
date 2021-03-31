@@ -26,7 +26,6 @@ impl<I: ClassifierId> AnalyzerCache<I> {
     }
 
     pub fn get_clean_mut(&mut self, id: I) -> &mut dyn GenericAnalyzerHandler<I> {
-        self.analyzers[id.inner()].reset();
         &mut *self.analyzers[id.inner()]
     }
 }

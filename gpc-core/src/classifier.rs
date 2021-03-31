@@ -1,9 +1,9 @@
 use crate::analyzer_cache::AnalyzerCache;
-use crate::base::analyzer::AnalyzerStatus;
 use crate::base::id::ClassifierId;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
 use crate::expression::{Expr, ValidatedExpr};
 use crate::flow_pool::FlowPool;
+use crate::handler::analyzer::AnalyzerStatus;
 use crate::loader::AnalyzerLoader;
 use crate::packet::Packet;
 
@@ -171,25 +171,27 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
 
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);
                     let analyzer = self.analyzer_cache.get_clean_mut(self.next_classifier_id);
-                    let analyzer_status = analyzer.analyze(&self.packet);
-                    if let AnalyzerStatus::Abort = analyzer_status {
-                        log::trace!("Analysis aborted: cannot classify");
-                        break ClassificationStatus::Abort;
-                    }
 
-                    self.flow_pool.update(analyzer, self.packet.direction);
-
-                    let (next_classifier_id, bytes_parsed) = analyzer_status.next();
-                    if next_classifier_id == I::NONE {
-                        log::trace!("Analysis finished");
-                        self.finished_analysis = true;
-                        break match self.next_classifier_id == classifier_id {
-                            true => ClassificationStatus::CanClassify,
-                            false => ClassificationStatus::NotClassify,
-                        };
-                    } else {
-                        self.packet.data = &self.packet.data[bytes_parsed..];
-                        self.next_classifier_id = next_classifier_id;
+                    match analyzer.analyze(&self.packet) {
+                        AnalyzerStatus::Next(id, bytes_parsed) => {
+                            self.flow_pool.update(analyzer, self.packet.direction);
+                            if id == ClassifierId::NONE {
+                                log::trace!("Analysis finished");
+                                self.finished_analysis = true;
+                                break match self.next_classifier_id == classifier_id {
+                                    true => ClassificationStatus::CanClassify,
+                                    false => ClassificationStatus::NotClassify,
+                                };
+                            } else {
+                                self.packet.data = &self.packet.data[bytes_parsed..];
+                                self.next_classifier_id = id;
+                                continue;
+                            }
+                        }
+                        AnalyzerStatus::Abort => {
+                            log::trace!("Analysis aborted: cannot classify");
+                            break ClassificationStatus::Abort;
+                        }
                     }
                 }
                 DependencyStatus::Predecessor => break ClassificationStatus::CanClassify,

@@ -2,7 +2,7 @@ pub mod analyzer {
     use super::flow::TcpFlow;
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -18,22 +18,26 @@ pub mod analyzer {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 
-        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
-            self.source_port = u16::from_be_bytes(*array_ref![packet.data, 0, 2]);
-            self.dest_port = u16::from_be_bytes(*array_ref![packet.data, 2, 2]);
+        fn analyze(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+            let analyzer = Self {
+                source_port: u16::from_be_bytes(*array_ref![packet.data, 0, 2]),
+                dest_port: u16::from_be_bytes(*array_ref![packet.data, 2, 2]),
+            };
 
             let header_len = (((packet.data[12] & 0xF0) as usize) >> 4) << 2;
 
-            let server_port = match packet.direction {
-                Direction::Uplink => self.dest_port,
-                Direction::Downlink => self.source_port,
-            };
-
             let next_protocol = match packet.data.len() - header_len > 0 {
-                true => Self::expected_l7_protocol(server_port),
+                true => {
+                    let server_port = match packet.direction {
+                        Direction::Uplink => analyzer.dest_port,
+                        Direction::Downlink => analyzer.source_port,
+                    };
+                    Self::expected_l7_protocol(server_port)
+                }
                 false => ClassifierId::None,
             };
-            AnalyzerStatus::Next(next_protocol, header_len)
+
+            AnalyzerResult::Next(analyzer, next_protocol, header_len)
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
