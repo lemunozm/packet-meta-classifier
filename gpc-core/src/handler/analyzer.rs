@@ -21,12 +21,12 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
 }
 
 impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
-    pub fn inner_ref<B: Analyzer<I>>(&self) -> &B {
-        if self.id() == B::ID {
+    pub fn inner_ref<A: Analyzer<I>>(&self) -> &A {
+        if self.id() == A::ID {
             let handler = unsafe {
                 // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
                 // they are the same object.
-                &*(&*self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<B>)
+                &*(self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<A>)
             };
             return &handler.0;
         }
@@ -34,7 +34,7 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
         panic!(
             "Trying to cast analyzer of type {:?} into {:?}",
             self.id(),
-            B::ID
+            A::ID
         );
     }
 
