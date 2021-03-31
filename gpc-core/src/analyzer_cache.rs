@@ -42,7 +42,7 @@ impl<'a, I, B, F, A> GenericAnalyzerBuilder<I> for AnalyzerBuilderHandler<'a, I,
 where
     B: for<'b> AnalyzerBuilder<'b, I, Analyzer = A> + 'static,
     A: for<'b> Analyzer<'b, I, Flow = F>,
-    F: Flow<I, Analyzer = A> + 'static,
+    F: Flow<A, I> + 'static,
     I: ClassifierId,
 {
     fn build_from_packet<'c>(

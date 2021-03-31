@@ -2,6 +2,6 @@
 
 members = [
     "gpc-core",
-    "gpc-testing",
-    "classifiers/internet",
+    #"gpc-testing",
+    #"classifiers/internet",
 ]

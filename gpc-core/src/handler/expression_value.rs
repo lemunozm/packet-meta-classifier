@@ -37,7 +37,7 @@ impl<V, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Analyzer = A>,
     A: for<'a> Analyzer<'a, I, Flow = F>,
-    F: Flow<I, Analyzer = A> + 'static,
+    F: Flow<A, I> + 'static,
     I: ClassifierId,
 {
     fn check(
@@ -45,13 +45,13 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler<I>>,
     ) -> bool {
-        let this_analyzer = analyzer.inner_ref::<F::Analyzer>();
+        let this_analyzer = analyzer.inner_ref::<A>();
 
         match flow {
             Some(flow) => {
                 let this_flow = flow
                     .as_any()
-                    .downcast_ref::<FlowHandler<F>>()
+                    .downcast_ref::<FlowHandler<F, A>>()
                     .unwrap()
                     .flow();
 

@@ -18,7 +18,7 @@ where
 pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
-    type Flow: Flow<I>;
+    type Flow: Flow<Self, I>;
 
     fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, I>>; //TODO: packet inside lifetime
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;

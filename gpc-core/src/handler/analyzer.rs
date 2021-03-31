@@ -44,7 +44,7 @@ pub struct AnalyzerHandler<A> {
 
 impl<'a, A, F, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A>
 where
-    F: Flow<I, Analyzer = A> + 'static,
+    F: Flow<A, I> + 'static,
     A: for<'b> Analyzer<'b, I, Flow = F>,
     I: ClassifierId,
 {

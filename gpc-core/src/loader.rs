@@ -25,7 +25,7 @@ impl<I: ClassifierId> AnalyzerFactory<I> {
     where
         B: for<'b> AnalyzerBuilder<'b, I, Analyzer = A> + 'static,
         A: for<'b> Analyzer<'b, I, Flow = F>,
-        F: Flow<I, Analyzer = A> + 'static,
+        F: Flow<A, I> + 'static,
     {
         assert!(
             A::ID > self.last_id.into(),

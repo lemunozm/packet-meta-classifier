@@ -7,20 +7,24 @@ use crate::packet::Direction;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub type SharedGenericFlowHandler<I> = Rc<RefCell<dyn GenericFlowHandler<I>>>;
+pub type SharedGenericFlowHandler<'a, I> = Rc<RefCell<dyn GenericFlowHandler<I> + 'a>>;
 
 pub trait GenericFlowHandler<I: ClassifierId> {
     fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction);
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
-pub struct FlowHandler<F> {
+pub struct FlowHandler<F, A> {
     flow: F,
+    _analyzer_type: std::marker::PhantomData<A>,
 }
 
-impl<F> FlowHandler<F> {
+impl<F, A> FlowHandler<F, A> {
     pub fn new(flow: F) -> Self {
-        Self { flow }
+        Self {
+            flow,
+            _analyzer_type: std::marker::PhantomData::default(),
+        }
     }
 
     pub fn flow(&self) -> &F {
@@ -28,18 +32,19 @@ impl<F> FlowHandler<F> {
     }
 }
 
-impl<F, A, I> GenericFlowHandler<I> for FlowHandler<F>
+impl<F, A, I> GenericFlowHandler<I> for FlowHandler<F, A>
 where
-    F: Flow<I, Analyzer = A> + 'static,
+    F: Flow<A, I> + 'static,
     A: for<'a> Analyzer<'a, I>,
     I: ClassifierId,
 {
     fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
-        let this_analyzer = analyzer.inner_ref::<F::Analyzer>();
+        let this_analyzer = analyzer.inner_ref::<A>();
         self.flow.update(this_analyzer, direction);
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
-        self
+        //self
+        todo!()
     }
 }
