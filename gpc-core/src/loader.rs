@@ -1,54 +1,3 @@
-/*
-use crate::base::analyzer::Analyzer;
-use crate::base::flow::Flow;
-use crate::base::id::ClassifierId;
-use crate::handler::analyzer::GenericAnalyzerHandler;
-
-pub trait AnalyzerBuilder<I: ClassifierId>: Sized {
-    type Analyzer: Analyzer<I>;
-}
-
-pub struct AnalyzerLoader<I: ClassifierId> {
-    analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,
-}
-
-impl<I: ClassifierId> Default for AnalyzerLoader<I> {
-    fn default() -> Self {
-        Self {
-            analyzers: Vec::default(),
-        }
-    }
-}
-
-impl<I: ClassifierId> AnalyzerLoader<I> {
-    pub fn load<A, F>(mut self, analyzer: A) -> Self
-    where
-        A: Analyzer<I, Flow = F> + 'static,
-        F: Flow<A>,
-    {
-        let last_id = self
-            .analyzers
-            .last()
-            .map(|analyzer| analyzer.id())
-            .unwrap_or(I::NONE);
-
-        assert!(
-            A::ID > last_id,
-            "Expected ID with higher value than {:?}",
-            A::ID
-        );
-
-        let analyzer = <dyn GenericAnalyzerHandler<I>>::new(analyzer);
-        self.analyzers.push(analyzer);
-        self
-    }
-
-    pub fn list(self) -> Vec<Box<dyn GenericAnalyzerHandler<I>>> {
-        self.analyzers
-    }
-}
-*/
-
 use crate::analyzer_cache::AnalyzerCache;
 use crate::base::analyzer::Analyzer;
 use crate::base::builder::Builder;
@@ -76,8 +25,8 @@ impl<I: ClassifierId> Default for AnalyzerFactory<I> {
 impl<I: ClassifierId> AnalyzerFactory<I> {
     pub fn builder<B, A, F>(mut self, builder: B) -> Self
     where
-        B: Builder<I, Analyzer = A> + 'static,
-        A: Analyzer<I, Flow = F>,
+        B: Builder<I, Analyzer = A, Flow = F> + 'static,
+        A: Analyzer<I>,
         F: Flow<A> + 'static,
     {
         assert!(

@@ -1,17 +1,18 @@
 use crate::ClassifierId;
 
 use gpc_core::base::builder::Builder;
+use gpc_core::base::flow::NoFlow;
 
 pub struct IpBuilder;
 impl Builder<ClassifierId> for IpBuilder {
     type Analyzer = analyzer::IpAnalyzer;
+    type Flow = NoFlow;
 }
 
 mod analyzer {
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
-    use gpc_core::base::flow::NoFlow;
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -52,7 +53,6 @@ mod analyzer {
     impl Analyzer<ClassifierId> for IpAnalyzer {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
-        type Flow = NoFlow;
 
         fn build(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;
@@ -133,7 +133,7 @@ pub mod expression {
     pub struct Ip;
 
     impl ExpressionValue<ClassifierId> for Ip {
-        type Analyzer = IpAnalyzer;
+        type Builder = super::IpBuilder;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
@@ -151,7 +151,7 @@ pub mod expression {
     }
 
     impl ExpressionValue<ClassifierId> for IpVersion {
-        type Analyzer = IpAnalyzer;
+        type Builder = super::IpBuilder;
 
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
@@ -169,7 +169,7 @@ pub mod expression {
     pub struct IpSource(pub IpAddr);
 
     impl ExpressionValue<ClassifierId> for IpSource {
-        type Analyzer = IpAnalyzer;
+        type Builder = super::IpBuilder;
 
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
@@ -187,7 +187,7 @@ pub mod expression {
     pub struct IpDest(pub IpAddr);
 
     impl ExpressionValue<ClassifierId> for IpDest {
-        type Analyzer = IpAnalyzer;
+        type Builder = super::IpBuilder;
 
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"

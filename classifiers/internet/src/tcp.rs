@@ -5,10 +5,10 @@ use gpc_core::base::builder::Builder;
 pub struct TcpBuilder;
 impl Builder<ClassifierId> for TcpBuilder {
     type Analyzer = analyzer::TcpAnalyzer;
+    type Flow = flow::TcpFlow;
 }
 
 mod analyzer {
-    use super::flow::TcpFlow;
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
@@ -23,7 +23,6 @@ mod analyzer {
     }
 
     impl Analyzer<ClassifierId> for TcpAnalyzer {
-        type Flow = TcpFlow;
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 
@@ -117,7 +116,7 @@ pub mod expression {
     pub struct Tcp;
 
     impl ExpressionValue<ClassifierId> for Tcp {
-        type Analyzer = TcpAnalyzer;
+        type Builder = super::TcpBuilder;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
@@ -132,7 +131,7 @@ pub mod expression {
     pub struct TcpSourcePort(pub u16);
 
     impl ExpressionValue<ClassifierId> for TcpSourcePort {
-        type Analyzer = TcpAnalyzer;
+        type Builder = super::TcpBuilder;
 
         fn description() -> &'static str {
             "Valid if the source TCP port of the packet matches the given port"
@@ -147,7 +146,7 @@ pub mod expression {
     pub struct TcpDestPort(pub u16);
 
     impl ExpressionValue<ClassifierId> for TcpDestPort {
-        type Analyzer = TcpAnalyzer;
+        type Builder = super::TcpBuilder;
 
         fn description() -> &'static str {
             "Valid if the destination TCP port of the packet matches the given port"

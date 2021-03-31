@@ -5,10 +5,10 @@ use gpc_core::base::builder::Builder;
 pub struct HttpBuilder;
 impl Builder<ClassifierId> for HttpBuilder {
     type Analyzer = analyzer::HttpAnalyzer;
+    type Flow = flow::HttpFlow;
 }
 
 mod analyzer {
-    use super::flow::HttpFlow;
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
@@ -22,7 +22,6 @@ mod analyzer {
     impl Analyzer<ClassifierId> for HttpAnalyzer {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
-        type Flow = HttpFlow;
 
         fn build(_packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             Ok(AnalyzerInfo {
@@ -69,7 +68,7 @@ pub mod expression {
     pub struct Http;
 
     impl ExpressionValue<ClassifierId> for Http {
-        type Analyzer = HttpAnalyzer;
+        type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
             "Valid if the packet is HTTP"

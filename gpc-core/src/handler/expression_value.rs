@@ -1,4 +1,5 @@
 use crate::base::analyzer::Analyzer;
+use crate::base::builder::Builder;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
@@ -33,10 +34,11 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
     }
 }
 
-impl<V, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
+impl<V, B, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
-    V: ExpressionValue<I, Analyzer = A>,
-    A: Analyzer<I, Flow = F>,
+    V: ExpressionValue<I, Builder = B>,
+    B: Builder<I, Analyzer = A, Flow = F>,
+    A: Analyzer<I>,
     F: Flow<A>,
     I: ClassifierId,
 {
@@ -45,7 +47,7 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler>,
     ) -> bool {
-        let analyzer = analyzer.inner_ref::<A>();
+        let analyzer = analyzer.inner_ref::<A, F>();
 
         match flow {
             Some(flow) => self.0.check(analyzer, flow.inner_ref::<F>()),

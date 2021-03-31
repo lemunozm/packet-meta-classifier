@@ -1,10 +1,10 @@
-use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
-
 use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-
+use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
 use crate::packet::Direction;
+
+use std::marker::PhantomData;
 
 pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn id(&self) -> I;
@@ -15,7 +15,7 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
 }
 
 impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
-    pub fn inner_ref<A: Analyzer<I>>(&self) -> &A {
+    pub fn inner_ref<A: Analyzer<I>, F: Flow<A>>(&self) -> &A {
         if self.id() != A::ID {
             panic!(
                 "Trying to cast analyzer of type {:?} into {:?}",
@@ -27,13 +27,13 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
         let handler = unsafe {
             // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
             // they are the same object.
-            &*(self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<A>)
+            &*(self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<A, F>)
         };
 
         &handler.0
     }
 
-    pub fn update<A: Analyzer<I>>(&mut self, new_analyzer: A) {
+    pub fn update<A: Analyzer<I>, F: Flow<A>>(&mut self, new_analyzer: A) {
         if self.id() != A::ID {
             panic!(
                 "Trying to cast analyzer of type {:?} into {:?}",
@@ -45,21 +45,23 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
         let handler = unsafe {
             // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
             // they are the same object.
-            &mut *(self as *mut dyn GenericAnalyzerHandler<I> as *mut AnalyzerHandler<A>)
+            &mut *(self as *mut dyn GenericAnalyzerHandler<I> as *mut AnalyzerHandler<A, F>)
         };
         handler.0 = new_analyzer;
     }
 
-    pub fn new<'a, A: Analyzer<I> + 'a>(analyzer: A) -> Box<dyn GenericAnalyzerHandler<I> + 'a> {
-        Box::new(AnalyzerHandler(analyzer))
+    pub fn new<'a, A: Analyzer<I> + 'a, F: Flow<A>>(
+        analyzer: A,
+    ) -> Box<dyn GenericAnalyzerHandler<I> + 'a> {
+        Box::new(AnalyzerHandler(analyzer, PhantomData::<F>::default()))
     }
 }
 
-struct AnalyzerHandler<A>(A);
+struct AnalyzerHandler<A, F>(A, PhantomData<F>);
 
-impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A>
+impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A, F>
 where
-    A: Analyzer<I, Flow = F>,
+    A: Analyzer<I>,
     F: Flow<A> + 'static,
     I: ClassifierId,
 {
@@ -80,7 +82,7 @@ where
     }
 
     fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction) {
-        let flow = &mut flow.inner_mut::<A::Flow>();
+        let flow = &mut flow.inner_mut::<F>();
         flow.update(&self.0, direction);
     }
 }

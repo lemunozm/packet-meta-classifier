@@ -30,8 +30,8 @@ pub struct BuilderHandler<B, I: ClassifierId> {
 
 impl<I, B, F, A> GenericBuilderHandler<I> for BuilderHandler<B, I>
 where
-    B: Builder<I, Analyzer = A> + 'static,
-    A: Analyzer<I, Flow = F> + 'static,
+    B: Builder<I, Analyzer = A, Flow = F> + 'static,
+    A: Analyzer<I> + 'static,
     F: Flow<A> + 'static,
     I: ClassifierId,
 {
@@ -42,10 +42,10 @@ where
         match A::build(packet) {
             Ok(info) => {
                 match &mut self.cached_analyzer {
-                    Some(analyzer) => analyzer.update(info.analyzer),
+                    Some(analyzer) => analyzer.update::<A, F>(info.analyzer),
                     None => {
                         self.cached_analyzer
-                            .insert(<dyn GenericAnalyzerHandler<I>>::new(info.analyzer));
+                            .insert(<dyn GenericAnalyzerHandler<I>>::new::<A, F>(info.analyzer));
                     }
                 }
 
