@@ -1,4 +1,4 @@
-use crate::base::flow::{Flow, NoFlow};
+use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
@@ -21,20 +21,4 @@ pub trait Analyzer<I: ClassifierId>: Sized {
 
     fn build(packet: &Packet) -> AnalyzerResult<Self, I>;
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
-}
-
-#[derive(Default)]
-pub struct NoAnalyzer;
-impl<I: ClassifierId> Analyzer<I> for NoAnalyzer {
-    const ID: I = I::NONE;
-    const PREV_ID: I = I::NONE;
-    type Flow = NoFlow;
-
-    fn build(_packet: &Packet) -> AnalyzerResult<NoAnalyzer, I> {
-        unreachable!()
-    }
-
-    fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
-        unreachable!()
-    }
 }
