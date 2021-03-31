@@ -17,19 +17,19 @@ pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
     fn classifier_id(&self) -> I;
 }
 
-pub struct ExpressionValueHandler<V> {
-    value: V,
-}
-
-impl<V> ExpressionValueHandler<V> {
-    pub fn new(value: V) -> Self {
-        Self { value }
+impl<I: ClassifierId> dyn GenericExpressionValueHandler<I> {
+    pub fn new<V: ExpressionValue<I> + 'static>(
+        expression_value: V,
+    ) -> Box<dyn GenericExpressionValueHandler<I>> {
+        Box::new(ExpressionValueHandler(expression_value))
     }
 }
 
+struct ExpressionValueHandler<V>(V);
+
 impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.value)
+        write!(f, "{:?}", self.0)
     }
 }
 
@@ -48,11 +48,11 @@ where
         let analyzer = analyzer.inner_ref::<A>();
 
         match flow {
-            Some(flow) => self.value.check(analyzer, flow.inner_ref::<F>()),
+            Some(flow) => self.0.check(analyzer, flow.inner_ref::<F>()),
             None => {
                 // The flow created here is always a NoFlow
-                self.value
-                    .check(analyzer, &F::create(&analyzer, Direction::Uplink))
+                let no_flow = F::create(&analyzer, Direction::Uplink);
+                self.0.check(analyzer, &no_flow)
             }
         }
     }

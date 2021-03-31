@@ -2,7 +2,7 @@ use crate::base::analyzer::Analyzer;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::expression_value::{ExpressionValueHandler, GenericExpressionValueHandler};
+use crate::handler::expression_value::GenericExpressionValueHandler;
 
 use std::ops::{BitAnd, BitOr, Not};
 
@@ -43,7 +43,7 @@ impl<I: ClassifierId> Expr<I> {
         A: Analyzer<I, Flow = F>,
         F: Flow<A>,
     {
-        Expr::Value(Box::new(ExpressionValueHandler::new(value)))
+        Expr::Value(<dyn GenericExpressionValueHandler<I>>::new(value))
     }
 
     pub fn all(expressions: Vec<Expr<I>>) -> Expr<I> {
