@@ -9,9 +9,13 @@ pub trait GenericBuilderHandler<I: ClassifierId> {
     fn build_from_packet(
         &mut self,
         packet: &Packet,
+        life_stamp: usize,
     ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<I>, I>;
 
-    fn get(&self) -> &dyn GenericAnalyzerHandler<I>;
+    /// This function is unsafe because the caller can choose an incorrect live_stamp that breaks
+    /// the life_stamp precondition: the life_stamp parameter should be the same as the used in
+    /// the last call to [`build_from_packet()`]
+    unsafe fn get(&self, life_stamp: usize) -> &dyn GenericAnalyzerHandler<I>;
 }
 
 impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
@@ -19,6 +23,7 @@ impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
         Box::new(BuilderHandler {
             _builder: builder,
             cached_analyzer: None,
+            life_stamp: 0,
         })
     }
 }
@@ -26,6 +31,7 @@ impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
 pub struct BuilderHandler<B, I: ClassifierId> {
     _builder: B,
     cached_analyzer: Option<Box<dyn GenericAnalyzerHandler<I>>>,
+    life_stamp: usize,
 }
 
 impl<I, B, F, A> GenericBuilderHandler<I> for BuilderHandler<B, I>
@@ -38,6 +44,7 @@ where
     fn build_from_packet(
         &mut self,
         packet: &Packet,
+        life_stamp: usize,
     ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<I>, I> {
         match A::build(packet) {
             Ok(info) => {
@@ -49,6 +56,8 @@ where
                     }
                 }
 
+                self.life_stamp = life_stamp;
+
                 Ok(AnalyzerInfo {
                     analyzer: self.cached_analyzer.as_deref_mut().unwrap(),
                     next_classifier_id: info.next_classifier_id,
@@ -59,7 +68,13 @@ where
         }
     }
 
-    fn get(&self) -> &dyn GenericAnalyzerHandler<I> {
+    unsafe fn get(&self, life_stamp: usize) -> &dyn GenericAnalyzerHandler<I> {
+        if life_stamp != self.life_stamp {
+            panic!(
+                "Expected life stamp: {}, found: {}",
+                self.life_stamp, life_stamp
+            );
+        }
         self.cached_analyzer.as_deref().unwrap()
     }
 }

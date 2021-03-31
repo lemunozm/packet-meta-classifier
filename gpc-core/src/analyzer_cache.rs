@@ -34,15 +34,21 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
     ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<I>, I> {
         self.cache.builders[id.inner()]
             .as_mut()
-            .unwrap_or_else(|| panic!("The ID {:?} must be an associated builder", id))
-            .build_from_packet(packet)
+            .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+            .build_from_packet(packet, self.cache.life_stamp)
     }
 
     pub fn get(&self, id: I) -> &dyn GenericAnalyzerHandler<I> {
-        self.cache.builders[id.inner()]
-            .as_ref()
-            .unwrap_or_else(|| panic!("The ID {:?} must be an associated builder", id))
-            .get()
+        unsafe {
+            // SAFETY: The lifetime of the returned reference is the same as the data lifetime.
+            // If the element has not be created, the inner life stamp will not match with this
+            // life stamp.
+            // If both life stamps are the same, getting the analyzer is a safe operation.
+            self.cache.builders[id.inner()]
+                .as_ref()
+                .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+                .get(self.cache.life_stamp)
+        }
     }
 }
 
