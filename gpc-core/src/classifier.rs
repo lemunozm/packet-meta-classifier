@@ -188,8 +188,8 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                                 continue;
                             }
                         }
-                        AnalyzerStatus::Abort => {
-                            log::trace!("Analysis aborted: cannot classify");
+                        AnalyzerStatus::Abort(reason) => {
+                            log::trace!("Analysis aborted. Reason: {}", reason);
                             break ClassificationStatus::Abort;
                         }
                     }

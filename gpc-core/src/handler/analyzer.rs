@@ -1,6 +1,6 @@
 use crate::handler::flow::{FlowHandler, SharedGenericFlowHandler};
 
-use crate::base::analyzer::{Analyzer, AnalyzerResult};
+use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 
@@ -12,7 +12,7 @@ use std::rc::Rc;
 
 pub enum AnalyzerStatus<I: ClassifierId> {
     Next(I, usize),
-    Abort,
+    Abort(&'static str),
 }
 
 pub trait GenericAnalyzerHandler<I: ClassifierId> {
@@ -53,12 +53,12 @@ where
     }
 
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I> {
-        match A::analyze(packet) {
-            AnalyzerResult::Next(analyzer, id, bytes_parsed) => {
-                self.analyzer = analyzer;
-                AnalyzerStatus::Next(id, bytes_parsed)
+        match A::build(packet) {
+            Ok(info) => {
+                self.analyzer = info.analyzer;
+                AnalyzerStatus::Next(info.next_classifier_id, info.bytes_parsed)
             }
-            AnalyzerResult::Abort => AnalyzerStatus::Abort,
+            Err(reason) => AnalyzerStatus::Abort(reason),
         }
     }
 

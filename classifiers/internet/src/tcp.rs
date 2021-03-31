@@ -2,7 +2,7 @@ pub mod analyzer {
     use super::flow::TcpFlow;
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerResult};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -18,7 +18,7 @@ pub mod analyzer {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 
-        fn analyze(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             let analyzer = Self {
                 source_port: u16::from_be_bytes(*array_ref![packet.data, 0, 2]),
                 dest_port: u16::from_be_bytes(*array_ref![packet.data, 2, 2]),
@@ -37,7 +37,11 @@ pub mod analyzer {
                 false => ClassifierId::None,
             };
 
-            AnalyzerResult::Next(analyzer, next_protocol, header_len)
+            Ok(AnalyzerInfo {
+                analyzer,
+                next_classifier_id: next_protocol,
+                bytes_parsed: header_len,
+            })
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {

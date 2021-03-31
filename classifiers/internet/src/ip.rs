@@ -1,7 +1,7 @@
 pub mod analyzer {
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerResult};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use gpc_core::base::flow::NoFlow;
     use gpc_core::packet::{Direction, Packet};
 
@@ -45,7 +45,7 @@ pub mod analyzer {
         const PREV_ID: ClassifierId = ClassifierId::None;
         type Flow = NoFlow<Self>;
 
-        fn analyze(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;
 
             let (analyzer, header_len) = match ip_version {
@@ -69,16 +69,20 @@ pub mod analyzer {
                     },
                     40,
                 ),
-                _ => return AnalyzerResult::Abort,
+                _ => return Err("Ip version not valid"),
             };
 
-            let next_classifier = match analyzer.protocol {
+            let next_classifier_id = match analyzer.protocol {
                 6 => ClassifierId::Tcp,
                 //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
                 _ => ClassifierId::None,
             };
 
-            AnalyzerResult::Next(analyzer, next_classifier, header_len)
+            Ok(AnalyzerInfo {
+                analyzer,
+                next_classifier_id,
+                bytes_parsed: header_len,
+            })
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
