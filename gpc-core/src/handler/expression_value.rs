@@ -36,7 +36,7 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
 impl<V, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Analyzer = A>,
-    A: Analyzer<I, Flow = F>,
+    A: Analyzer<I, Flow = F> + 'static,
     F: Flow<I, Analyzer = A>,
     I: ClassifierId,
 {

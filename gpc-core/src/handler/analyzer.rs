@@ -40,7 +40,7 @@ impl<A> AnalyzerHandler<A> {
 
 impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A>
 where
-    A: Analyzer<I, Flow = F>,
+    A: Analyzer<I, Flow = F> + 'static,
     F: Flow<I, Analyzer = A>,
     I: ClassifierId,
 {

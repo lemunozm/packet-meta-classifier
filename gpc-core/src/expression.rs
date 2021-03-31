@@ -40,7 +40,7 @@ impl<I: ClassifierId> Expr<I> {
     pub fn value<V, A, F>(value: V) -> Expr<I>
     where
         V: ExpressionValue<I, Analyzer = A>,
-        A: Analyzer<I, Flow = F>,
+        A: Analyzer<I, Flow = F> + 'static,
         F: Flow<I, Analyzer = A>,
     {
         Expr::Value(Box::new(ExpressionValueHandler::new(value)))

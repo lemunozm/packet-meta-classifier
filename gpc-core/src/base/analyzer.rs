@@ -13,7 +13,7 @@ pub struct AnalyzerInfo<A, I: ClassifierId> {
     pub bytes_parsed: usize,
 }
 
-pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
+pub trait Analyzer<I: ClassifierId>: Sized {
     //TODO: PERF: Use 'a lifetime that be less than the packet data.
     const ID: I;
     const PREV_ID: I;
