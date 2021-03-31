@@ -1,7 +1,7 @@
 use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::handler::analyzer::GenericAnalyzerHandler;
 
 pub trait AnalyzerBuilder<I: ClassifierId>: Sized {
     type Analyzer: Analyzer<I>;
@@ -37,7 +37,8 @@ impl<I: ClassifierId> AnalyzerLoader<I> {
             A::ID
         );
 
-        self.analyzers.push(Box::new(AnalyzerHandler(analyzer)));
+        let analyzer = <dyn GenericAnalyzerHandler<I>>::new(analyzer);
+        self.analyzers.push(analyzer);
         self
     }
 

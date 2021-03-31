@@ -1,7 +1,7 @@
 use crate::base::analyzer::{Analyzer, AnalyzerResult};
 use crate::base::flow::NoFlow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::handler::analyzer::GenericAnalyzerHandler;
 use crate::packet::{Direction, Packet};
 
 use std::io::Write;
@@ -13,7 +13,7 @@ pub struct AnalyzerCache<I: ClassifierId> {
 impl<I: ClassifierId> AnalyzerCache<I> {
     pub fn new(analyzer_list: Vec<Box<dyn GenericAnalyzerHandler<I>>>) -> Self {
         let mut analyzers = (0..I::TOTAL)
-            .map(|_| Box::new(AnalyzerHandler(NoAnalyzer)) as Box<dyn GenericAnalyzerHandler<I>>)
+            .map(|_| <dyn GenericAnalyzerHandler<I>>::new(NoAnalyzer))
             .collect::<Vec<_>>();
 
         for analyzer in analyzer_list {

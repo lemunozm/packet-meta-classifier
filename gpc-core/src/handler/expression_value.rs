@@ -3,7 +3,7 @@ use crate::base::expression_value::ExpressionValue;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::GenericAnalyzerHandler;
-use crate::handler::flow::{FlowHandler, GenericFlowHandler};
+use crate::handler::flow::GenericFlowHandler;
 use crate::packet::Direction;
 
 use std::fmt;
@@ -48,15 +48,7 @@ where
         let analyzer = analyzer.inner_ref::<A>();
 
         match flow {
-            Some(flow) => {
-                let flow = flow
-                    .as_any()
-                    .downcast_ref::<FlowHandler<F>>()
-                    .unwrap()
-                    .flow();
-
-                self.value.check(analyzer, flow)
-            }
+            Some(flow) => self.value.check(analyzer, flow.inner_ref::<F>()),
             None => {
                 // The flow created here is always a NoFlow
                 self.value

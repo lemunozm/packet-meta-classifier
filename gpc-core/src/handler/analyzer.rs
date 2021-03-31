@@ -1,13 +1,10 @@
-use crate::handler::flow::{FlowHandler, GenericFlowHandler, SharedGenericFlowHandler};
+use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
 
 use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
-
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub enum AnalyzerStatus<I: ClassifierId> {
     Next(I, usize),
@@ -40,14 +37,18 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
             B::ID
         );
     }
+
+    pub fn new<'a, A: Analyzer<I> + 'a>(analyzer: A) -> Box<dyn GenericAnalyzerHandler<I> + 'a> {
+        Box::new(AnalyzerHandler(analyzer))
+    }
 }
 
-pub struct AnalyzerHandler<A>(pub A);
+struct AnalyzerHandler<A>(A);
 
 impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A>
 where
-    A: Analyzer<I, Flow = F> + 'static,
-    F: Flow<A>,
+    A: Analyzer<I, Flow = F>,
+    F: Flow<A> + 'static,
     I: ClassifierId,
 {
     fn id(&self) -> I {
@@ -73,16 +74,11 @@ where
     }
 
     fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler {
-        Rc::new(RefCell::new(FlowHandler(F::create(&self.0, direction))))
+        <dyn GenericFlowHandler>::new_shared(F::create(&self.0, direction))
     }
 
     fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction) {
-        let flow = &mut flow
-            .as_mut_any()
-            .downcast_mut::<FlowHandler<A::Flow>>()
-            .unwrap()
-            .0;
-
+        let flow = &mut flow.inner_mut::<A::Flow>();
         flow.update(&self.0, direction);
     }
 }
