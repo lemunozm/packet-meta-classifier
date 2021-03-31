@@ -1,4 +1,13 @@
-pub mod analyzer {
+use crate::ClassifierId;
+
+use gpc_core::base::builder::Builder;
+
+pub struct HttpBuilder;
+impl Builder<ClassifierId> for HttpBuilder {
+    type Analyzer = analyzer::HttpAnalyzer;
+}
+
+mod analyzer {
     use super::flow::HttpFlow;
     use crate::ClassifierId;
 
@@ -29,7 +38,7 @@ pub mod analyzer {
     }
 }
 
-pub mod flow {
+mod flow {
     use super::analyzer::HttpAnalyzer;
 
     use gpc_core::base::flow::Flow;

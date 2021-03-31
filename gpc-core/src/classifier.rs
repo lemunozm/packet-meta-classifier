@@ -1,10 +1,9 @@
-use crate::analyzer_cache::AnalyzerCache;
+use crate::analyzer_cache::{AnalyzerCache, CacheFrame};
 use crate::base::id::ClassifierId;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
 use crate::expression::{Expr, ValidatedExpr};
 use crate::flow_pool::FlowPool;
-use crate::handler::analyzer::AnalyzerStatus;
-use crate::loader::AnalyzerLoader;
+use crate::loader::AnalyzerFactory;
 use crate::packet::Packet;
 
 use std::fmt;
@@ -33,18 +32,8 @@ where
     T: fmt::Display + Default + Eq + Copy,
     I: ClassifierId,
 {
-    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, loader: AnalyzerLoader<I>) -> Self {
-        let analyzers = loader.list();
-
-        let dependency_checker = DependencyChecker::new(
-            analyzers
-                .iter()
-                .map(|analyzer| (analyzer.id(), analyzer.prev_id()))
-                .collect(),
-        );
-
-        let flow_pool = FlowPool::new();
-        let analyzer_cache = AnalyzerCache::new(analyzers);
+    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, factory: AnalyzerFactory<I>) -> Self {
+        let (analyzer_cache, dependency_checker) = factory.split();
 
         Classifier {
             _config,
@@ -60,7 +49,7 @@ where
                 .collect(),
             analyzer_cache,
             dependency_checker,
-            flow_pool,
+            flow_pool: FlowPool::default(),
         }
     }
 
@@ -80,7 +69,7 @@ where
         let mut state = ClassificationState {
             packet,
             next_classifier_id: I::INITIAL,
-            analyzer_cache,
+            cache: analyzer_cache.prepare_for_packet(),
             dependency_checker,
             flow_pool,
             finished_analysis: false,
@@ -99,7 +88,7 @@ where
                 let status = state.analyze_classification_for(expr_value.classifier_id());
                 match status {
                     ClassificationStatus::CanClassify => {
-                        let analyzer = state.analyzer_cache.get(expr_value.classifier_id());
+                        let analyzer = state.cache.get(expr_value.classifier_id());
                         let flow = state.flow_pool.get_cached(expr_value.classifier_id());
                         let answer = expr_value.check(analyzer, flow.as_deref());
 
@@ -141,7 +130,7 @@ enum ClassificationStatus {
 struct ClassificationState<'a, I: ClassifierId> {
     packet: Packet<'a>,
     next_classifier_id: I,
-    analyzer_cache: &'a mut AnalyzerCache<I>,
+    cache: CacheFrame<'a, I>,
     dependency_checker: &'a DependencyChecker<I>,
     flow_pool: &'a mut FlowPool<I>,
     finished_analysis: bool,
@@ -170,12 +159,14 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                     }
 
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);
-                    let analyzer = self.analyzer_cache.get_clean_mut(self.next_classifier_id);
+                    let analyzer_result = self
+                        .cache
+                        .build_from_packet(self.next_classifier_id, &self.packet);
 
-                    match analyzer.analyze(&self.packet) {
-                        AnalyzerStatus::Next(id, bytes_parsed) => {
-                            self.flow_pool.update(analyzer, self.packet.direction);
-                            if id == ClassifierId::NONE {
+                    match analyzer_result {
+                        Ok(info) => {
+                            self.flow_pool.update(info.analyzer, self.packet.direction);
+                            if info.next_classifier_id == ClassifierId::NONE {
                                 log::trace!("Analysis finished");
                                 self.finished_analysis = true;
                                 break match self.next_classifier_id == classifier_id {
@@ -183,12 +174,12 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                                     false => ClassificationStatus::NotClassify,
                                 };
                             } else {
-                                self.packet.data = &self.packet.data[bytes_parsed..];
-                                self.next_classifier_id = id;
+                                self.packet.data = &self.packet.data[info.bytes_parsed..];
+                                self.next_classifier_id = info.next_classifier_id;
                                 continue;
                             }
                         }
-                        AnalyzerStatus::Abort(reason) => {
+                        Err(reason) => {
                             log::trace!("Analysis aborted. Reason: {}", reason);
                             break ClassificationStatus::Abort;
                         }

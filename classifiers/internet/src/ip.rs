@@ -1,4 +1,13 @@
-pub mod analyzer {
+use crate::ClassifierId;
+
+use gpc_core::base::builder::Builder;
+
+pub struct IpBuilder;
+impl Builder<ClassifierId> for IpBuilder {
+    type Analyzer = analyzer::IpAnalyzer;
+}
+
+mod analyzer {
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};

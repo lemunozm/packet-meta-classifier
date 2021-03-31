@@ -7,7 +7,7 @@ pub mod tcp;
 pub mod udp;
 
 use gpc_core::base::id::ClassifierId as ClassifierIdTrait;
-use gpc_core::loader::AnalyzerLoader;
+use gpc_core::loader::AnalyzerFactory;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -40,9 +40,9 @@ impl ClassifierIdTrait for ClassifierId {
     const TOTAL: usize = ClassifierId::COUNT;
 }
 
-pub fn loader() -> AnalyzerLoader<ClassifierId> {
-    AnalyzerLoader::default()
-        .load(ip::analyzer::IpAnalyzer::default())
-        .load(tcp::analyzer::TcpAnalyzer::default())
-        .load(http::analyzer::HttpAnalyzer::default())
+pub fn loader() -> AnalyzerFactory<ClassifierId> {
+    AnalyzerFactory::default()
+        .builder(ip::IpBuilder)
+        .builder(tcp::TcpBuilder)
+        .builder(http::HttpBuilder)
 }

@@ -1,4 +1,13 @@
-pub mod analyzer {
+use crate::ClassifierId;
+
+use gpc_core::base::builder::Builder;
+
+pub struct TcpBuilder;
+impl Builder<ClassifierId> for TcpBuilder {
+    type Analyzer = analyzer::TcpAnalyzer;
+}
+
+mod analyzer {
     use super::flow::TcpFlow;
     use crate::ClassifierId;
 
@@ -67,7 +76,7 @@ pub mod analyzer {
     }
 }
 
-pub mod flow {
+mod flow {
     use super::analyzer::TcpAnalyzer;
 
     use gpc_core::base::flow::Flow;

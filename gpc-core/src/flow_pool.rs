@@ -14,8 +14,8 @@ pub struct FlowPool<I> {
     _id: PhantomData<I>,
 }
 
-impl<I: ClassifierId> FlowPool<I> {
-    pub fn new() -> Self {
+impl<I: ClassifierId> Default for FlowPool<I> {
+    fn default() -> Self {
         Self {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
             flow_cache: (0..I::TOTAL).map(|_| None).collect(),
@@ -23,7 +23,9 @@ impl<I: ClassifierId> FlowPool<I> {
             _id: PhantomData::default(),
         }
     }
+}
 
+impl<I: ClassifierId> FlowPool<I> {
     pub fn prepare_for_packet(&mut self) {
         self.current_flow_signature.clear();
     }

@@ -12,6 +12,6 @@ impl<A> Flow<A> for NoFlow {
     }
 
     fn update(&mut self, _analyzer: &A, _direction: Direction) {
-        unreachable!()
+        panic!("Tried to update a NoFlow");
     }
 }
