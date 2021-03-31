@@ -1,6 +1,7 @@
+use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::handler::analyzer::GenericAnalyzerHandler;
 use crate::packet::Direction;
 
 use std::cell::RefCell;
@@ -30,16 +31,11 @@ impl<F> FlowHandler<F> {
 impl<F, A, I> GenericFlowHandler<I> for FlowHandler<F>
 where
     F: Flow<I, Analyzer = A>,
-    A: 'static,
+    A: Analyzer<I>,
     I: ClassifierId,
 {
     fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
-        let this_analyzer = analyzer
-            .as_any()
-            .downcast_ref::<AnalyzerHandler<F::Analyzer>>()
-            .unwrap()
-            .analyzer();
-
+        let this_analyzer = analyzer.inner_ref::<F::Analyzer>();
         self.flow.update(this_analyzer, direction);
     }
 

@@ -6,7 +6,6 @@ use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
 
-use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -19,9 +18,27 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
-    fn as_any(&self) -> &dyn Any;
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
     fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler<I>;
+}
+
+impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
+    pub fn inner_ref<B: Analyzer<I>>(&self) -> &B {
+        if self.id() == B::ID {
+            let handler = unsafe {
+                // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
+                // they are the same object.
+                &*(&*self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<B>)
+            };
+            return &handler.analyzer;
+        }
+
+        panic!(
+            "Trying to cast analyzer of type {:?} into {:?}",
+            self.id(),
+            B::ID
+        );
+    }
 }
 
 pub struct AnalyzerHandler<A> {
@@ -31,10 +48,6 @@ pub struct AnalyzerHandler<A> {
 impl<A> AnalyzerHandler<A> {
     pub fn new(analyzer: A) -> Self {
         Self { analyzer }
-    }
-
-    pub fn analyzer(&self) -> &A {
-        &self.analyzer
     }
 }
 
@@ -60,10 +73,6 @@ where
             }
             Err(reason) => AnalyzerStatus::Abort(reason),
         }
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
     }
 
     fn update_flow_signature(
