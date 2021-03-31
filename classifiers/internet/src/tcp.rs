@@ -69,7 +69,6 @@ pub mod analyzer {
 
 pub mod flow {
     use super::analyzer::TcpAnalyzer;
-    use crate::ClassifierId;
 
     use gpc_core::base::flow::Flow;
     use gpc_core::packet::Direction;
@@ -84,9 +83,7 @@ pub mod flow {
         pub handshake: Handshake,
     }
 
-    impl Flow<ClassifierId> for TcpFlow {
-        type Analyzer = TcpAnalyzer;
-
+    impl Flow<TcpAnalyzer> for TcpFlow {
         fn create(_analyzer: &TcpAnalyzer, _direction: Direction) -> Self {
             TcpFlow {
                 handshake: Handshake::Send,

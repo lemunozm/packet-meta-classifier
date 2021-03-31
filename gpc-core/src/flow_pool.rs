@@ -5,20 +5,22 @@ use crate::packet::Direction;
 
 use std::cell::Ref;
 use std::collections::{hash_map::Entry, HashMap};
+use std::marker::PhantomData;
 
 pub struct FlowPool<I> {
-    flows: Vec<HashMap<Vec<u8>, SharedGenericFlowHandler<I>>>,
-    flow_cache: Vec<Option<SharedGenericFlowHandler<I>>>,
+    flows: Vec<HashMap<Vec<u8>, SharedGenericFlowHandler>>,
+    flow_cache: Vec<Option<SharedGenericFlowHandler>>,
     current_flow_signature: Vec<u8>,
+    _id: PhantomData<I>,
 }
 
 impl<I: ClassifierId> FlowPool<I> {
     pub fn new() -> Self {
         Self {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
-
             flow_cache: (0..I::TOTAL).map(|_| None).collect(),
             current_flow_signature: Vec::with_capacity(64),
+            _id: PhantomData::default(),
         }
     }
 
@@ -50,7 +52,7 @@ impl<I: ClassifierId> FlowPool<I> {
                     self.flow_cache[analyzer.id().inner()] = Some(shared_flow);
                 }
                 Entry::Occupied(mut entry) => {
-                    entry.get_mut().borrow_mut().update(analyzer, direction);
+                    analyzer.update_flow(&mut *entry.get_mut().borrow_mut(), direction);
                 }
             }
         } else {
@@ -58,7 +60,7 @@ impl<I: ClassifierId> FlowPool<I> {
         }
     }
 
-    pub fn get_cached(&self, classifier_id: I) -> Option<Ref<dyn GenericFlowHandler<I>>> {
+    pub fn get_cached(&self, classifier_id: I) -> Option<Ref<dyn GenericFlowHandler>> {
         self.flow_cache[classifier_id.inner()]
             .as_ref()
             .map(|shared_flow| shared_flow.borrow())

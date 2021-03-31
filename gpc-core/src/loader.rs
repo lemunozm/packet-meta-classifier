@@ -23,7 +23,7 @@ impl<I: ClassifierId> AnalyzerLoader<I> {
     pub fn load<A, F>(mut self, analyzer: A) -> Self
     where
         A: Analyzer<I, Flow = F> + 'static,
-        F: Flow<I, Analyzer = A>,
+        F: Flow<A>,
     {
         let last_id = self
             .analyzers
@@ -37,8 +37,7 @@ impl<I: ClassifierId> AnalyzerLoader<I> {
             A::ID
         );
 
-        self.analyzers
-            .push(Box::new(AnalyzerHandler::new(analyzer)));
+        self.analyzers.push(Box::new(AnalyzerHandler(analyzer)));
         self
     }
 

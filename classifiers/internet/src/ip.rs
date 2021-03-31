@@ -43,7 +43,7 @@ pub mod analyzer {
     impl Analyzer<ClassifierId> for IpAnalyzer {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
-        type Flow = NoFlow<Self>;
+        type Flow = NoFlow;
 
         fn build(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;
@@ -130,7 +130,7 @@ pub mod expression {
             "Valid if the packet is TCP"
         }
 
-        fn check(&self, _analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
+        fn check(&self, _analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
             true
         }
     }
@@ -148,7 +148,7 @@ pub mod expression {
             "Valid if the IP version of the packet matches the given version"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
             match self {
                 Self::V4 => matches!(analyzer.version, Version::V4(_)),
                 Self::V6 => matches!(analyzer.version, Version::V6(_)),
@@ -166,7 +166,7 @@ pub mod expression {
             "Valid if the source IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.source == self.0,
                 Version::V6(ipv6) => ipv6.source == self.0,
@@ -184,7 +184,7 @@ pub mod expression {
             "Valid if the destination IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.dest == self.0,
                 Version::V6(ipv6) => ipv6.dest == self.0,

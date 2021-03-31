@@ -12,7 +12,7 @@ pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
     fn check(
         &self,
         analyzer: &dyn GenericAnalyzerHandler<I>,
-        flow: Option<&dyn GenericFlowHandler<I>>,
+        flow: Option<&dyn GenericFlowHandler>,
     ) -> bool;
     fn classifier_id(&self) -> I;
 }
@@ -37,13 +37,13 @@ impl<V, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Analyzer = A>,
     A: Analyzer<I, Flow = F>,
-    F: Flow<I, Analyzer = A>,
+    F: Flow<A>,
     I: ClassifierId,
 {
     fn check(
         &self,
         analyzer: &dyn GenericAnalyzerHandler<I>,
-        flow: Option<&dyn GenericFlowHandler<I>>,
+        flow: Option<&dyn GenericFlowHandler>,
     ) -> bool {
         let analyzer = analyzer.inner_ref::<A>();
 

@@ -1,4 +1,4 @@
-use crate::handler::flow::{FlowHandler, SharedGenericFlowHandler};
+use crate::handler::flow::{FlowHandler, GenericFlowHandler, SharedGenericFlowHandler};
 
 use crate::base::analyzer::Analyzer;
 use crate::base::flow::Flow;
@@ -19,7 +19,8 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn prev_id(&self) -> I;
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
-    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler<I>;
+    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler;
+    fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction);
 }
 
 impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
@@ -30,7 +31,7 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
                 // they are the same object.
                 &*(&*self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<B>)
             };
-            return &handler.analyzer;
+            return &handler.0;
         }
 
         panic!(
@@ -41,20 +42,12 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
     }
 }
 
-pub struct AnalyzerHandler<A> {
-    analyzer: A,
-}
-
-impl<A> AnalyzerHandler<A> {
-    pub fn new(analyzer: A) -> Self {
-        Self { analyzer }
-    }
-}
+pub struct AnalyzerHandler<A>(pub A);
 
 impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A>
 where
     A: Analyzer<I, Flow = F> + 'static,
-    F: Flow<I, Analyzer = A>,
+    F: Flow<A>,
     I: ClassifierId,
 {
     fn id(&self) -> I {
@@ -68,26 +61,28 @@ where
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I> {
         match A::build(packet) {
             Ok(info) => {
-                self.analyzer = info.analyzer;
+                self.0 = info.analyzer;
                 AnalyzerStatus::Next(info.next_classifier_id, info.bytes_parsed)
             }
             Err(reason) => AnalyzerStatus::Abort(reason),
         }
     }
 
-    fn update_flow_signature(
-        &self,
-        mut current_signature: &mut Vec<u8>,
-        direction: Direction,
-    ) -> bool {
-        self.analyzer
-            .write_flow_signature(&mut current_signature, direction)
+    fn update_flow_signature(&self, mut signature: &mut Vec<u8>, direction: Direction) -> bool {
+        self.0.write_flow_signature(&mut signature, direction)
     }
 
-    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler<I> {
-        Rc::new(RefCell::new(FlowHandler::new(F::create(
-            &self.analyzer,
-            direction,
-        ))))
+    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler {
+        Rc::new(RefCell::new(FlowHandler(F::create(&self.0, direction))))
+    }
+
+    fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction) {
+        let flow = &mut flow
+            .as_mut_any()
+            .downcast_mut::<FlowHandler<A::Flow>>()
+            .unwrap()
+            .0;
+
+        flow.update(&self.0, direction);
     }
 }

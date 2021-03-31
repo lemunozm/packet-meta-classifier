@@ -9,9 +9,7 @@ pub struct AnalyzerCache<I: ClassifierId> {
 impl<I: ClassifierId> AnalyzerCache<I> {
     pub fn new(analyzer_list: Vec<Box<dyn GenericAnalyzerHandler<I>>>) -> Self {
         let mut analyzers = (0..I::TOTAL)
-            .map(|_| {
-                Box::new(AnalyzerHandler::new(NoAnalyzer)) as Box<dyn GenericAnalyzerHandler<I>>
-            })
+            .map(|_| Box::new(AnalyzerHandler(NoAnalyzer)) as Box<dyn GenericAnalyzerHandler<I>>)
             .collect::<Vec<_>>();
 
         for analyzer in analyzer_list {

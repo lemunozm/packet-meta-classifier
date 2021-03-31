@@ -31,22 +31,13 @@ pub mod analyzer {
 
 pub mod flow {
     use super::analyzer::HttpAnalyzer;
-    use crate::ClassifierId;
 
     use gpc_core::base::flow::Flow;
     use gpc_core::packet::Direction;
 
-    pub enum Handshake {
-        Send,
-        Recv,
-        Established,
-    }
-
     pub struct HttpFlow {}
 
-    impl Flow<ClassifierId> for HttpFlow {
-        type Analyzer = HttpAnalyzer;
-
+    impl Flow<HttpAnalyzer> for HttpFlow {
         fn create(_analyzer: &HttpAnalyzer, _direction: Direction) -> Self {
             HttpFlow {}
         }
