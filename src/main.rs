@@ -1,41 +1,132 @@
-use packet_classifier::configuration::{Configuration};
-use packet_classifier::rules::expression::{Exp};
-use packet_classifier::rules::classification::{ClassificationRules};
-use packet_classifier::engine::{Engine};
-use packet_classifier::classifiers::ipv4::rules::{Ipv4, L4};
-use packet_classifier::classifiers::tcp::rules::{Tcp};
+use std::collections::HashMap;
+use std::net::SocketAddr;
 
-use packet_classifier::util::capture::{IpCapture};
+struct Config {}
 
-fn main() {
-    let rules = vec![
-        (Exp::value(Ipv4::Origin("127.0.0.1".into())), 200),
-        (Exp::value(Ipv4::L4(L4::Udp)), 100),
-        (Exp::value(Ipv4::L4(L4::Tcp)), 300),
-        (Exp::or(vec![
-            Exp::value(Tcp::OriginPort(3000)),
-            Exp::value(Tcp::OriginPort(4000)),
-        ]), 700),
-        (Exp::and(vec![
-            Exp::value(Tcp::OriginPort(5000)),
-            Exp::value(Tcp::DestinationPort(6000)),
-        ]), 800),
-    ];
-
-    let config = Configuration::new();
-    let classification_rules = ClassificationRules::new(rules);
-    let mut engine = Engine::new(config, classification_rules);
-
-    let capture = IpCapture::open("captures/http.cap");
-    for (index, packet) in capture[0..].iter().enumerate() {
-
-        let classification_result = engine.process_packet(&packet.data);
-
-        let rule: &dyn std::fmt::Display = match classification_result.rule {
-            Some(rule) => rule.tag(),
-            None => &"<Not matching rule>"
-        };
-        println!("[{}]: {}", index, rule);
+trait Analyzer {
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerKind>, &'a [u8]) {
+        todo!()
     }
 }
 
+#[derive(Default)]
+struct IpPacket {}
+impl Analyzer for IpPacket {}
+
+#[derive(Default)]
+struct TcpPacket {}
+impl Analyzer for TcpPacket {}
+
+#[derive(Default)]
+struct UdpPacket {}
+impl Analyzer for UdpPacket {}
+
+#[derive(Default)]
+struct HttpPacket {}
+impl Analyzer for HttpPacket {}
+
+#[derive(Debug, Clone, Copy)]
+enum AnalyzerKind {
+    Ip = 0,
+    Tcp,
+    Udp,
+    Http,
+}
+
+#[derive(Default)]
+struct PacketInfo {
+    ip: IpPacket,
+    tcp: TcpPacket,
+    udp: UdpPacket,
+    http: HttpPacket,
+}
+
+impl PacketInfo {
+    fn process_for<'a>(
+        &mut self,
+        kind: AnalyzerKind,
+        data: &'a [u8],
+    ) -> (Option<AnalyzerKind>, &'a [u8]) {
+        log::trace!("Analyze for: {:?}", kind);
+        match kind {
+            AnalyzerKind::Ip => self.ip.analyze(data),
+            AnalyzerKind::Tcp => self.tcp.analyze(data),
+            AnalyzerKind::Udp => self.udp.analyze(data),
+            AnalyzerKind::Http => self.http.analyze(data),
+        }
+    }
+
+    fn flow_def(&self, kind: AnalyzerKind) -> Option<FlowDef> {
+        match kind {
+            AnalyzerKind::Udp => None,  //TODO
+            AnalyzerKind::Tcp => None,  //TODO
+            AnalyzerKind::Http => None, //TODO
+            _ => None,
+        }
+    }
+}
+
+trait Flow {
+    fn update(&mut self, last_packet: &PacketInfo) {}
+}
+
+#[derive(Default)]
+struct UdpFlow {}
+impl Flow for UdpFlow {}
+
+#[derive(Default)]
+struct TcpFlow {}
+impl Flow for TcpFlow {}
+
+#[derive(Default)]
+struct HttpFlow {}
+impl Flow for HttpFlow {}
+
+#[derive(Hash, Clone, PartialEq, Eq)]
+enum FlowKind {
+    Tcp,
+    Udp,
+    Http,
+}
+
+#[derive(Hash, Clone, PartialEq, Eq)]
+struct FlowDef {
+    origin: SocketAddr,
+    dest: SocketAddr,
+    kind: FlowKind,
+}
+
+struct Engine {
+    config: Config,
+    analyzers: Vec<Box<dyn Analyzer>>,
+    flow_pool: HashMap<FlowDef, Box<dyn Flow>>,
+}
+
+impl Engine {
+    fn process_packet(&mut self, data: &[u8]) {
+        let mut packet = PacketInfo::default();
+
+        let mut analyzer = AnalyzerKind::Ip;
+        let mut data = data;
+
+        while let (Some(next_analyzer), next_data) = packet.process_for(analyzer, data) {
+            if let Some(flow_def) = packet.flow_def(next_analyzer) {
+                let flow = self
+                    .flow_pool
+                    .entry(flow_def.clone())
+                    .or_insert_with(|| match flow_def.kind {
+                        FlowKind::Udp => Box::new(UdpFlow::default()),
+                        FlowKind::Tcp => Box::new(TcpFlow::default()),
+                        FlowKind::Http => Box::new(HttpFlow::default()),
+                    });
+
+                flow.update(&packet);
+            }
+
+            analyzer = next_analyzer;
+            data = next_data;
+        }
+    }
+}
+
+fn main() {}
