@@ -56,7 +56,7 @@ pub mod rules {
     use crate::RuleValue;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    enum TcpState {
+    pub enum TcpState {
         Send,
         Recv,
         Established,

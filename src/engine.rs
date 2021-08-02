@@ -1,11 +1,16 @@
 use super::config::Config;
 
-use super::ClassificationResult;
 use super::ClassificationRules;
 use super::ClassificationState;
+use super::Rule;
 
 use crate::classifiers::{Analyzer, AnalyzerId, PacketInfo};
 use crate::flow::FlowPool;
+
+#[derive(Default)]
+pub struct ClassificationResult<'a, T> {
+    pub rule: Option<&'a Rule<T>>,
+}
 
 pub struct Engine<T> {
     config: Config,
@@ -42,7 +47,7 @@ impl<T> Engine<T> {
                 None => None,
             };
 
-            match self.rules.try_classify(analyzers, &self.packet, flow) {
+            match self.rules.try_classify(analyzers, analyzer, flow) {
                 ClassificationState::None => return ClassificationResult { rule: None },
                 ClassificationState::Incompleted => (),
                 ClassificationState::Completed(rule) => {

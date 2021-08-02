@@ -3,7 +3,7 @@ pub mod config;
 pub mod engine;
 pub mod flow;
 
-use classifiers::{Analyzer, PacketInfo};
+use classifiers::Analyzer;
 use flow::{Flow, GenericFlow};
 use std::net::SocketAddr;
 
@@ -28,27 +28,36 @@ enum ClassificationState<'a, T> {
 }
 
 pub struct ClassificationRules<T> {
-    t: T,
+    rules: Vec<Rule<T>>,
 }
+
+use classifiers::tcp::rules::TcpState;
 
 impl<T> ClassificationRules<T> {
     fn try_classify(
         &self,
         analyzers: u64,
-        packet: &PacketInfo,
+        analyzer: &dyn Analyzer,
         flow: Option<&dyn GenericFlow>,
     ) -> ClassificationState<T> {
+        let exp = Exp::value(TcpState::Send);
+        exp.check(analyzer, flow);
+
+        /*
+        let rule = Rule {
+            exp,
+            tag: T::default(),
+        }
+        ClassificationState::Completed(Rule{})
+        */
         todo!()
     }
 }
 
-#[derive(Default)]
-pub struct ClassificationResult<'a, T> {
-    pub rule: Option<&'a Rule<T>>,
-}
-
 pub struct Rule<T> {
-    t: T,
+    exp: Exp,
+    tag: T,
+    priority: usize,
 }
 
 pub trait RuleValue: std::fmt::Debug {
@@ -65,7 +74,7 @@ pub trait RuleValue: std::fmt::Debug {
 }
 
 trait GenericValue {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&'static dyn GenericFlow>) -> bool {
+    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
         todo!()
     }
 }
@@ -82,9 +91,12 @@ impl<A, F> GenericValueImpl<A, F> {
     }
 }
 
-impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&'static dyn GenericFlow>) -> bool {
-        let analyzer = (&*analyzer as &dyn std::any::Any)
+impl<A: Analyzer, F: Flow + Default> GenericValue for GenericValueImpl<A, F> {
+    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
+        //let any = &analyzer as &dyn std::any::Any;
+        todo!()
+        /*
+        let analyzer = (&'a analyzer as &dyn std::any::Any + 'a)
             .downcast_ref::<A>()
             .unwrap();
         match flow {
@@ -94,14 +106,42 @@ impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for Generi
             }
             None => self.value.check(analyzer, &F::default()),
         }
+        */
     }
 }
 
-pub struct Exp;
+pub enum Exp {
+    Value(Box<dyn GenericValue>),
+    Not(Box<Exp>),
+    And(Vec<Exp>),
+    Or(Vec<Exp>),
+}
+
 impl Exp {
-    fn value<F: Flow + Default + 'static>(
-        value: impl RuleValue<Flow = F> + 'static,
+    pub fn value<A: Analyzer + 'static, F: Flow + Default + 'static>(
+        value: impl RuleValue<Analyzer = A, Flow = F> + 'static,
     ) -> Box<dyn GenericValue> {
         Box::new(GenericValueImpl::new(value))
+    }
+
+    pub fn not(rule: Exp) -> Exp {
+        Exp::Not(Box::new(rule))
+    }
+
+    pub fn and(expressions: Vec<Exp>) -> Exp {
+        Exp::And(expressions)
+    }
+
+    pub fn or(expressions: Vec<Exp>) -> Exp {
+        Exp::Or(expressions)
+    }
+
+    pub fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
+        match self {
+            Exp::Value(value) => value.check(analyzer, flow),
+            Exp::Not(rule) => !rule.check(analyzer, flow),
+            Exp::And(rules) => rules.iter().all(|rule| rule.check(analyzer, flow)),
+            Exp::Or(rules) => rules.iter().any(|rule| rule.check(analyzer, flow)),
+        }
     }
 }
