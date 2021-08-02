@@ -1,72 +1,65 @@
-pub mod rules {
-    use crate::rules::expression::{Value};
-    use crate::context::{Context};
-    use crate::analyzer::{L4Analyzer};
-
-    #[derive(Debug)]
-    pub enum Tcp {
-        OriginPort(u16),
-        DestinationPort(u16),
+pub mod flow {
+    use crate::Flow;
+    pub enum State {
+        Send,
+        Recv,
+        Established,
     }
 
-    impl Value for Tcp {
-        fn check_value(&self, context: &Context) -> bool {
-            let tcp = match context.pipeline().l4() {
-                L4Analyzer::Tcp(tcp) => tcp,
-                _ => return false
-            };
-
-            match self {
-                Tcp::OriginPort(port) => *port == tcp.source_port,
-                Tcp::DestinationPort(port) => *port == tcp.destination_port,
-            }
+    impl Default for State {
+        fn default() -> Self {
+            State::Send
         }
     }
+
+    #[derive(Default)]
+    pub struct TcpFlow {
+        pub state: State,
+    }
+    impl Flow for TcpFlow {}
 }
 
 pub mod analyzer {
-    use crate::analyzer::{Analyzer};
+    use crate::classifiers::AnalyzerKind;
+    use crate::Analyzer;
 
-    pub struct TcpAnalyzer {
-        pub source_port: u16,
-        pub destination_port: u16,
-    }
-
-    impl TcpAnalyzer {
-        pub fn new() -> TcpAnalyzer {
-            TcpAnalyzer {
-                source_port: 0,
-                destination_port: 0,
-            }
-        }
-    }
-
-    impl Analyzer for TcpAnalyzer {
-        fn analyze_packet<'a>(&mut self, data: &'a[u8]) -> &'a[u8] {
-            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
-            self.destination_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
-            data
+    #[derive(Default)]
+    pub struct TcpPacket {}
+    impl Analyzer for TcpPacket {
+        fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerKind>, &'a [u8]) {
+            todo!()
         }
     }
 }
 
-pub mod flow {
-    use crate::flow::{Flow};
-    use crate::analyzer::{L4Analyzer};
+pub mod rules {
+    use super::flow::{State, TcpFlow};
 
-    pub struct TcpFlow {
+    use crate::PacketInfo;
+    use crate::RuleValue;
 
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum TcpState {
+        Send,
+        Recv,
+        Established,
     }
 
-    impl TcpFlow {
-        pub fn new() -> TcpFlow {
-            TcpFlow {}
+    impl From<&State> for TcpState {
+        fn from(state: &State) -> TcpState {
+            match state {
+                State::Send => Self::Send,
+                State::Recv => Self::Recv,
+                State::Established => Self::Established,
+            }
         }
     }
 
-    impl Flow for TcpFlow {
-        fn update(&mut self, _analyzer: &L4Analyzer) {
+    impl RuleValue for TcpState {
+        type Flow = TcpFlow;
 
+        fn check(&self, packet: &PacketInfo, tcp_flow: &Self::Flow) -> bool {
+            TcpState::from(&tcp_flow.state) == *self
         }
     }
 }

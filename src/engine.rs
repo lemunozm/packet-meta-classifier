@@ -1,45 +1,75 @@
-use crate::configuration::{Configuration};
-use crate::rules::classification::{ClassificationRules, Rule};
-use crate::context::{Context};
-use crate::analyzer::{AnalyzerPipeline};
-use crate::flow::{FlowPool};
+use super::config::Config;
 
-pub struct ClassificationResult<'a, T> {
-    pub rule: Option<&'a Rule<T>>,
-}
+use super::ClassificationResult;
+use super::ClassificationRules;
+use super::ClassificationState;
+use super::Flow;
+use super::FlowDef;
+use super::FlowKind;
+use super::HttpFlow;
+use super::PacketInfo;
+use super::UdpFlow;
+
+use crate::classifiers::tcp::flow::TcpFlow;
+use crate::classifiers::AnalyzerKind;
+
+use std::collections::HashMap;
 
 pub struct Engine<T> {
-    config: Configuration,
+    config: Config,
     rules: ClassificationRules<T>,
-    flow_manager: FlowPool,
+    packet: PacketInfo,
+    flow_pool: HashMap<FlowDef, Box<dyn Flow>>,
 }
 
 impl<T> Engine<T> {
-    pub fn new(config: Configuration, rules: ClassificationRules<T>) -> Engine<T> {
+    pub fn new(config: Config, rules: ClassificationRules<T>) -> Engine<T> {
         Engine {
             config,
             rules,
-            flow_manager: FlowPool::new(),
+            packet: PacketInfo::default(),
+            flow_pool: HashMap::new(),
         }
     }
 
-    pub fn process_packet(&mut self, data: &[u8]) -> ClassificationResult<T> {
-        let mut pipeline = AnalyzerPipeline::new();
-        let data = pipeline.analyze_l3(data);
-        pipeline.analyze_l4(data);
+    fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
+        let mut analyzers: u64 = 0;
+        let mut analyzer = AnalyzerKind::START;
 
-        let flow = match pipeline.five_tuple() {
-            Some(five_tuple) => {
-                let flow = self.flow_manager.get_or_create(five_tuple);
-                flow.update(&pipeline.l4());
-                Some(&*flow)
-            },
-            None => None
-        };
+        loop {
+            let (next_analyzer, next_data) = self.packet.process_for(analyzer, data);
+            let flow = match self.packet.flow_def(analyzer) {
+                Some(flow_def) => {
+                    let flow = self.flow_pool.entry(flow_def.clone()).or_insert_with(|| {
+                        match flow_def.kind {
+                            FlowKind::Udp => Box::new(UdpFlow::default()),
+                            FlowKind::Tcp => Box::new(TcpFlow::default()),
+                            FlowKind::Http => Box::new(HttpFlow::default()),
+                        }
+                    });
 
-        let context = Context::new(pipeline, flow);
-        ClassificationResult {
-            rule: self.rules.classify(&context),
+                    flow.update(&self.packet);
+                    Some(&*flow)
+                }
+                None => None,
+            };
+
+            match self.rules.try_classify(analyzers, &self.packet, flow) {
+                ClassificationState::None => return ClassificationResult { rule: None },
+                ClassificationState::Incompleted => (),
+                ClassificationState::Completed(rule) => {
+                    return ClassificationResult { rule: Some(rule) }
+                }
+            };
+
+            analyzers |= analyzer as u64;
+            data = next_data;
+            match next_analyzer {
+                Some(next_analyzer) => analyzer = next_analyzer,
+                None => break,
+            }
         }
+
+        ClassificationResult { rule: None }
     }
 }
