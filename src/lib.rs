@@ -30,12 +30,12 @@ impl Analyzer for UdpPacket {}
 pub struct HttpPacket {}
 impl Analyzer for HttpPacket {}
 
-use classifiers::tcp::analyzer::TcpPacket;
+use classifiers::tcp::analyzer::TcpAnalyzer;
 
 #[derive(Default)]
 pub struct PacketInfo {
     pub ip: IpPacket,
-    pub tcp: TcpPacket,
+    pub tcp: TcpAnalyzer,
     pub udp: UdpPacket,
     pub http: HttpPacket,
 }
@@ -53,7 +53,7 @@ impl PacketInfo {
                 self.ip.analyze(data)
             }
             AnalyzerKind::Tcp => {
-                self.tcp = TcpPacket::default();
+                self.tcp = TcpAnalyzer::default();
                 self.tcp.analyze(data)
             }
             AnalyzerKind::Udp => {
@@ -133,45 +133,49 @@ pub struct Rule<T> {
     t: T,
 }
 
-trait GenericValue {
-    fn check(&self, packet: &PacketInfo, flow: Option<&Box<dyn Flow>>) -> bool {
+pub trait RuleValue: std::fmt::Debug {
+    type Flow: Flow;
+    type Analyzer: Analyzer;
+
+    fn description(&self) -> String {
+        todo!()
+    }
+
+    fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool {
         todo!()
     }
 }
 
-struct GenericValueImpl<F> {
-    value: Box<dyn RuleValue<Flow = F>>,
+trait GenericValue {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn Flow>>) -> bool {
+        todo!()
+    }
 }
 
-impl<F> GenericValueImpl<F> {
-    fn new(value: impl RuleValue<Flow = F> + 'static) -> Self {
+struct GenericValueImpl<A, F> {
+    value: Box<dyn RuleValue<Analyzer = A, Flow = F>>,
+}
+
+impl<A, F> GenericValueImpl<A, F> {
+    fn new(value: impl RuleValue<Analyzer = A, Flow = F> + 'static) -> Self {
         Self {
             value: Box::new(value),
         }
     }
 }
 
-impl<F: Flow + Default + 'static> GenericValue for GenericValueImpl<F> {
-    fn check(&self, packet: &PacketInfo, flow: Option<&Box<dyn Flow>>) -> bool {
+impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn Flow>>) -> bool {
+        let analyzer = (&*analyzer as &dyn std::any::Any)
+            .downcast_ref::<A>()
+            .unwrap();
         match flow {
             Some(flow) => {
                 let flow = (&*flow as &dyn std::any::Any).downcast_ref::<F>().unwrap();
-                self.value.check(packet, flow)
+                self.value.check(analyzer, flow)
             }
-            None => self.value.check(packet, &F::default()),
+            None => self.value.check(analyzer, &F::default()),
         }
-    }
-}
-
-pub trait RuleValue: std::fmt::Debug {
-    type Flow: Flow;
-
-    fn description(&self) -> String {
-        todo!()
-    }
-
-    fn check(&self, packet: &PacketInfo, flow: &Self::Flow) -> bool {
-        todo!()
     }
 }
 
