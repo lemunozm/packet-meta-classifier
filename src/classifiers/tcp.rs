@@ -1,5 +1,30 @@
+pub mod analyzer {
+    use crate::classifiers::AnalyzerKind;
+    use crate::flow::{FlowDef, GenericFlow};
+    use crate::Analyzer;
+
+    #[derive(Default)]
+    pub struct TcpAnalyzer {}
+
+    impl Analyzer for TcpAnalyzer {
+        fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerKind>, &'a [u8]) {
+            todo!()
+        }
+
+        fn identify_flow(&self) -> Option<FlowDef> {
+            todo!()
+        }
+
+        fn create_flow(&self) -> Box<dyn GenericFlow> {
+            todo!()
+        }
+    }
+}
+
 pub mod flow {
-    use crate::Flow;
+    use super::analyzer::TcpAnalyzer;
+
+    use crate::flow::Flow;
 
     pub enum State {
         Send,
@@ -18,20 +43,9 @@ pub mod flow {
         pub state: State,
     }
 
-    impl Flow for TcpFlow {}
-}
-
-pub mod analyzer {
-    use crate::classifiers::AnalyzerKind;
-    use crate::Analyzer;
-
-    #[derive(Default)]
-    pub struct TcpAnalyzer {}
-
-    impl Analyzer for TcpAnalyzer {
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerKind>, &'a [u8]) {
-            todo!()
-        }
+    impl Flow for TcpFlow {
+        type Analyzer = TcpAnalyzer;
+        fn update(&mut self, analyzer: &Self::Analyzer) {}
     }
 }
 

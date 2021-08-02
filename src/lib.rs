@@ -1,6 +1,7 @@
 pub mod classifiers;
 pub mod config;
 pub mod engine;
+pub mod flow;
 
 /*
 #[macro_use]
@@ -16,6 +17,7 @@ pub mod util;
 */
 
 use classifiers::{Analyzer, AnalyzerKind};
+use flow::{Flow, GenericFlow};
 use std::net::SocketAddr;
 
 #[derive(Default)]
@@ -77,18 +79,6 @@ impl PacketInfo {
     }
 }
 
-pub trait Flow {
-    fn update(&mut self, last_packet: &PacketInfo) {}
-}
-
-#[derive(Default)]
-pub struct UdpFlow {}
-impl Flow for UdpFlow {}
-
-#[derive(Default)]
-pub struct HttpFlow {}
-impl Flow for HttpFlow {}
-
 #[derive(Hash, Clone, PartialEq, Eq)]
 enum FlowKind {
     Udp,
@@ -118,7 +108,7 @@ impl<T> ClassificationRules<T> {
         &self,
         analyzers: u64,
         packet: &PacketInfo,
-        flow: Option<&Box<dyn Flow>>,
+        flow: Option<&dyn GenericFlow>,
     ) -> ClassificationState<T> {
         todo!()
     }
@@ -147,7 +137,7 @@ pub trait RuleValue: std::fmt::Debug {
 }
 
 trait GenericValue {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn Flow>>) -> bool {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn GenericFlow>>) -> bool {
         todo!()
     }
 }
@@ -165,7 +155,7 @@ impl<A, F> GenericValueImpl<A, F> {
 }
 
 impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn Flow>>) -> bool {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn GenericFlow>>) -> bool {
         let analyzer = (&*analyzer as &dyn std::any::Any)
             .downcast_ref::<A>()
             .unwrap();

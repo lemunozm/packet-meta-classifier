@@ -3,23 +3,16 @@ use super::config::Config;
 use super::ClassificationResult;
 use super::ClassificationRules;
 use super::ClassificationState;
-use super::Flow;
-use super::FlowDef;
-use super::FlowKind;
-use super::HttpFlow;
 use super::PacketInfo;
-use super::UdpFlow;
 
-use crate::classifiers::tcp::flow::TcpFlow;
-use crate::classifiers::AnalyzerKind;
-
-use std::collections::HashMap;
+use crate::classifiers::{Analyzer, AnalyzerKind};
+use crate::flow::FlowPool;
 
 pub struct Engine<T> {
     config: Config,
     rules: ClassificationRules<T>,
     packet: PacketInfo,
-    flow_pool: HashMap<FlowDef, Box<dyn Flow>>,
+    flow_pool: FlowPool,
 }
 
 impl<T> Engine<T> {
@@ -28,27 +21,23 @@ impl<T> Engine<T> {
             config,
             rules,
             packet: PacketInfo::default(),
-            flow_pool: HashMap::new(),
+            flow_pool: FlowPool::default(),
         }
     }
 
     fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
         let mut analyzers: u64 = 0;
-        let mut analyzer = AnalyzerKind::START;
+        let mut analyzer_kind = AnalyzerKind::START;
 
         loop {
-            let (next_analyzer, next_data) = self.packet.process_for(analyzer, data);
-            let flow = match self.packet.flow_def(analyzer) {
+            let (next_analyzer_kind, next_data) = self.packet.process_for(analyzer_kind, data);
+            let analyzer = &self.packet.tcp;
+            let flow = match analyzer.identify_flow() {
                 Some(flow_def) => {
-                    let flow = self.flow_pool.entry(flow_def.clone()).or_insert_with(|| {
-                        match flow_def.kind {
-                            FlowKind::Udp => Box::new(UdpFlow::default()),
-                            FlowKind::Tcp => Box::new(TcpFlow::default()),
-                            FlowKind::Http => Box::new(HttpFlow::default()),
-                        }
-                    });
-
-                    flow.update(&self.packet);
+                    let flow = self
+                        .flow_pool
+                        .get_or_create(flow_def, || analyzer.create_flow());
+                    flow.update(analyzer);
                     Some(&*flow)
                 }
                 None => None,
@@ -62,10 +51,10 @@ impl<T> Engine<T> {
                 }
             };
 
-            analyzers |= analyzer as u64;
+            analyzers |= analyzer_kind as u64;
             data = next_data;
-            match next_analyzer {
-                Some(next_analyzer) => analyzer = next_analyzer,
+            match next_analyzer_kind {
+                Some(next_analyzer_kind) => analyzer_kind = next_analyzer_kind,
                 None => break,
             }
         }
