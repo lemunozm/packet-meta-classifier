@@ -1,5 +1,4 @@
-use crate::rules::expression::{Exp};
-use crate::context::Context;
+use crate::rules::expression::Exp;
 
 pub struct Rule<T> {
     exp: Exp,
@@ -44,10 +43,15 @@ impl<T> ClassificationRules<T> {
         self.rules.get(priority)
     }
 
-    pub fn classify(&self, context: &Context) -> Option<&Rule<T>> {
+    pub fn classify(
+        &self,
+        analyzer_kind: AnalyzerKind,
+        packet: &Packet,
+        flow: &Flow,
+    ) -> Option<&Rule<T>> {
         for rule in &self.rules {
             if rule.expression().check(&context) {
-                return Some(rule)
+                return Some(rule);
             }
         }
         None
