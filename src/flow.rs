@@ -22,6 +22,7 @@ pub trait GenericFlow {
         todo!()
     }
 }
+
 #[derive(Default)]
 pub struct FlowPool {
     flows: HashMap<FlowDef, Box<dyn GenericFlow>>,

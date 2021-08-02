@@ -1,5 +1,5 @@
 pub mod analyzer {
-    use crate::classifiers::AnalyzerKind;
+    use crate::classifiers::AnalyzerId;
     use crate::flow::{FlowDef, GenericFlow};
     use crate::Analyzer;
 
@@ -7,7 +7,7 @@ pub mod analyzer {
     pub struct TcpAnalyzer {}
 
     impl Analyzer for TcpAnalyzer {
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerKind>, &'a [u8]) {
+        fn analyze<'a>(&mut self, data: &'a [u8]) -> (Option<AnalyzerId>, &'a [u8]) {
             todo!()
         }
 

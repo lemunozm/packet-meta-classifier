@@ -3,81 +3,9 @@ pub mod config;
 pub mod engine;
 pub mod flow;
 
-/*
-#[macro_use]
-extern crate arrayref;
-
-pub mod rules;
-pub mod classifiers;
-pub mod engine;
-pub mod context;
-pub mod analyzer;
-pub mod flow;
-pub mod util;
-*/
-
-use classifiers::{Analyzer, AnalyzerKind};
+use classifiers::{Analyzer, PacketInfo};
 use flow::{Flow, GenericFlow};
 use std::net::SocketAddr;
-
-#[derive(Default)]
-pub struct IpPacket {}
-impl Analyzer for IpPacket {}
-
-#[derive(Default)]
-pub struct UdpPacket {}
-impl Analyzer for UdpPacket {}
-
-#[derive(Default)]
-pub struct HttpPacket {}
-impl Analyzer for HttpPacket {}
-
-use classifiers::tcp::analyzer::TcpAnalyzer;
-
-#[derive(Default)]
-pub struct PacketInfo {
-    pub ip: IpPacket,
-    pub tcp: TcpAnalyzer,
-    pub udp: UdpPacket,
-    pub http: HttpPacket,
-}
-
-impl PacketInfo {
-    fn process_for<'a>(
-        &mut self,
-        kind: AnalyzerKind,
-        data: &'a [u8],
-    ) -> (Option<AnalyzerKind>, &'a [u8]) {
-        log::trace!("Analyze for: {:?}", kind);
-        match kind {
-            AnalyzerKind::Ip => {
-                self.ip = IpPacket::default();
-                self.ip.analyze(data)
-            }
-            AnalyzerKind::Tcp => {
-                self.tcp = TcpAnalyzer::default();
-                self.tcp.analyze(data)
-            }
-            AnalyzerKind::Udp => {
-                self.udp = UdpPacket::default();
-                self.udp.analyze(data)
-            }
-            AnalyzerKind::Http => {
-                self.http = HttpPacket::default();
-                self.http.analyze(data)
-            }
-        }
-    }
-
-    fn flow_def(&self, kind: AnalyzerKind) -> Option<FlowDef> {
-        match kind {
-            AnalyzerKind::Udp => None,  //TODO
-            AnalyzerKind::Tcp => None,  //TODO
-            AnalyzerKind::Http => None, //TODO
-            _ => None,
-        }
-    }
-}
 
 #[derive(Hash, Clone, PartialEq, Eq)]
 enum FlowKind {
@@ -137,7 +65,7 @@ pub trait RuleValue: std::fmt::Debug {
 }
 
 trait GenericValue {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn GenericFlow>>) -> bool {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&'static dyn GenericFlow>) -> bool {
         todo!()
     }
 }
@@ -155,13 +83,13 @@ impl<A, F> GenericValueImpl<A, F> {
 }
 
 impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn GenericFlow>>) -> bool {
+    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&'static dyn GenericFlow>) -> bool {
         let analyzer = (&*analyzer as &dyn std::any::Any)
             .downcast_ref::<A>()
             .unwrap();
         match flow {
             Some(flow) => {
-                let flow = (&*flow as &dyn std::any::Any).downcast_ref::<F>().unwrap();
+                let flow = (&flow as &dyn std::any::Any).downcast_ref::<F>().unwrap();
                 self.value.check(analyzer, flow)
             }
             None => self.value.check(analyzer, &F::default()),

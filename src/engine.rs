@@ -3,9 +3,8 @@ use super::config::Config;
 use super::ClassificationResult;
 use super::ClassificationRules;
 use super::ClassificationState;
-use super::PacketInfo;
 
-use crate::classifiers::{Analyzer, AnalyzerKind};
+use crate::classifiers::{Analyzer, AnalyzerId, PacketInfo};
 use crate::flow::FlowPool;
 
 pub struct Engine<T> {
@@ -25,13 +24,13 @@ impl<T> Engine<T> {
         }
     }
 
-    fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
+    pub fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
         let mut analyzers: u64 = 0;
-        let mut analyzer_kind = AnalyzerKind::START;
+        let mut analyzer_id = AnalyzerId::START;
 
         loop {
-            let (next_analyzer_kind, next_data) = self.packet.process_for(analyzer_kind, data);
-            let analyzer = &self.packet.tcp;
+            let analyzer = self.packet.choose_analyzer(analyzer_id);
+            let (next_analyzer_kind, next_data) = analyzer.analyze(data);
             let flow = match analyzer.identify_flow() {
                 Some(flow_def) => {
                     let flow = self
@@ -51,10 +50,10 @@ impl<T> Engine<T> {
                 }
             };
 
-            analyzers |= analyzer_kind as u64;
+            analyzers |= analyzer_id as u64;
             data = next_data;
             match next_analyzer_kind {
-                Some(next_analyzer_kind) => analyzer_kind = next_analyzer_kind,
+                Some(next_analyzer_kind) => analyzer_id = next_analyzer_kind,
                 None => break,
             }
         }
