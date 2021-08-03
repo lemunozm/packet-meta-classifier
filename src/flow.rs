@@ -21,6 +21,8 @@ pub trait GenericFlow {
     fn update(&mut self, analyzer: &dyn Analyzer) {
         todo!()
     }
+
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 #[derive(Default)]

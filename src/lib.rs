@@ -21,7 +21,7 @@ struct FlowDef {
     kind: FlowKind,
 }
 
-enum ClassificationState<'a, T> {
+pub enum ClassificationState<'a, T> {
     None,
     Incompleted,
     Completed(&'a Rule<T>),
@@ -31,33 +31,46 @@ pub struct ClassificationRules<T> {
     rules: Vec<Rule<T>>,
 }
 
-use classifiers::tcp::rules::TcpState;
+pub struct Rule<T> {
+    pub exp: Exp,
+    pub tag: T,
+    pub priority: usize,
+}
+
+impl<T> Rule<T> {
+    fn new(exp: Exp, tag: T, priority: usize) -> Self {
+        Self { exp, tag, priority }
+    }
+}
 
 impl<T> ClassificationRules<T> {
-    fn try_classify(
+    pub fn new(tagged_expr: Vec<(Exp, T)>) -> ClassificationRules<T> {
+        let rules = tagged_expr
+            .into_iter()
+            .enumerate()
+            .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
+            .collect();
+
+        ClassificationRules { rules }
+    }
+
+    pub fn rule(&self, priority: usize) -> Option<&Rule<T>> {
+        self.rules.get(priority)
+    }
+
+    pub fn try_classify(
         &self,
         analyzers: u64,
         analyzer: &dyn Analyzer,
         flow: Option<&dyn GenericFlow>,
     ) -> ClassificationState<T> {
-        let exp = Exp::value(TcpState::Send);
-        exp.check(analyzer, flow);
-
-        /*
-        let rule = Rule {
-            exp,
-            tag: T::default(),
+        for rule in &self.rules {
+            if rule.exp.check(analyzer, flow) {
+                return ClassificationState::Completed(rule);
+            }
         }
-        ClassificationState::Completed(Rule{})
-        */
-        todo!()
+        ClassificationState::None
     }
-}
-
-pub struct Rule<T> {
-    exp: Exp,
-    tag: T,
-    priority: usize,
 }
 
 pub trait RuleValue: std::fmt::Debug {
@@ -73,7 +86,7 @@ pub trait RuleValue: std::fmt::Debug {
     }
 }
 
-trait GenericValue {
+pub trait GenericValue {
     fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
         todo!()
     }
@@ -91,22 +104,16 @@ impl<A, F> GenericValueImpl<A, F> {
     }
 }
 
-impl<A: Analyzer, F: Flow + Default> GenericValue for GenericValueImpl<A, F> {
+impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
     fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
-        //let any = &analyzer as &dyn std::any::Any;
-        todo!()
-        /*
-        let analyzer = (&'a analyzer as &dyn std::any::Any + 'a)
-            .downcast_ref::<A>()
-            .unwrap();
+        let analyzer = analyzer.as_any().downcast_ref::<A>().unwrap();
         match flow {
             Some(flow) => {
-                let flow = (&flow as &dyn std::any::Any).downcast_ref::<F>().unwrap();
+                let flow = flow.as_any().downcast_ref::<F>().unwrap();
                 self.value.check(analyzer, flow)
             }
             None => self.value.check(analyzer, &F::default()),
         }
-        */
     }
 }
 
@@ -120,8 +127,8 @@ pub enum Exp {
 impl Exp {
     pub fn value<A: Analyzer + 'static, F: Flow + Default + 'static>(
         value: impl RuleValue<Analyzer = A, Flow = F> + 'static,
-    ) -> Box<dyn GenericValue> {
-        Box::new(GenericValueImpl::new(value))
+    ) -> Exp {
+        Exp::Value(Box::new(GenericValueImpl::new(value)))
     }
 
     pub fn not(rule: Exp) -> Exp {

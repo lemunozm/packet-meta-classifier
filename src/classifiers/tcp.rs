@@ -18,6 +18,10 @@ pub mod analyzer {
         fn create_flow(&self) -> Box<dyn GenericFlow> {
             todo!()
         }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
     }
 }
 

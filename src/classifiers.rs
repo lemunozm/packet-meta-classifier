@@ -53,4 +53,6 @@ pub trait Analyzer {
     fn create_flow(&self) -> Box<dyn GenericFlow> {
         todo!()
     }
+
+    fn as_any(&self) -> &dyn std::any::Any;
 }
