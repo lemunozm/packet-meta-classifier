@@ -3,7 +3,7 @@ pub mod ip;
 pub mod tcp;
 pub mod udp;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd)]
+#[derive(strum::EnumCount, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ClassifierId {
     Ip,
     Tcp,

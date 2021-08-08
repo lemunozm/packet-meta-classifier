@@ -83,6 +83,13 @@ pub mod analyzer {
             AnalyzerStatus::Next(self.protocol.classifier_id(), &data[header_length..])
         }
 
+        fn next_classifiers() -> Vec<ClassifierId>
+        where
+            Self: Sized,
+        {
+            vec![ClassifierId::Tcp, ClassifierId::Udp]
+        }
+
         fn identify_flow(&self) -> Option<FlowDef> {
             None
         }

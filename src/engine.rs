@@ -51,7 +51,7 @@ impl<T: Display> Engine<T> {
 
         for rule in rules {
             let is_validated = rule.exp.check(&mut |value| {
-                while value.classifier_id() > next_classifier_id {
+                while analyzers.exists_path(next_classifier_id, value.classifier_id()) {
                     let analyzer = analyzers.get_mut(next_classifier_id);
                     log::trace!("Analyze for: {:?}", next_classifier_id);
                     let analyzer_status = analyzer.analyze(data);

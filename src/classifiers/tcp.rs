@@ -1,5 +1,6 @@
 pub mod analyzer {
     use crate::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::classifiers::ClassifierId;
     use crate::flow::{FlowDef, GenericFlow};
 
     #[derive(Default)]
@@ -21,6 +22,13 @@ pub mod analyzer {
             } else {
                 AnalyzerStatus::Finished(&data[header_length..])
             }
+        }
+
+        fn next_classifiers() -> Vec<ClassifierId>
+        where
+            Self: Sized,
+        {
+            vec![ClassifierId::Http]
         }
 
         fn identify_flow(&self) -> Option<FlowDef> {

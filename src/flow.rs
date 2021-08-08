@@ -1,4 +1,5 @@
-use crate::analyzer::{Analyzer, AnalyzerStatus};
+use crate::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
+use crate::classifiers::ClassifierId;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -42,29 +43,9 @@ pub trait Flow {
 }
 
 #[derive(Default)]
-pub struct UnusedAnalyzer;
-impl Analyzer for UnusedAnalyzer {
-    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
-        unreachable!()
-    }
-
-    fn identify_flow(&self) -> Option<FlowDef> {
-        unreachable!()
-    }
-
-    fn create_flow(&self) -> Box<dyn GenericFlow> {
-        unreachable!()
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-}
-
-#[derive(Default)]
 pub struct NoFlow;
 impl Flow for NoFlow {
-    type Analyzer = UnusedAnalyzer;
+    type Analyzer = NoAnalyzer;
     fn update(&mut self, _analyzer: &Self::Analyzer) {
         unreachable!()
     }
