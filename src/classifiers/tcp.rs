@@ -24,10 +24,11 @@ pub mod analyzer {
             }
         }
 
-        fn next_classifiers() -> Vec<ClassifierId>
-        where
-            Self: Sized,
-        {
+        fn classifier_id() -> ClassifierId {
+            ClassifierId::Tcp
+        }
+
+        fn next_classifiers() -> Vec<ClassifierId> {
             vec![ClassifierId::Http]
         }
 
@@ -41,6 +42,10 @@ pub mod analyzer {
 
         fn as_any(&self) -> &dyn std::any::Any {
             self
+        }
+
+        fn reset(&mut self) {
+            *self = Self::default();
         }
     }
 }
@@ -86,6 +91,10 @@ pub mod rules {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
+        fn description() -> &'static str {
+            "Valid if the packet is TCP"
+        }
+
         fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             true
         }
@@ -98,6 +107,10 @@ pub mod rules {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
+        fn description() -> &'static str {
+            "Valid if the source TCP port of the packet matches the given port"
+        }
+
         fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             self.0 == analyzer.source_port
         }
@@ -109,6 +122,10 @@ pub mod rules {
     impl RuleValue for TcpDestPort {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
+
+        fn description() -> &'static str {
+            "Valid if the destination TCP port of the packet matches the given port"
+        }
 
         fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             self.0 == analyzer.dest_port

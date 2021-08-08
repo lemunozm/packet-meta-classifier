@@ -83,10 +83,11 @@ pub mod analyzer {
             AnalyzerStatus::Next(self.protocol.classifier_id(), &data[header_length..])
         }
 
-        fn next_classifiers() -> Vec<ClassifierId>
-        where
-            Self: Sized,
-        {
+        fn classifier_id() -> ClassifierId {
+            ClassifierId::Ip
+        }
+
+        fn next_classifiers() -> Vec<ClassifierId> {
             vec![ClassifierId::Tcp, ClassifierId::Udp]
         }
 
@@ -100,6 +101,10 @@ pub mod analyzer {
 
         fn as_any(&self) -> &dyn std::any::Any {
             self
+        }
+
+        fn reset(&mut self) {
+            *self = Self::default();
         }
     }
 }
@@ -118,6 +123,10 @@ pub mod rules {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
+        fn description() -> &'static str {
+            "Valid if the packet is TCP"
+        }
+
         fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             true
         }
@@ -132,6 +141,10 @@ pub mod rules {
     impl RuleValue for IpVersion {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+
+        fn description() -> &'static str {
+            "Valid if the IP version of the packet matches the given version"
+        }
 
         fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             match self {
@@ -148,6 +161,10 @@ pub mod rules {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
+        fn description() -> &'static str {
+            "Valid if the source IP address of the packet matches the given address"
+        }
+
         fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.source == self.0,
@@ -162,6 +179,10 @@ pub mod rules {
     impl RuleValue for IpDest {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+
+        fn description() -> &'static str {
+            "Valid if the destination IP address of the packet matches the given address"
+        }
 
         fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
             match &analyzer.version {

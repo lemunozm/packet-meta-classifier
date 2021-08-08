@@ -20,13 +20,10 @@ pub trait RuleValue: std::fmt::Debug {
     type Flow: Flow;
     type Analyzer: Analyzer;
 
-    fn description(&self) -> String {
-        todo!()
-    }
-
-    fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool {
-        todo!()
-    }
+    fn description() -> &'static str
+    where
+        Self: Sized;
+    fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool;
 }
 
 pub enum Exp {
@@ -95,6 +92,6 @@ impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for Generi
     }
 
     fn classifier_id(&self) -> ClassifierId {
-        todo!()
+        A::classifier_id()
     }
 }

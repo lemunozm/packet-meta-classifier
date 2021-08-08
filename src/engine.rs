@@ -27,14 +27,14 @@ impl<T: Display> Engine<T> {
             .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
             .collect();
 
-        let mut registry = AnalyzerRegistry::default();
-        registry.add(ClassifierId::Ip, IpAnalyzer::default());
-        registry.add(ClassifierId::Tcp, TcpAnalyzer::default());
+        let mut analyzers = AnalyzerRegistry::default();
+        analyzers.register(IpAnalyzer::default());
+        analyzers.register(TcpAnalyzer::default());
 
         Engine {
             config,
             rules,
-            analyzers: registry,
+            analyzers,
             flow_pool: FlowPool::default(),
         }
     }
@@ -50,9 +50,9 @@ impl<T: Display> Engine<T> {
         let mut next_classifier_id = ClassifierId::Ip;
 
         for rule in rules {
-            let is_validated = rule.exp.check(&mut |value| {
+            let has_matched = rule.exp.check(&mut |value| {
                 while analyzers.exists_path(next_classifier_id, value.classifier_id()) {
-                    let analyzer = analyzers.get_mut(next_classifier_id);
+                    let analyzer = analyzers.get_clean_mut(next_classifier_id);
                     log::trace!("Analyze for: {:?}", next_classifier_id);
                     let analyzer_status = analyzer.analyze(data);
                     if let AnalyzerStatus::Abort = analyzer_status {
@@ -89,7 +89,7 @@ impl<T: Display> Engine<T> {
                 answer
             });
 
-            if is_validated {
+            if has_matched {
                 return ClassificationResult { rule: Some(rule) };
             }
         }

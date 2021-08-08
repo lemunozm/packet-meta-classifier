@@ -13,12 +13,16 @@ pub enum AnalyzerStatus<'a> {
 
 pub trait Analyzer {
     fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
+    fn classifier_id() -> ClassifierId
+    where
+        Self: Sized;
     fn next_classifiers() -> Vec<ClassifierId>
     where
         Self: Sized;
     fn identify_flow(&self) -> Option<FlowDef>;
     fn create_flow(&self) -> Box<dyn GenericFlow>;
     fn as_any(&self) -> &dyn std::any::Any;
+    fn reset(&mut self);
 }
 
 pub struct AnalyzerRegistry {
@@ -40,18 +44,25 @@ impl Default for AnalyzerRegistry {
 }
 
 impl AnalyzerRegistry {
-    pub fn add<A: Analyzer + 'static>(&mut self, id: ClassifierId, analyzer: A) {
+    pub fn register<A: Analyzer + 'static>(&mut self, analyzer: A) {
+        assert!(
+            self.dependencies[A::classifier_id() as usize].is_empty(),
+            "Analyzer already registered"
+        );
+        self.dependencies[A::classifier_id() as usize].insert(A::classifier_id());
         for classifier_id in A::next_classifiers() {
-            self.dependencies[classifier_id as usize].insert(id.into());
+            self.dependencies[A::classifier_id() as usize].insert(classifier_id);
         }
-        self.analyzers.insert(id.into(), Box::new(analyzer));
+        self.analyzers
+            .insert(A::classifier_id().into(), Box::new(analyzer));
     }
 
     pub fn get(&self, id: ClassifierId) -> &dyn Analyzer {
         &*self.analyzers[id as usize]
     }
 
-    pub fn get_mut(&mut self, id: ClassifierId) -> &mut dyn Analyzer {
+    pub fn get_clean_mut(&mut self, id: ClassifierId) -> &mut dyn Analyzer {
+        self.analyzers[id as usize].reset();
         &mut *self.analyzers[id as usize]
     }
 
@@ -60,6 +71,7 @@ impl AnalyzerRegistry {
     }
 
     pub fn exists_path(&self, from: ClassifierId, to: ClassifierId) -> bool {
+        dbg!(&self.dependencies);
         self.dependencies[from as usize].contains(&to)
     }
 }
@@ -70,10 +82,11 @@ impl Analyzer for NoAnalyzer {
         unreachable!()
     }
 
-    fn next_classifiers() -> Vec<ClassifierId>
-    where
-        Self: Sized,
-    {
+    fn classifier_id() -> ClassifierId {
+        unreachable!()
+    }
+
+    fn next_classifiers() -> Vec<ClassifierId> {
         unreachable!()
     }
 
@@ -86,6 +99,10 @@ impl Analyzer for NoAnalyzer {
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
+        unreachable!()
+    }
+
+    fn reset(&mut self) {
         unreachable!()
     }
 }
