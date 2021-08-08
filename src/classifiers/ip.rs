@@ -1,5 +1,6 @@
 pub mod analyzer {
-    use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus};
+    use crate::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::classifiers::ClassifierId;
     use crate::flow::{FlowDef, GenericFlow};
 
     use std::convert::{TryFrom, TryInto};
@@ -22,10 +23,10 @@ pub mod analyzer {
     }
 
     impl Protocol {
-        fn analyzer_id(&self) -> AnalyzerId {
+        fn classifier_id(&self) -> ClassifierId {
             match self {
-                Self::Tcp => AnalyzerId::Tcp,
-                Self::Udp => AnalyzerId::Udp,
+                Self::Tcp => ClassifierId::Tcp,
+                Self::Udp => ClassifierId::Udp,
             }
         }
     }
@@ -79,7 +80,7 @@ pub mod analyzer {
                 Ok(protocol) => self.protocol = protocol,
                 Err(_) => return AnalyzerStatus::Abort,
             }
-            AnalyzerStatus::Next(self.protocol.analyzer_id(), &data[header_length..])
+            AnalyzerStatus::Next(self.protocol.classifier_id(), &data[header_length..])
         }
 
         fn identify_flow(&self) -> Option<FlowDef> {
@@ -92,10 +93,6 @@ pub mod analyzer {
 
         fn as_any(&self) -> &dyn std::any::Any {
             self
-        }
-
-        fn id(&self) -> AnalyzerId {
-            AnalyzerId::Ip
         }
     }
 }

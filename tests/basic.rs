@@ -2,8 +2,7 @@ use packet_classifier::classifiers::ip::rules::IpVersion;
 use packet_classifier::classifiers::tcp::rules::{Tcp, TcpSourcePort};
 use packet_classifier::config::Config;
 use packet_classifier::engine::Engine;
-use packet_classifier::ClassificationRules;
-use packet_classifier::Exp;
+use packet_classifier::rule::Exp;
 
 mod util;
 
@@ -21,8 +20,7 @@ fn test() {
         (Exp::value(IpVersion::V4), 300),
     ];
 
-    let classification_rules = ClassificationRules::new(rules);
-    let mut engine = Engine::new(config, classification_rules);
+    let mut engine = Engine::new(config, rules);
 
     let capture = Capture::open("captures/http.cap");
     for (index, packet) in capture[0..].iter().enumerate() {

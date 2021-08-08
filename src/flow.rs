@@ -1,4 +1,4 @@
-use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus};
+use crate::analyzer::{Analyzer, AnalyzerStatus};
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -58,10 +58,6 @@ impl Analyzer for UnusedAnalyzer {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
-    }
-
-    fn id(&self) -> AnalyzerId {
-        AnalyzerId::None
     }
 }
 

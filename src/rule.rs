@@ -1,4 +1,5 @@
-use crate::analyzer::{Analyzer, AnalyzerId};
+use crate::analyzer::Analyzer;
+use crate::classifiers::ClassifierId;
 use crate::flow::{Flow, GenericFlow};
 
 use std::fmt::Display;
@@ -66,7 +67,7 @@ impl Exp {
 
 pub trait GenericValue {
     fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool;
-    fn analyzer_id(&self) -> AnalyzerId;
+    fn classifier_id(&self) -> ClassifierId;
 }
 
 struct GenericValueImpl<A, F> {
@@ -93,7 +94,7 @@ impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for Generi
         }
     }
 
-    fn analyzer_id(&self) -> AnalyzerId {
+    fn classifier_id(&self) -> ClassifierId {
         todo!()
     }
 }
