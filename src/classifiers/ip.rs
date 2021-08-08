@@ -1,7 +1,6 @@
 pub mod analyzer {
-    use crate::classifiers::{AnalyzerId, AnalyzerStatus};
+    use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus};
     use crate::flow::{FlowDef, GenericFlow};
-    use crate::Analyzer;
 
     use std::convert::{TryFrom, TryInto};
     use std::net::{Ipv4Addr, Ipv6Addr};
@@ -104,7 +103,7 @@ pub mod analyzer {
 pub mod rules {
     use super::analyzer::{IpAnalyzer, Version};
     use crate::flow::NoFlow;
-    use crate::RuleValue;
+    use crate::rule::RuleValue;
 
     use std::net::IpAddr;
 

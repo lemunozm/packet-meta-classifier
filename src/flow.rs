@@ -1,4 +1,4 @@
-use crate::classifiers::{Analyzer, AnalyzerId, AnalyzerStatus};
+use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus};
 
 use std::collections::HashMap;
 use std::net::SocketAddr;

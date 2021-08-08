@@ -1,9 +1,8 @@
 use super::config::Config;
 
-use super::{Exp, Rule};
-
-use crate::classifiers::{Analyzer, AnalyzerId, AnalyzerStatus, PacketInfo};
+use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus, PacketInfo};
 use crate::flow::FlowPool;
+use crate::rule::{Exp, Rule};
 
 use std::fmt::Display;
 
@@ -73,6 +72,7 @@ impl<T: Display> Engine<T> {
                         _ => unreachable!(),
                     }
                 }
+
                 let analyzer = packet.choose_analyzer(value.analyzer_id());
                 let flow = analyzer
                     .identify_flow()

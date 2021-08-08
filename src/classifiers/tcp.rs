@@ -1,7 +1,6 @@
 pub mod analyzer {
-    use crate::classifiers::{AnalyzerId, AnalyzerStatus};
+    use crate::analyzer::{Analyzer, AnalyzerId, AnalyzerStatus};
     use crate::flow::{FlowDef, GenericFlow};
-    use crate::Analyzer;
 
     #[derive(Default)]
     pub struct TcpAnalyzer {
@@ -74,7 +73,7 @@ pub mod rules {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
 
-    use crate::RuleValue;
+    use crate::rule::RuleValue;
 
     #[derive(Debug)]
     pub struct Tcp;
