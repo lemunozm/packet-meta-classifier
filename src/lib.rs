@@ -6,7 +6,7 @@ pub mod config;
 pub mod engine;
 pub mod flow;
 
-use classifiers::Analyzer;
+use classifiers::{Analyzer, AnalyzerId};
 use flow::{Flow, GenericFlow};
 use std::fmt::Display;
 use std::net::SocketAddr;
@@ -31,10 +31,6 @@ pub enum ClassificationState<'a, T: Display> {
     Classified(&'a Rule<T>),
 }
 
-pub struct ClassificationRules<T: Display> {
-    rules: Vec<Rule<T>>,
-}
-
 pub struct Rule<T: Display> {
     pub exp: Exp,
     pub tag: T,
@@ -45,39 +41,6 @@ impl<T: Display> Rule<T> {
     fn new(exp: Exp, tag: T, priority: usize) -> Self {
         Self { exp, tag, priority }
     }
-}
-
-impl<T: Display> ClassificationRules<T> {
-    pub fn new(tagged_expr: Vec<(Exp, T)>) -> ClassificationRules<T> {
-        let rules = tagged_expr
-            .into_iter()
-            .enumerate()
-            .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
-            .collect();
-
-        ClassificationRules { rules }
-    }
-
-    pub fn rule(&self, priority: usize) -> Option<&Rule<T>> {
-        self.rules.get(priority)
-    }
-
-    pub fn try_classify(
-        &self,
-        analyzers: u64,
-        analyzer: &dyn Analyzer,
-        flow: Option<&dyn GenericFlow>,
-    ) -> ClassificationState<T> {
-        for rule in &self.rules {
-            //TODO save state: start with the rules and better save the state of the analyzing packet.
-            if rule.exp.check(analyzer, flow) {
-                return ClassificationState::Classified(rule);
-            }
-        }
-        ClassificationState::None
-    }
-
-    pub fn reset_state() {}
 }
 
 pub trait RuleValue: std::fmt::Debug {
@@ -94,9 +57,8 @@ pub trait RuleValue: std::fmt::Debug {
 }
 
 pub trait GenericValue {
-    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
-        todo!()
-    }
+    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool;
+    fn analyzer_id(&self) -> AnalyzerId;
 }
 
 struct GenericValueImpl<A, F> {
@@ -121,6 +83,10 @@ impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for Generi
             }
             None => self.value.check(analyzer, &F::default()),
         }
+    }
+
+    fn analyzer_id(&self) -> AnalyzerId {
+        todo!()
     }
 }
 
@@ -150,12 +116,12 @@ impl Exp {
         Exp::Or(expressions)
     }
 
-    pub fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
+    pub fn check(&self, value_validator: &mut dyn FnMut(&Box<dyn GenericValue>) -> bool) -> bool {
         match self {
-            Exp::Value(value) => value.check(analyzer, flow),
-            Exp::Not(rule) => !rule.check(analyzer, flow),
-            Exp::And(rules) => rules.iter().all(|rule| rule.check(analyzer, flow)),
-            Exp::Or(rules) => rules.iter().any(|rule| rule.check(analyzer, flow)),
+            Exp::Value(value) => value_validator(value),
+            Exp::Not(rule) => !rule.check(value_validator),
+            Exp::And(rules) => rules.iter().all(|rule| rule.check(value_validator)),
+            Exp::Or(rules) => rules.iter().any(|rule| rule.check(value_validator)),
         }
     }
 }

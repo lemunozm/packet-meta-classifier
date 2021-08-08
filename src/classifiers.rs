@@ -5,8 +5,9 @@ pub mod udp;
 
 use crate::flow::{FlowDef, GenericFlow};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum AnalyzerId {
+    None = 0,
     Ip = 1 << 0,
     Tcp = 1 << 1,
     Udp = 1 << 2,
@@ -23,6 +24,7 @@ pub struct PacketInfo {
 impl PacketInfo {
     pub fn choose_analyzer<'a>(&mut self, id: AnalyzerId) -> &mut dyn Analyzer {
         match id {
+            AnalyzerId::None => unreachable!(),
             AnalyzerId::Ip => {
                 self.ip = ip::analyzer::IpAnalyzer::default();
                 &mut self.ip
@@ -53,4 +55,5 @@ pub trait Analyzer {
     fn identify_flow(&self) -> Option<FlowDef>;
     fn create_flow(&self) -> Box<dyn GenericFlow>;
     fn as_any(&self) -> &dyn std::any::Any;
+    fn id(&self) -> AnalyzerId;
 }

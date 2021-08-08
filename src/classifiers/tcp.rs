@@ -1,5 +1,5 @@
 pub mod analyzer {
-    use crate::classifiers::AnalyzerStatus;
+    use crate::classifiers::{AnalyzerId, AnalyzerStatus};
     use crate::flow::{FlowDef, GenericFlow};
     use crate::Analyzer;
 
@@ -34,6 +34,10 @@ pub mod analyzer {
 
         fn as_any(&self) -> &dyn std::any::Any {
             self
+        }
+
+        fn id(&self) -> AnalyzerId {
+            AnalyzerId::Tcp
         }
     }
 }

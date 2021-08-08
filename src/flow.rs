@@ -1,4 +1,4 @@
-use crate::classifiers::{Analyzer, AnalyzerStatus};
+use crate::classifiers::{Analyzer, AnalyzerId, AnalyzerStatus};
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -30,6 +30,10 @@ impl FlowPool {
             .or_insert_with(flow_builder)
             .as_mut()
     }
+
+    pub fn get(&self, flow_def: &FlowDef) -> Option<&dyn GenericFlow> {
+        self.flows.get(flow_def).map(|flow| &**flow)
+    }
 }
 
 pub trait Flow {
@@ -54,6 +58,10 @@ impl Analyzer for UnusedAnalyzer {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+
+    fn id(&self) -> AnalyzerId {
+        AnalyzerId::None
     }
 }
 

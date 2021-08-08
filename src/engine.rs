@@ -1,8 +1,6 @@
 use super::config::Config;
 
-use super::ClassificationRules;
-use super::ClassificationState;
-use super::Rule;
+use super::{Exp, Rule};
 
 use crate::classifiers::{Analyzer, AnalyzerId, AnalyzerStatus, PacketInfo};
 use crate::flow::FlowPool;
@@ -16,13 +14,19 @@ pub struct ClassificationResult<'a, T: Display> {
 
 pub struct Engine<T: Display> {
     config: Config,
-    rules: ClassificationRules<T>,
+    rules: Vec<Rule<T>>,
     packet: PacketInfo,
     flow_pool: FlowPool,
 }
 
 impl<T: Display> Engine<T> {
-    pub fn new(config: Config, rules: ClassificationRules<T>) -> Engine<T> {
+    pub fn new(config: Config, rule_exp: Vec<(Exp, T)>) -> Engine<T> {
+        let rules = rule_exp
+            .into_iter()
+            .enumerate()
+            .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
+            .collect();
+
         Engine {
             config,
             rules,
@@ -31,6 +35,64 @@ impl<T: Display> Engine<T> {
         }
     }
 
+    pub fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
+        let mut next_analyzer_id = AnalyzerId::START;
+        let Self {
+            config,
+            rules,
+            packet,
+            flow_pool,
+        } = self;
+
+        for rule in rules {
+            let is_validated = rule.exp.check(&mut |value| {
+                while value.analyzer_id() > next_analyzer_id {
+                    let analyzer = packet.choose_analyzer(next_analyzer_id);
+                    log::trace!("Analyze for: {:?}", next_analyzer_id);
+                    let analyzer_status = analyzer.analyze(data);
+                    if let AnalyzerStatus::Abort = analyzer_status {
+                        log::trace!("Not classified: Analysis aborted");
+                        return false;
+                    }
+
+                    if let Some(flow_def) = analyzer.identify_flow() {
+                        let flow = flow_pool.get_or_create(flow_def, || analyzer.create_flow());
+                        log::trace!("Flow update for: {:?}", next_analyzer_id);
+                        flow.update(analyzer);
+                    }
+
+                    match analyzer_status {
+                        AnalyzerStatus::Finished(_) => {
+                            log::trace!("Analysis finished");
+                            break;
+                        }
+                        AnalyzerStatus::Next(analyzer_id, next_data) => {
+                            data = next_data;
+                            next_analyzer_id = analyzer_id;
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                let analyzer = packet.choose_analyzer(value.analyzer_id());
+                let flow = analyzer
+                    .identify_flow()
+                    .map(|flow_def| flow_pool.get(&flow_def).unwrap());
+
+                let answer = value.check(analyzer, flow);
+                log::trace!("Check for value: {}", answer);
+                answer
+            });
+
+            if is_validated {
+                return ClassificationResult { rule: Some(rule) };
+            }
+        }
+
+        log::trace!("Not classified: Not rule matched");
+        ClassificationResult { rule: None }
+    }
+
+    /*
     pub fn process_packet(&mut self, mut data: &[u8]) -> ClassificationResult<T> {
         let mut analyzers: u64 = 0;
         let mut analyzer_id = AnalyzerId::START;
@@ -86,4 +148,5 @@ impl<T: Display> Engine<T> {
 
         ClassificationResult { rule }
     }
+    */
 }
