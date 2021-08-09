@@ -20,6 +20,6 @@ impl From<ClassifierId> for usize {
 impl From<usize> for ClassifierId {
     fn from(number: usize) -> ClassifierId {
         num_traits::FromPrimitive::from_usize(number)
-            .expect("The number must represent a Classifier ID")
+            .expect("The number must represent an existing Classifier ID")
     }
 }

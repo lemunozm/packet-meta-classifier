@@ -1,7 +1,7 @@
+use packet_classifier::classifier::Classifier;
 use packet_classifier::classifiers::ip::rules::IpVersion;
 use packet_classifier::classifiers::tcp::rules::{Tcp, TcpSourcePort};
 use packet_classifier::config::Config;
-use packet_classifier::engine::Engine;
 use packet_classifier::rule::Exp;
 
 mod util;
@@ -20,16 +20,14 @@ fn test() {
         (Exp::value(IpVersion::V4), 300),
     ];
 
-    let mut engine = Engine::new(config, rules);
+    let mut classifier = Classifier::new(config, rules);
 
     let capture = Capture::open("captures/http.cap");
     for (index, packet) in capture[0..].iter().enumerate() {
-        let classification_result = engine.process_packet(&packet.data);
-
-        let rule: &dyn std::fmt::Display = match classification_result.rule {
-            Some(rule) => &rule.tag,
-            None => &"<Not matching rule>",
-        };
-        println!("[{}]: {}", index, rule);
+        let classification_result = classifier.classify_packet(&packet.data);
+        match classification_result.rule {
+            Some(rule) => println!("[{}]: {}", index, &rule.tag),
+            None => println!("[{}]: <Not matching rule>", index),
+        }
     }
 }
