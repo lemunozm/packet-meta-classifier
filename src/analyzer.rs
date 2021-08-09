@@ -49,12 +49,31 @@ impl AnalyzerRegistry {
             self.dependencies[A::classifier_id() as usize].is_empty(),
             "Analyzer already registered"
         );
+
         self.dependencies[A::classifier_id() as usize].insert(A::classifier_id());
-        for classifier_id in A::next_classifiers() {
-            self.dependencies[A::classifier_id() as usize].insert(classifier_id);
-        }
+        self.dependencies[A::classifier_id() as usize].extend(A::next_classifiers());
+        Self::dependency_tree_creation(
+            &mut self.dependencies,
+            A::classifier_id(),
+            &A::next_classifiers(),
+        );
+
         self.analyzers
             .insert(A::classifier_id().into(), Box::new(analyzer));
+    }
+
+    fn dependency_tree_creation<'a>(
+        dependencies: &mut Vec<HashSet<ClassifierId>>,
+        id: ClassifierId,
+        addition: impl IntoIterator<Item = &'a ClassifierId> + Clone + Copy,
+    ) {
+        for selected_id in 0..dependencies.len() {
+            let classifier_ids = &mut dependencies[selected_id];
+            if selected_id != id.into() && classifier_ids.contains(&id) {
+                classifier_ids.extend(addition.clone());
+                Self::dependency_tree_creation(dependencies, selected_id.into(), addition);
+            }
+        }
     }
 
     pub fn get(&self, id: ClassifierId) -> &dyn Analyzer {
@@ -71,7 +90,6 @@ impl AnalyzerRegistry {
     }
 
     pub fn exists_path(&self, from: ClassifierId, to: ClassifierId) -> bool {
-        dbg!(&self.dependencies);
         self.dependencies[from as usize].contains(&to)
     }
 }

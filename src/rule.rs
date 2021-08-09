@@ -26,6 +26,7 @@ pub trait RuleValue: std::fmt::Debug {
     fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool;
 }
 
+#[non_exhaustive]
 pub enum Exp {
     Value(Box<dyn GenericValue>),
     Not(Box<Exp>),
@@ -68,6 +69,7 @@ pub trait GenericValue {
 }
 
 struct GenericValueImpl<A, F> {
+    //TODO: remove Box?
     value: Box<dyn RuleValue<Analyzer = A, Flow = F>>,
 }
 
