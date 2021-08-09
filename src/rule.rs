@@ -68,20 +68,19 @@ pub trait GenericValue {
     fn classifier_id(&self) -> ClassifierId;
 }
 
-struct GenericValueImpl<A, F> {
-    //TODO: remove Box?
-    value: Box<dyn RuleValue<Analyzer = A, Flow = F>>,
+struct GenericValueImpl<R: RuleValue<Analyzer = A, Flow = F>, A, F> {
+    value: R,
 }
 
-impl<A, F> GenericValueImpl<A, F> {
-    fn new(value: impl RuleValue<Analyzer = A, Flow = F> + 'static) -> Self {
-        Self {
-            value: Box::new(value),
-        }
+impl<R: RuleValue<Analyzer = A, Flow = F>, A, F> GenericValueImpl<R, A, F> {
+    fn new(value: R) -> Self {
+        Self { value }
     }
 }
 
-impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
+impl<R: RuleValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Default + 'static>
+    GenericValue for GenericValueImpl<R, A, F>
+{
     fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
         let analyzer = analyzer.as_any().downcast_ref::<A>().unwrap();
         match flow {
