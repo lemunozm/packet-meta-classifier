@@ -5,5 +5,5 @@ pub mod analyzer;
 pub mod classifier;
 pub mod classifiers;
 pub mod config;
+pub mod expression;
 pub mod flow;
-pub mod rule;

@@ -2,10 +2,22 @@ use super::config::Config;
 
 use crate::analyzer::{Analyzer, AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
 use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
+use crate::expression::{Expr, ValidatedExpr};
 use crate::flow::FlowPool;
-use crate::rule::{Exp, Rule, ValidatedExp};
 
 use std::fmt::Display;
+
+pub struct Rule<T: Display> {
+    pub exp: Expr,
+    pub tag: T,
+    pub priority: usize,
+}
+
+impl<T: Display> Rule<T> {
+    pub fn new(exp: Expr, tag: T, priority: usize) -> Self {
+        Self { exp, tag, priority }
+    }
+}
 
 #[derive(Default)]
 pub struct ClassificationResult<'a, T: Display> {
@@ -20,7 +32,7 @@ pub struct Classifier<T: Display> {
 }
 
 impl<T: Display> Classifier<T> {
-    pub fn new(config: Config, rule_exp: Vec<(Exp, T)>) -> Classifier<T> {
+    pub fn new(config: Config, rule_exp: Vec<(Expr, T)>) -> Classifier<T> {
         let rules = rule_exp
             .into_iter()
             .enumerate()
@@ -56,8 +68,14 @@ impl<T: Display> Classifier<T> {
         };
 
         for rule in rules {
-            let validated_expression = rule.exp.check(&mut |rule_value| {
-                let status = state.analyze_classification_for(rule_value.classifier_id());
+            log::trace!("Check rule {} with priority {}", rule.tag, rule.priority);
+            let validated_expression = rule.exp.check(&mut |expr_value| {
+                log::trace!(
+                    "Check expresion value of {:?}: [{:?}]",
+                    expr_value.classifier_id(),
+                    expr_value
+                );
+                let status = state.analyze_classification_for(expr_value.classifier_id());
                 match status {
                     ClassificationStatus::CanClassify => {
                         let analyzer = state.analyzers.get(state.next_classifier_id);
@@ -65,22 +83,22 @@ impl<T: Display> Classifier<T> {
                             .identify_flow()
                             .map(|flow_def| state.flow_pool.get(&flow_def).unwrap());
 
-                        let answer = rule_value.check(analyzer, flow);
-                        log::trace!("Check for value: {}", answer);
-                        ValidatedExp::from_bool(answer)
+                        let answer = expr_value.check(analyzer, flow);
+                        log::trace!("Expression value: [{:?}]: {}", expr_value, answer);
+                        ValidatedExpr::from_bool(answer)
                     }
-                    ClassificationStatus::NotClassify => ValidatedExp::NotClassified,
-                    ClassificationStatus::Abort => ValidatedExp::Abort,
+                    ClassificationStatus::NotClassify => ValidatedExpr::NotClassified,
+                    ClassificationStatus::Abort => ValidatedExpr::Abort,
                 }
             });
 
             match validated_expression {
-                ValidatedExp::Classified => {
+                ValidatedExpr::Classified => {
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult { rule: Some(rule) };
                 }
-                ValidatedExp::NotClassified => continue,
-                ValidatedExp::Abort => break,
+                ValidatedExpr::NotClassified => continue,
+                ValidatedExpr::Abort => break,
             }
         }
 

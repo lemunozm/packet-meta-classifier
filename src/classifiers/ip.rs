@@ -111,15 +111,15 @@ pub mod analyzer {
 
 pub mod rules {
     use super::analyzer::{IpAnalyzer, Version};
+    use crate::expression::ExprValue;
     use crate::flow::NoFlow;
-    use crate::rule::RuleValue;
 
     use std::net::IpAddr;
 
     #[derive(Debug)]
     pub struct Ip;
 
-    impl RuleValue for Ip {
+    impl ExprValue for Ip {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
@@ -138,7 +138,7 @@ pub mod rules {
         V6,
     }
 
-    impl RuleValue for IpVersion {
+    impl ExprValue for IpVersion {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
@@ -157,7 +157,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl RuleValue for IpSource {
+    impl ExprValue for IpSource {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 
@@ -176,7 +176,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl RuleValue for IpDest {
+    impl ExprValue for IpDest {
         type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
 

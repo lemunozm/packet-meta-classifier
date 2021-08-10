@@ -2,22 +2,22 @@ use packet_classifier::classifier::Classifier;
 use packet_classifier::classifiers::ip::rules::IpVersion;
 use packet_classifier::classifiers::tcp::rules::{Tcp, TcpSourcePort};
 use packet_classifier::config::Config;
-use packet_classifier::rule::Exp;
+use packet_classifier::expression::Expr;
 
 mod util;
 
 use util::capture::Capture;
 
 #[test]
-fn test() {
+fn basic_http_capture() {
     util::logger::init();
 
     let config = Config::new();
 
     let rules = vec![
-        (Exp::value(TcpSourcePort(80)), 200),
-        (Exp::value(Tcp), 300),
-        (Exp::value(IpVersion::V4), 300),
+        (Expr::value(TcpSourcePort(80)), 200),
+        (Expr::value(Tcp), 300),
+        (Expr::value(IpVersion::V4), 300),
     ];
 
     let mut classifier = Classifier::new(config, rules);
