@@ -25,6 +25,12 @@ pub trait Analyzer {
     fn reset(&mut self);
 }
 
+pub enum DependencyStatus {
+    Ok,
+    NeedAnalysis,
+    None,
+}
+
 pub struct AnalyzerRegistry {
     analyzers: Vec<Box<dyn Analyzer>>,
     dependencies: Vec<HashSet<ClassifierId>>,
@@ -89,8 +95,14 @@ impl AnalyzerRegistry {
         self.analyzers.get(id as usize).is_some()
     }
 
-    pub fn exists_path(&self, from: ClassifierId, to: ClassifierId) -> bool {
-        self.dependencies[from as usize].contains(&to)
+    pub fn check_dependencies(&self, next: ClassifierId, to: ClassifierId) -> DependencyStatus {
+        if self.dependencies[next as usize].contains(&to) {
+            DependencyStatus::NeedAnalysis
+        } else if self.dependencies[to as usize].contains(&next) {
+            DependencyStatus::Ok
+        } else {
+            DependencyStatus::None
+        }
     }
 }
 
