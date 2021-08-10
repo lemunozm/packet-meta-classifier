@@ -24,6 +24,7 @@ fn basic_http_capture() {
 
     let capture = Capture::open("captures/http.cap");
     for (index, packet) in capture[0..].iter().enumerate() {
+        let index = index + 1;
         let classification_result = classifier.classify_packet(&packet.data);
         match classification_result.rule {
             Some(rule) => println!("[{}]: {}", index, &rule.tag),

@@ -67,6 +67,7 @@ impl<T: Display> Classifier<T> {
             finished_analysis: false,
         };
 
+        log::trace!("Start packet classification");
         for rule in rules {
             log::trace!("Check rule {} with priority {}", rule.tag, rule.priority);
             let validated_expression = rule.exp.check(&mut |expr_value| {

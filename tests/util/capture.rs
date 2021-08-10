@@ -19,7 +19,7 @@ impl Capture {
                 let pcap = pcap.unwrap();
                 match pcap.data[12..14] {
                     [0x08, 0x00] => Packet {
-                        data: Vec::from(&pcap.data[14..pcap.data.len() - 4]),
+                        data: Vec::from(&pcap.data[14..pcap.data.len()]),
                     },
                     _ => panic!("The packet must start as with IP header"),
                 }
