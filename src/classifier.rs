@@ -85,7 +85,7 @@ impl<T: Display> Classifier<T> {
                             .map(|flow_def| state.flow_pool.get(&flow_def).unwrap());
 
                         let answer = expr_value.check(analyzer, flow);
-                        log::trace!("Expression value: [{:?}]: {}", expr_value, answer);
+                        log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
                         ValidatedExpr::from_bool(answer)
                     }
                     ClassificationStatus::NotClassify => ValidatedExpr::NotClassified,

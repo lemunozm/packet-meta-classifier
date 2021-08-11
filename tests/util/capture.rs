@@ -38,6 +38,6 @@ impl<I: SliceIndex<[Packet]>> Index<I> for Capture {
 
     #[inline]
     fn index(&self, index: I) -> &Self::Output {
-        Index::index(&*self.ip_packets, index)
+        self.ip_packets.index(index)
     }
 }

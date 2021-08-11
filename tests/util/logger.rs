@@ -1,3 +1,4 @@
+use fern::colors::{Color, ColoredLevelConfig};
 use std::sync::{Once, RwLock};
 
 // Used to init the log only one time for all tests;
@@ -18,13 +19,32 @@ pub fn set_log_packet_number(packet_number: Option<usize>) {
 }
 
 fn configure_logger() -> Result<(), fern::InitError> {
+    let level_colors = ColoredLevelConfig::new()
+        .error(Color::Red)
+        .warn(Color::Yellow)
+        .info(Color::Cyan)
+        .debug(Color::White)
+        .trace(Color::White);
+
     fern::Dispatch::new()
-        .filter(|metadata| metadata.target().starts_with("packet_classifier"))
+        .filter(|_metadata| {
+            #[cfg(feature = "classification-logs")]
+            let classification = _metadata.target().starts_with("packet_classifier");
+            #[cfg(not(feature = "classification-logs"))]
+            let classification = false;
+
+            #[cfg(feature = "test-logs")]
+            let test = !_metadata.target().contains("::");
+            #[cfg(not(feature = "test-logs"))]
+            let test = false;
+
+            classification || test
+        })
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "[{}][{}]{}[{}]: {}",
+                "{} {:<5} {}{}: {}",
                 chrono::Local::now().format("%M:%S:%3f"), // min:sec:nano
-                record.level(),
+                level_colors.color(record.level()),
                 PACKET_NUMBER
                     .read()
                     .unwrap()
@@ -33,7 +53,8 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 record
                     .target()
                     .strip_prefix("packet_classifier::")
-                    .unwrap_or(record.target()),
+                    .map(|n| format!(" [{}]", n))
+                    .unwrap_or(String::new()),
                 message,
             ))
         })

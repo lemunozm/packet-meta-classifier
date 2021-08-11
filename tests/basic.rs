@@ -27,11 +27,14 @@ fn basic_http_capture() {
     for (index, packet) in capture[0..].iter().enumerate() {
         let packet_number = index + 1;
         logger::set_log_packet_number(Some(packet_number));
+
         let classification_result = classifier.classify_packet(&packet.data);
-        match classification_result.rule {
-            Some(rule) => println!("[{}]: {}", packet_number, &rule.tag),
-            None => println!("[{}]: <Not matching rule>", packet_number),
-        }
+
+        let tag = match classification_result.rule {
+            Some(rule) => format!("{}", rule.tag),
+            None => String::from("<Not matching rule>"),
+        };
+        log::info!("Classified at rule {}", tag);
     }
 
     logger::set_log_packet_number(None);
