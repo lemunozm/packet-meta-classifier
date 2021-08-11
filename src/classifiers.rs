@@ -5,6 +5,7 @@ pub mod udp;
 
 #[derive(strum::EnumCount, num_derive::FromPrimitive, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ClassifierId {
+    None,
     Ip,
     Tcp,
     Udp,

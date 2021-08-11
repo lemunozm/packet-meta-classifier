@@ -7,6 +7,8 @@ use crate::flow::FlowPool;
 
 use std::fmt::Display;
 
+use std::collections::HashMap;
+
 struct Rule<T> {
     pub exp: Expr,
     pub tag: T,
@@ -63,6 +65,8 @@ impl<T: Display + Default + Clone> Classifier<T> {
             data,
             next_classifier_id: ClassifierId::Ip,
             analyzers,
+            flow_signature: Vec::with_capacity(16),
+            flow_signature_level: HashMap::new(),
             flow_pool,
             finished_analysis: false,
         };
@@ -79,10 +83,11 @@ impl<T: Display + Default + Clone> Classifier<T> {
                 let status = state.analyze_classification_for(expr_value.classifier_id());
                 match status {
                     ClassificationStatus::CanClassify => {
-                        let analyzer = state.analyzers.get(state.next_classifier_id);
-                        let flow = analyzer
-                            .identify_flow()
-                            .map(|flow_def| state.flow_pool.get(&flow_def).unwrap());
+                        let analyzer = state.analyzers.get(expr_value.classifier_id());
+                        let flow = state
+                            .flow_signature_level
+                            .get(&expr_value.classifier_id())
+                            .map(|flow_signature| state.flow_pool.get(&flow_signature).unwrap());
 
                         let answer = expr_value.check(analyzer, flow);
                         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
@@ -114,6 +119,8 @@ struct ClassificationState<'a> {
     data: &'a [u8],
     next_classifier_id: ClassifierId,
     analyzers: &'a mut AnalyzerRegistry,
+    flow_signature: Vec<u8>,
+    flow_signature_level: HashMap<ClassifierId, Vec<u8>>, //Already initialized
     flow_pool: &'a mut FlowPool,
     finished_analysis: bool,
 }
@@ -145,12 +152,16 @@ impl<'a> ClassificationState<'a> {
                         break ClassificationStatus::Abort;
                     }
 
-                    if let Some(flow_def) = analyzer.identify_flow() {
+                    if analyzer.update_flow_signature(&mut self.flow_signature) {
                         let flow = self
                             .flow_pool
-                            .get_or_create(flow_def, || analyzer.create_flow());
+                            .get_mut_or_create(&self.flow_signature, || analyzer.create_flow());
+
                         log::trace!("Flow update for: {:?}", self.next_classifier_id);
                         flow.update(analyzer);
+
+                        self.flow_signature_level
+                            .insert(self.next_classifier_id, self.flow_signature.clone());
                     }
 
                     match analyzer_status {

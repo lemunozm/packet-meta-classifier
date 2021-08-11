@@ -1,7 +1,9 @@
 pub mod analyzer {
+    use super::flow::TcpFlow;
+
     use crate::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::classifiers::ip::analyzer::IpAnalyzer;
     use crate::classifiers::ClassifierId;
-    use crate::flow::{FlowDef, GenericFlow};
 
     #[derive(Default)]
     pub struct TcpAnalyzer {
@@ -10,6 +12,10 @@ pub mod analyzer {
     }
 
     impl Analyzer for TcpAnalyzer {
+        type PrevAnalyzer = IpAnalyzer;
+        type Flow = TcpFlow;
+        const ID: ClassifierId = ClassifierId::Tcp;
+
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
             self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
             self.dest_port = u16::from_be_bytes(*array_ref![data, 2, 2]);
@@ -23,30 +29,6 @@ pub mod analyzer {
                 AnalyzerStatus::Finished(&data[header_length..])
             }
         }
-
-        fn classifier_id() -> ClassifierId {
-            ClassifierId::Tcp
-        }
-
-        fn next_classifiers() -> Vec<ClassifierId> {
-            vec![ClassifierId::Http]
-        }
-
-        fn identify_flow(&self) -> Option<FlowDef> {
-            None
-        }
-
-        fn create_flow(&self) -> Box<dyn GenericFlow> {
-            unreachable!()
-        }
-
-        fn as_any(&self) -> &dyn std::any::Any {
-            self
-        }
-
-        fn reset(&mut self) {
-            *self = Self::default();
-        }
     }
 }
 
@@ -55,26 +37,38 @@ pub mod flow {
 
     use crate::flow::Flow;
 
-    pub enum State {
+    use std::io::Write;
+
+    pub enum Handshake {
         Send,
         Recv,
         Established,
     }
 
-    impl Default for State {
+    impl Default for Handshake {
         fn default() -> Self {
-            State::Send
+            Handshake::Send
         }
     }
 
     #[derive(Default)]
     pub struct TcpFlow {
-        pub state: State,
+        pub handshake: Handshake,
     }
 
     impl Flow for TcpFlow {
         type Analyzer = TcpAnalyzer;
-        fn update(&mut self, analyzer: &Self::Analyzer) {}
+        fn create(analyzer: &Self::Analyzer) -> Self {
+            todo!()
+        }
+
+        fn write_signature(analyzer: &Self::Analyzer, signature: impl Write) {
+            todo!()
+        }
+
+        fn update(&mut self, analyzer: &Self::Analyzer) {
+            todo!()
+        }
     }
 }
 

@@ -1,78 +1,90 @@
-use crate::analyzer::{Analyzer, NoAnalyzer};
+use crate::analyzer::{Analyzer, GenericAnalyzer};
 
 use std::collections::HashMap;
-use std::net::SocketAddr;
-
-#[derive(Hash, Clone, PartialEq, Eq)]
-pub struct FlowDef {
-    origin: SocketAddr,
-    dest: SocketAddr,
-}
-
-pub trait GenericFlow {
-    fn update(&mut self, analyzer: &dyn Analyzer);
-    fn as_any(&self) -> &dyn std::any::Any;
-}
-
-#[derive(Default)]
-pub struct FlowPool {
-    flows: HashMap<FlowDef, Box<dyn GenericFlow>>,
-}
-
-impl FlowPool {
-    pub fn get_or_create(
-        &mut self,
-        flow_def: FlowDef,
-        flow_builder: impl FnOnce() -> Box<dyn GenericFlow>,
-    ) -> &mut dyn GenericFlow {
-        self.flows
-            .entry(flow_def)
-            .or_insert_with(flow_builder)
-            .as_mut()
-    }
-
-    pub fn get(&self, flow_def: &FlowDef) -> Option<&dyn GenericFlow> {
-        self.flows.get(flow_def).map(|flow| &**flow)
-    }
-}
+use std::io::Write;
 
 pub trait Flow {
     type Analyzer: Analyzer;
+    fn create(analyzer: &Self::Analyzer) -> Self
+    where
+        Self: Sized;
+    fn write_signature(analyzer: &Self::Analyzer, signature: impl Write)
+    where
+        Self: Sized;
     fn update(&mut self, analyzer: &Self::Analyzer);
 }
 
 #[derive(Default)]
-pub struct NoFlow;
-impl Flow for NoFlow {
-    type Analyzer = NoAnalyzer;
-    fn update(&mut self, _analyzer: &Self::Analyzer) {
+pub struct NoFlow<A> {
+    _analyzer: std::marker::PhantomData<A>,
+}
+
+impl<A: Analyzer> Flow for NoFlow<A> {
+    type Analyzer = A;
+    fn create(analyzer: &Self::Analyzer) -> Self {
+        unreachable!()
+    }
+
+    fn write_signature(analyzer: &Self::Analyzer, signature: impl Write) {
+        unreachable!()
+    }
+
+    fn update(&mut self, analyzer: &Self::Analyzer) {
         unreachable!()
     }
 }
 
-/*
-struct GenericFlowImpl<A> {}
+pub trait GenericFlow {
+    fn update(&mut self, analyzer: &dyn GenericAnalyzer);
+    fn as_any(&self) -> &dyn std::any::Any;
+}
 
-impl<A, F> GenericValueImpl<A, F> {
-    fn new(value: impl RuleValue<Analyzer = A, Flow = F> + 'static) -> Self {
-        Self {
-            value: Box::new(value),
-        }
+pub struct GenericFlowImpl<F> {
+    flow: F,
+}
+
+impl<F, A> GenericFlowImpl<F>
+where
+    F: Flow<Analyzer = A>,
+{
+    pub fn new(flow: F) -> Self {
+        Self { flow }
     }
 }
 
-impl<A: Analyzer + 'static, F: Flow + Default + 'static> GenericValue for GenericValueImpl<A, F> {
-    fn check(&self, analyzer: &Box<dyn Analyzer>, flow: Option<&Box<dyn Flow>>) -> bool {
-        let analyzer = (&*analyzer as &dyn std::any::Any)
-            .downcast_ref::<A>()
-            .unwrap();
-        match flow {
-            Some(flow) => {
-                let flow = (&*flow as &dyn std::any::Any).downcast_ref::<F>().unwrap();
-                self.value.check(analyzer, flow)
-            }
-            None => self.value.check(analyzer, &F::default()),
-        }
+impl<F, A> GenericFlow for GenericFlowImpl<F>
+where
+    F: Flow<Analyzer = A> + 'static,
+    A: 'static,
+{
+    fn update(&mut self, analyzer: &dyn GenericAnalyzer) {
+        let this_analyzer = analyzer.as_any().downcast_ref::<F::Analyzer>().unwrap();
+        self.flow.update(this_analyzer);
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
-*/
+
+#[derive(Default)]
+pub struct FlowPool {
+    flows: HashMap<Vec<u8>, Box<dyn GenericFlow>>,
+}
+
+impl FlowPool {
+    pub fn get_mut_or_create(
+        &mut self,
+        flow_signature: &[u8],
+        flow_builder: impl FnOnce() -> Box<dyn GenericFlow>,
+    ) -> &mut dyn GenericFlow {
+        self.flows
+            .entry(flow_signature.into())
+            .or_insert_with(flow_builder)
+            .as_mut()
+    }
+
+    pub fn get(&self, flow_signature: &[u8]) -> Option<&dyn GenericFlow> {
+        self.flows.get(flow_signature).map(|flow| &**flow)
+    }
+}

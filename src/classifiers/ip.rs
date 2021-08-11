@@ -1,7 +1,7 @@
 pub mod analyzer {
-    use crate::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
     use crate::classifiers::ClassifierId;
-    use crate::flow::{FlowDef, GenericFlow};
+    use crate::flow::NoFlow;
 
     use std::convert::{TryFrom, TryInto};
     use std::net::{Ipv4Addr, Ipv6Addr};
@@ -64,6 +64,10 @@ pub mod analyzer {
     }
 
     impl Analyzer for IpAnalyzer {
+        type PrevAnalyzer = NoAnalyzer;
+        type Flow = NoFlow<IpAnalyzer>;
+        const ID: ClassifierId = ClassifierId::Ip;
+
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
             let ip_version = (data[0] & 0xF0) >> 4;
             self.version = match ip_version {
@@ -83,30 +87,6 @@ pub mod analyzer {
             }
             AnalyzerStatus::Next(self.protocol.classifier_id(), &data[header_length..])
         }
-
-        fn classifier_id() -> ClassifierId {
-            ClassifierId::Ip
-        }
-
-        fn next_classifiers() -> Vec<ClassifierId> {
-            vec![ClassifierId::Tcp, ClassifierId::Udp]
-        }
-
-        fn identify_flow(&self) -> Option<FlowDef> {
-            None
-        }
-
-        fn create_flow(&self) -> Box<dyn GenericFlow> {
-            unreachable!()
-        }
-
-        fn as_any(&self) -> &dyn std::any::Any {
-            self
-        }
-
-        fn reset(&mut self) {
-            *self = Self::default();
-        }
     }
 }
 
@@ -121,8 +101,8 @@ pub mod rules {
     pub struct Ip;
 
     impl ExprValue for Ip {
-        type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
@@ -140,8 +120,8 @@ pub mod rules {
     }
 
     impl ExprValue for IpVersion {
-        type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
@@ -159,8 +139,8 @@ pub mod rules {
     pub struct IpSource(pub IpAddr);
 
     impl ExprValue for IpSource {
-        type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
@@ -178,8 +158,8 @@ pub mod rules {
     pub struct IpDest(pub IpAddr);
 
     impl ExprValue for IpDest {
-        type Flow = NoFlow;
         type Analyzer = IpAnalyzer;
+        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"

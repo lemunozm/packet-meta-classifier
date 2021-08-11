@@ -1,4 +1,4 @@
-use crate::analyzer::Analyzer;
+use crate::analyzer::{Analyzer, GenericAnalyzer};
 use crate::classifiers::ClassifierId;
 use crate::flow::{Flow, GenericFlow};
 
@@ -90,7 +90,7 @@ impl Expr {
 }
 
 pub trait GenericValue: std::fmt::Debug {
-    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool;
+    fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool;
     fn classifier_id(&self) -> ClassifierId;
 }
 
@@ -115,7 +115,7 @@ impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Defa
 impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Default + 'static>
     GenericValue for GenericValueImpl<R, A, F>
 {
-    fn check(&self, analyzer: &dyn Analyzer, flow: Option<&dyn GenericFlow>) -> bool {
+    fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool {
         let analyzer = analyzer.as_any().downcast_ref::<A>().unwrap();
         match flow {
             Some(flow) => {
@@ -127,6 +127,6 @@ impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Defa
     }
 
     fn classifier_id(&self) -> ClassifierId {
-        A::classifier_id()
+        A::ID
     }
 }
