@@ -1,6 +1,6 @@
-use crate::analyzer::{Analyzer, GenericAnalyzer};
+use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
 use crate::classifiers::ClassifierId;
-use crate::flow::{Flow, GenericFlow};
+use crate::flow::{Flow, GenericFlow, GenericFlowImpl};
 
 pub trait ExprValue: std::fmt::Debug {
     type Flow: Flow;
@@ -118,10 +118,20 @@ where
     F: Flow<Analyzer = A> + 'static,
 {
     fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool {
-        let analyzer = analyzer.as_any().downcast_ref::<A>().unwrap();
+        let analyzer = analyzer
+            .as_any()
+            .downcast_ref::<GenericAnalyzerImpl<A>>()
+            .unwrap()
+            .analyzer();
+
         match flow {
             Some(flow) => {
-                let flow = flow.as_any().downcast_ref::<F>().unwrap();
+                let flow = flow
+                    .as_any()
+                    .downcast_ref::<GenericFlowImpl<F>>()
+                    .unwrap()
+                    .flow();
+
                 self.value.check(analyzer, flow)
             }
             None => self.value.check(analyzer, &F::create(&analyzer)),

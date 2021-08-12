@@ -167,18 +167,18 @@ impl<'a> ClassificationState<'a> {
                             flow_signature,
                             || {
                                 log::trace!(
-                                    "Create flow [{:?}] for: {:?}",
+                                    "Create flow {:?}. Sig: {:?}",
+                                    next_classifier_id,
                                     flow_signature,
-                                    next_classifier_id
                                 );
                                 analyzer.create_flow()
                             },
                         );
 
                         log::trace!(
-                            "Update flow [{:?}] for: {:?}",
+                            "Update flow {:?}. Sig: {:?}",
+                            next_classifier_id,
                             flow_signature,
-                            next_classifier_id
                         );
                         flow.update(analyzer);
 

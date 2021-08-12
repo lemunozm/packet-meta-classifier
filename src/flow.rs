@@ -1,4 +1,4 @@
-use crate::analyzer::{Analyzer, GenericAnalyzer};
+use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
 use crate::classifiers::ClassifierId;
 
 use std::collections::HashMap;
@@ -42,6 +42,10 @@ where
     pub fn new(flow: F) -> Self {
         Self { flow }
     }
+
+    pub fn flow(&self) -> &F {
+        &self.flow
+    }
 }
 
 impl<F, A> GenericFlow for GenericFlowImpl<F>
@@ -50,7 +54,12 @@ where
     A: 'static,
 {
     fn update(&mut self, analyzer: &dyn GenericAnalyzer) {
-        let this_analyzer = analyzer.as_any().downcast_ref::<F::Analyzer>().unwrap();
+        let this_analyzer = analyzer
+            .as_any()
+            .downcast_ref::<GenericAnalyzerImpl<F::Analyzer>>()
+            .unwrap()
+            .analyzer();
+
         self.flow.update(this_analyzer);
     }
 

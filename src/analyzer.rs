@@ -47,13 +47,17 @@ pub trait GenericAnalyzer {
     fn create_flow(&self) -> Box<dyn GenericFlow>;
 }
 
-struct GenericAnalyzerImpl<A> {
+pub struct GenericAnalyzerImpl<A> {
     analyzer: A,
 }
 
 impl<A> GenericAnalyzerImpl<A> {
     fn new(analyzer: A) -> Self {
         Self { analyzer }
+    }
+
+    pub fn analyzer(&self) -> &A {
+        &self.analyzer
     }
 }
 
