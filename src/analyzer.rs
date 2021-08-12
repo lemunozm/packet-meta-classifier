@@ -3,8 +3,10 @@ use crate::flow::{Flow, GenericFlow, GenericFlowImpl, NoFlow};
 
 use strum::EnumCount;
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::Write;
+use std::rc::Rc;
 
 pub enum AnalyzerStatus<'a> {
     Next(ClassifierId, &'a [u8]),
@@ -43,8 +45,8 @@ pub trait GenericAnalyzer {
     fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
     fn as_any(&self) -> &dyn std::any::Any;
     fn reset(&mut self);
-    fn update_flow_signature(&mut self, current_signature: &mut Vec<u8>) -> bool;
-    fn create_flow(&self) -> Box<dyn GenericFlow>;
+    fn update_flow_signature(&self, current_signature: &mut Vec<u8>) -> bool;
+    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow>>;
 }
 
 pub struct GenericAnalyzerImpl<A> {
@@ -86,12 +88,14 @@ where
         self.analyzer = A::default();
     }
 
-    fn update_flow_signature(&mut self, mut current_signature: &mut Vec<u8>) -> bool {
+    fn update_flow_signature(&self, mut current_signature: &mut Vec<u8>) -> bool {
         self.analyzer.write_flow_signature(&mut current_signature)
     }
 
-    fn create_flow(&self) -> Box<dyn GenericFlow> {
-        Box::new(GenericFlowImpl::new(F::create(&self.analyzer)))
+    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow>> {
+        Rc::new(RefCell::new(GenericFlowImpl::new(F::create(
+            &self.analyzer,
+        ))))
     }
 }
 

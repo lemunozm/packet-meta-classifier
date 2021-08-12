@@ -1,7 +1,9 @@
 use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
 use crate::classifiers::ClassifierId;
 
-use std::collections::HashMap;
+use std::cell::{Ref, RefCell};
+use std::collections::{hash_map::Entry, HashMap};
+use std::rc::Rc;
 
 use strum::EnumCount;
 
@@ -69,7 +71,9 @@ where
 }
 
 pub struct FlowPool {
-    flows: Vec<HashMap<Vec<u8>, Box<dyn GenericFlow>>>,
+    flows: Vec<HashMap<Vec<u8>, Rc<RefCell<dyn GenericFlow>>>>,
+    flow_cache: Vec<Option<Rc<RefCell<dyn GenericFlow>>>>,
+    current_flow_signature: Vec<u8>,
 }
 
 impl Default for FlowPool {
@@ -78,30 +82,53 @@ impl Default for FlowPool {
             flows: (0..ClassifierId::COUNT)
                 .map(|_| HashMap::default())
                 .collect(),
+
+            flow_cache: (0..ClassifierId::COUNT).map(|_| None).collect(),
+            current_flow_signature: Vec::with_capacity(16),
         }
     }
 }
 
 impl FlowPool {
-    pub fn get_mut_or_create(
-        &mut self,
-        classifier_id: ClassifierId,
-        flow_signature: &[u8],
-        flow_builder: impl FnOnce() -> Box<dyn GenericFlow>,
-    ) -> &mut dyn GenericFlow {
-        self.flows[classifier_id as usize]
-            .entry(flow_signature.into())
-            .or_insert_with(flow_builder)
-            .as_mut()
+    pub fn prepare_for_packet(&mut self) {
+        self.current_flow_signature.clear();
     }
 
-    pub fn get(
-        &self,
-        classifier_id: ClassifierId,
-        flow_signature: &[u8],
-    ) -> Option<&dyn GenericFlow> {
-        self.flows[classifier_id as usize]
-            .get(flow_signature)
-            .map(|flow| &**flow)
+    pub fn update(&mut self, analyzer: &dyn GenericAnalyzer) {
+        if analyzer.update_flow_signature(&mut self.current_flow_signature) {
+            //IDEA: The vec alloc could be avoided using an array in FlowPool?
+            let entry =
+                self.flows[analyzer.id() as usize].entry(self.current_flow_signature.clone());
+
+            log::trace!(
+                "{} flow {:?}. Sig: {:?}",
+                if let Entry::Vacant(_) = entry {
+                    "Create"
+                } else {
+                    "Update"
+                },
+                analyzer.id(),
+                self.current_flow_signature,
+            );
+
+            match entry {
+                Entry::Vacant(entry) => {
+                    let shared_flow = analyzer.create_flow();
+                    entry.insert(shared_flow.clone());
+                    self.flow_cache[analyzer.id() as usize] = Some(shared_flow);
+                }
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().borrow_mut().update(analyzer);
+                }
+            }
+        } else {
+            self.flow_cache[analyzer.id() as usize] = None;
+        }
+    }
+
+    pub fn get_cached(&self, classifier_id: ClassifierId) -> Option<Ref<dyn GenericFlow>> {
+        self.flow_cache[classifier_id as usize]
+            .as_ref()
+            .map(|shared_flow| shared_flow.borrow())
     }
 }

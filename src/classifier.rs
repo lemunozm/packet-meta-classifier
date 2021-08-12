@@ -7,8 +7,6 @@ use crate::flow::FlowPool;
 
 use std::fmt::Display;
 
-use std::collections::HashMap;
-
 struct Rule<T> {
     pub exp: Expr,
     pub tag: T,
@@ -65,8 +63,6 @@ impl<T: Display + Default + Clone> Classifier<T> {
             data,
             next_classifier_id: ClassifierId::Ip,
             analyzers,
-            flow_signature: Vec::with_capacity(16),
-            flow_signature_level: HashMap::new(),
             flow_pool,
             finished_analysis: false,
         };
@@ -84,18 +80,9 @@ impl<T: Display + Default + Clone> Classifier<T> {
                 match status {
                     ClassificationStatus::CanClassify => {
                         let analyzer = state.analyzers.get(expr_value.classifier_id());
-                        //TODO: state.get_flow(classifier_id, flow_signature)
-                        let flow = state
-                            .flow_signature_level
-                            .get(&expr_value.classifier_id())
-                            .map(|flow_signature| {
-                                state
-                                    .flow_pool
-                                    .get(expr_value.classifier_id(), &flow_signature)
-                                    .unwrap()
-                            });
+                        let flow = state.flow_pool.get_cached(expr_value.classifier_id());
+                        let answer = expr_value.check(analyzer, flow.as_ref().map(|flow| &**flow));
 
-                        let answer = expr_value.check(analyzer, flow);
                         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
                         ValidatedExpr::from_bool(answer)
                     }
@@ -125,8 +112,6 @@ struct ClassificationState<'a> {
     data: &'a [u8],
     next_classifier_id: ClassifierId,
     analyzers: &'a mut AnalyzerRegistry,
-    flow_signature: Vec<u8>,
-    flow_signature_level: HashMap<ClassifierId, Vec<u8>>, //Already initialized
     flow_pool: &'a mut FlowPool,
     finished_analysis: bool,
 }
@@ -158,33 +143,7 @@ impl<'a> ClassificationState<'a> {
                         break ClassificationStatus::Abort;
                     }
 
-                    if analyzer.update_flow_signature(&mut self.flow_signature) {
-                        let flow_signature = &self.flow_signature;
-                        let next_classifier_id = self.next_classifier_id;
-
-                        let flow = self.flow_pool.get_mut_or_create(
-                            next_classifier_id,
-                            flow_signature,
-                            || {
-                                log::trace!(
-                                    "Create flow {:?}. Sig: {:?}",
-                                    next_classifier_id,
-                                    flow_signature,
-                                );
-                                analyzer.create_flow()
-                            },
-                        );
-
-                        log::trace!(
-                            "Update flow {:?}. Sig: {:?}",
-                            next_classifier_id,
-                            flow_signature,
-                        );
-                        flow.update(analyzer);
-
-                        self.flow_signature_level
-                            .insert(next_classifier_id, flow_signature.clone());
-                    }
+                    self.flow_pool.update(analyzer);
 
                     match analyzer_status {
                         AnalyzerStatus::Finished(_) => {
