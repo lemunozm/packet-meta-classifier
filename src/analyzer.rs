@@ -4,6 +4,7 @@ use crate::flow::{Flow, GenericFlow, GenericFlowImpl, NoFlow};
 use strum::EnumCount;
 
 use std::collections::HashSet;
+use std::io::Write;
 
 pub enum AnalyzerStatus<'a> {
     Next(ClassifierId, &'a [u8]),
@@ -15,7 +16,9 @@ pub trait Analyzer: Sized + Default {
     type PrevAnalyzer: Analyzer;
     type Flow: Flow;
     const ID: ClassifierId;
+
     fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
+    fn write_flow_signature(&self, signature: impl Write) -> bool;
 }
 
 #[derive(Default)]
@@ -26,6 +29,10 @@ impl Analyzer for NoAnalyzer {
     const ID: ClassifierId = ClassifierId::None;
 
     fn analyze<'a>(&mut self, _data: &'a [u8]) -> AnalyzerStatus<'a> {
+        unreachable!()
+    }
+
+    fn write_flow_signature(&self, _signature: impl Write) -> bool {
         unreachable!()
     }
 }
@@ -76,9 +83,7 @@ where
     }
 
     fn update_flow_signature(&mut self, mut current_signature: &mut Vec<u8>) -> bool {
-        let previous_len = current_signature.len();
-        F::write_signature(&self.analyzer, &mut current_signature);
-        previous_len != current_signature.len()
+        self.analyzer.write_flow_signature(&mut current_signature)
     }
 
     fn create_flow(&self) -> Box<dyn GenericFlow> {

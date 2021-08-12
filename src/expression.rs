@@ -6,9 +6,7 @@ pub trait ExprValue: std::fmt::Debug {
     type Flow: Flow;
     type Analyzer: Analyzer;
 
-    fn description() -> &'static str
-    where
-        Self: Sized;
+    fn description() -> &'static str;
     fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool;
 }
 
@@ -36,9 +34,12 @@ impl ValidatedExpr {
 }
 
 impl Expr {
-    pub fn value<A: Analyzer + 'static, F: Flow + Default + 'static>(
-        value: impl ExprValue<Analyzer = A, Flow = F> + 'static,
-    ) -> Expr {
+    pub fn value<V, A, F>(value: V) -> Expr
+    where
+        V: ExprValue<Analyzer = A, Flow = F> + 'static,
+        A: Analyzer<Flow = F> + 'static,
+        F: Flow<Analyzer = A> + 'static,
+    {
         Expr::Value(Box::new(GenericValueImpl::new(value)))
     }
 
@@ -94,26 +95,27 @@ pub trait GenericValue: std::fmt::Debug {
     fn classifier_id(&self) -> ClassifierId;
 }
 
-struct GenericValueImpl<R: ExprValue<Analyzer = A, Flow = F>, A, F> {
-    value: R,
+struct GenericValueImpl<V> {
+    value: V,
 }
 
-impl<R: ExprValue<Analyzer = A, Flow = F>, A, F> GenericValueImpl<R, A, F> {
-    fn new(value: R) -> Self {
+impl<V> GenericValueImpl<V> {
+    fn new(value: V) -> Self {
         Self { value }
     }
 }
 
-impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Default + 'static>
-    std::fmt::Debug for GenericValueImpl<R, A, F>
-{
+impl<V: std::fmt::Debug> std::fmt::Debug for GenericValueImpl<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.value)
     }
 }
 
-impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Default + 'static>
-    GenericValue for GenericValueImpl<R, A, F>
+impl<V, A, F> GenericValue for GenericValueImpl<V>
+where
+    V: ExprValue<Analyzer = A, Flow = F>,
+    A: Analyzer<Flow = F> + 'static,
+    F: Flow<Analyzer = A> + 'static,
 {
     fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool {
         let analyzer = analyzer.as_any().downcast_ref::<A>().unwrap();
@@ -122,7 +124,7 @@ impl<R: ExprValue<Analyzer = A, Flow = F>, A: Analyzer + 'static, F: Flow + Defa
                 let flow = flow.as_any().downcast_ref::<F>().unwrap();
                 self.value.check(analyzer, flow)
             }
-            None => self.value.check(analyzer, &F::default()),
+            None => self.value.check(analyzer, &F::create(&analyzer)),
         }
     }
 

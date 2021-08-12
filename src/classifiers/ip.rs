@@ -3,6 +3,7 @@ pub mod analyzer {
     use crate::classifiers::ClassifierId;
     use crate::flow::NoFlow;
 
+    use std::io::Write;
     use std::net::{Ipv4Addr, Ipv6Addr};
 
     pub struct V4 {
@@ -63,9 +64,26 @@ pub mod analyzer {
             let header_length = ((data[0] & 0x0F) as usize) << 2;
             AnalyzerStatus::Next(next_classifier, &data[header_length..])
         }
+
+        fn write_flow_signature(&self, mut signature: impl Write) -> bool {
+            match &self.version {
+                Version::V4(v4) => {
+                    signature.write(&v4.source.octets()).unwrap();
+                    signature.write(&v4.dest.octets()).unwrap();
+                }
+                Version::V6(v6) => {
+                    signature.write(&v6.source.octets()).unwrap();
+                    signature.write(&v6.dest.octets()).unwrap();
+                }
+            };
+
+            // For IP, we only add the signature but we do not want a IP flow itself
+            false
+        }
     }
 }
 
+//TODO: modify name to expression
 pub mod rules {
     use super::analyzer::{IpAnalyzer, Version};
     use crate::expression::ExprValue;
@@ -84,7 +102,7 @@ pub mod rules {
             "Valid if the packet is TCP"
         }
 
-        fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, _analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
             true
         }
     }
@@ -103,7 +121,7 @@ pub mod rules {
             "Valid if the IP version of the packet matches the given version"
         }
 
-        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
             match self {
                 Self::V4 => matches!(analyzer.version, Version::V4(_)),
                 Self::V6 => matches!(analyzer.version, Version::V6(_)),
@@ -122,7 +140,7 @@ pub mod rules {
             "Valid if the source IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.source == self.0,
                 Version::V6(ipv6) => ipv6.source == self.0,
@@ -141,7 +159,7 @@ pub mod rules {
             "Valid if the destination IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.dest == self.0,
                 Version::V6(ipv6) => ipv6.dest == self.0,

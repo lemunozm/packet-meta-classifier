@@ -5,6 +5,8 @@ pub mod analyzer {
     use crate::classifiers::ip::analyzer::IpAnalyzer;
     use crate::classifiers::ClassifierId;
 
+    use std::io::Write;
+
     #[derive(Default)]
     pub struct TcpAnalyzer {
         pub source_port: u16,
@@ -29,6 +31,12 @@ pub mod analyzer {
                 AnalyzerStatus::Finished(&data[header_length..])
             }
         }
+
+        fn write_flow_signature(&self, mut signature: impl Write) -> bool {
+            signature.write(&self.source_port.to_le_bytes()).unwrap();
+            signature.write(&self.dest_port.to_le_bytes()).unwrap();
+            true
+        }
     }
 }
 
@@ -37,37 +45,27 @@ pub mod flow {
 
     use crate::flow::Flow;
 
-    use std::io::Write;
-
     pub enum Handshake {
         Send,
         Recv,
         Established,
     }
 
-    impl Default for Handshake {
-        fn default() -> Self {
-            Handshake::Send
-        }
-    }
-
-    #[derive(Default)]
     pub struct TcpFlow {
         pub handshake: Handshake,
     }
 
     impl Flow for TcpFlow {
         type Analyzer = TcpAnalyzer;
-        fn create(analyzer: &Self::Analyzer) -> Self {
-            todo!()
+
+        fn create(_analyzer: &TcpAnalyzer) -> Self {
+            TcpFlow {
+                handshake: Handshake::Send,
+            }
         }
 
-        fn write_signature(analyzer: &Self::Analyzer, signature: impl Write) {
-            todo!()
-        }
-
-        fn update(&mut self, analyzer: &Self::Analyzer) {
-            todo!()
+        fn update(&mut self, _analyzer: &TcpAnalyzer) {
+            //TODO
         }
     }
 }
@@ -89,7 +87,7 @@ pub mod rules {
             "Valid if the packet is TCP"
         }
 
-        fn check(&self, _analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, _analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             true
         }
     }
@@ -105,7 +103,7 @@ pub mod rules {
             "Valid if the source TCP port of the packet matches the given port"
         }
 
-        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.source_port
         }
     }
@@ -121,7 +119,7 @@ pub mod rules {
             "Valid if the destination TCP port of the packet matches the given port"
         }
 
-        fn check(&self, analyzer: &Self::Analyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.dest_port
         }
     }

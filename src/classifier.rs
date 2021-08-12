@@ -84,10 +84,16 @@ impl<T: Display + Default + Clone> Classifier<T> {
                 match status {
                     ClassificationStatus::CanClassify => {
                         let analyzer = state.analyzers.get(expr_value.classifier_id());
+                        //TODO: state.get_flow(classifier_id, flow_signature)
                         let flow = state
                             .flow_signature_level
                             .get(&expr_value.classifier_id())
-                            .map(|flow_signature| state.flow_pool.get(&flow_signature).unwrap());
+                            .map(|flow_signature| {
+                                state
+                                    .flow_pool
+                                    .get(expr_value.classifier_id(), &flow_signature)
+                                    .unwrap()
+                            });
 
                         let answer = expr_value.check(analyzer, flow);
                         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
@@ -153,15 +159,31 @@ impl<'a> ClassificationState<'a> {
                     }
 
                     if analyzer.update_flow_signature(&mut self.flow_signature) {
-                        let flow = self
-                            .flow_pool
-                            .get_mut_or_create(&self.flow_signature, || analyzer.create_flow());
+                        let flow_signature = &self.flow_signature;
+                        let next_classifier_id = self.next_classifier_id;
 
-                        log::trace!("Flow update for: {:?}", self.next_classifier_id);
+                        let flow = self.flow_pool.get_mut_or_create(
+                            next_classifier_id,
+                            flow_signature,
+                            || {
+                                log::trace!(
+                                    "Create flow [{:?}] for: {:?}",
+                                    flow_signature,
+                                    next_classifier_id
+                                );
+                                analyzer.create_flow()
+                            },
+                        );
+
+                        log::trace!(
+                            "Update flow [{:?}] for: {:?}",
+                            flow_signature,
+                            next_classifier_id
+                        );
                         flow.update(analyzer);
 
                         self.flow_signature_level
-                            .insert(self.next_classifier_id, self.flow_signature.clone());
+                            .insert(next_classifier_id, flow_signature.clone());
                     }
 
                     match analyzer_status {

@@ -1,35 +1,27 @@
 use crate::analyzer::{Analyzer, GenericAnalyzer};
+use crate::classifiers::ClassifierId;
 
 use std::collections::HashMap;
-use std::io::Write;
+
+use strum::EnumCount;
 
 pub trait Flow {
     type Analyzer: Analyzer;
-    fn create(analyzer: &Self::Analyzer) -> Self
-    where
-        Self: Sized;
-    fn write_signature(analyzer: &Self::Analyzer, signature: impl Write)
-    where
-        Self: Sized;
+    fn create(analyzer: &Self::Analyzer) -> Self;
     fn update(&mut self, analyzer: &Self::Analyzer);
 }
 
-#[derive(Default)]
 pub struct NoFlow<A> {
     _analyzer: std::marker::PhantomData<A>,
 }
 
 impl<A: Analyzer> Flow for NoFlow<A> {
     type Analyzer = A;
-    fn create(analyzer: &Self::Analyzer) -> Self {
+    fn create(_analyzer: &Self::Analyzer) -> Self {
         unreachable!()
     }
 
-    fn write_signature(analyzer: &Self::Analyzer, signature: impl Write) {
-        unreachable!()
-    }
-
-    fn update(&mut self, analyzer: &Self::Analyzer) {
+    fn update(&mut self, _analyzer: &Self::Analyzer) {
         unreachable!()
     }
 }
@@ -67,24 +59,40 @@ where
     }
 }
 
-#[derive(Default)]
 pub struct FlowPool {
-    flows: HashMap<Vec<u8>, Box<dyn GenericFlow>>,
+    flows: Vec<HashMap<Vec<u8>, Box<dyn GenericFlow>>>,
+}
+
+impl Default for FlowPool {
+    fn default() -> Self {
+        Self {
+            flows: (0..ClassifierId::COUNT)
+                .map(|_| HashMap::default())
+                .collect(),
+        }
+    }
 }
 
 impl FlowPool {
     pub fn get_mut_or_create(
         &mut self,
+        classifier_id: ClassifierId,
         flow_signature: &[u8],
         flow_builder: impl FnOnce() -> Box<dyn GenericFlow>,
     ) -> &mut dyn GenericFlow {
-        self.flows
+        self.flows[classifier_id as usize]
             .entry(flow_signature.into())
             .or_insert_with(flow_builder)
             .as_mut()
     }
 
-    pub fn get(&self, flow_signature: &[u8]) -> Option<&dyn GenericFlow> {
-        self.flows.get(flow_signature).map(|flow| &**flow)
+    pub fn get(
+        &self,
+        classifier_id: ClassifierId,
+        flow_signature: &[u8],
+    ) -> Option<&dyn GenericFlow> {
+        self.flows[classifier_id as usize]
+            .get(flow_signature)
+            .map(|flow| &**flow)
     }
 }
