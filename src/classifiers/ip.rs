@@ -3,33 +3,7 @@ pub mod analyzer {
     use crate::classifiers::ClassifierId;
     use crate::flow::NoFlow;
 
-    use std::convert::{TryFrom, TryInto};
     use std::net::{Ipv4Addr, Ipv6Addr};
-
-    pub enum Protocol {
-        Tcp,
-        Udp,
-    }
-
-    impl TryFrom<u8> for Protocol {
-        type Error = ();
-        fn try_from(value: u8) -> Result<Protocol, ()> {
-            match value {
-                6 => Ok(Self::Tcp),
-                17 => Ok(Self::Udp),
-                _ => Err(()),
-            }
-        }
-    }
-
-    impl Protocol {
-        fn classifier_id(&self) -> ClassifierId {
-            match self {
-                Self::Tcp => ClassifierId::Tcp,
-                Self::Udp => ClassifierId::Udp,
-            }
-        }
-    }
 
     pub struct V4 {
         pub source: Ipv4Addr,
@@ -47,14 +21,14 @@ pub mod analyzer {
     }
 
     pub struct IpAnalyzer {
-        pub protocol: Protocol,
+        pub protocol: u8,
         pub version: Version,
     }
 
     impl Default for IpAnalyzer {
         fn default() -> Self {
             Self {
-                protocol: Protocol::Udp,
+                protocol: 0,
                 version: Version::V4(V4 {
                     source: Ipv4Addr::new(0, 0, 0, 0),
                     dest: Ipv4Addr::new(0, 0, 0, 0),
@@ -79,13 +53,15 @@ pub mod analyzer {
                 _ => return AnalyzerStatus::Abort,
             };
 
+            self.protocol = data[9];
+            let next_classifier = match self.protocol {
+                17 => return AnalyzerStatus::Abort, //TODO: remove when exists UDP analyzer.
+                6 => ClassifierId::Tcp,
+                _ => return AnalyzerStatus::Abort,
+            };
+
             let header_length = ((data[0] & 0x0F) as usize) << 2;
-            match data[9].try_into() {
-                Ok(Protocol::Udp) => return AnalyzerStatus::Abort, //TODO: remove when exists UDP analyzer.
-                Ok(protocol) => self.protocol = protocol,
-                Err(_) => return AnalyzerStatus::Abort,
-            }
-            AnalyzerStatus::Next(self.protocol.classifier_id(), &data[header_length..])
+            AnalyzerStatus::Next(next_classifier, &data[header_length..])
         }
     }
 }
