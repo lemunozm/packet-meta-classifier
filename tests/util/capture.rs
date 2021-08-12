@@ -1,7 +1,8 @@
-use pcap_file::pcap::PcapReader;
+use pcap_file::{pcap::PcapReader, DataLink};
 use std::fs::File;
 
 pub struct Packet {
+    //TODO: timestamp
     pub id: usize,
     pub data: Vec<u8>,
 }
@@ -14,20 +15,22 @@ impl Capture {
     pub fn open(file_name: &str) -> Capture {
         let pcap_file = File::open(file_name).expect("Error opening file");
         let pcap_reader = PcapReader::new(pcap_file).unwrap();
+        let start = match pcap_reader.header.datalink {
+            DataLink::ETHERNET => 14,
+            DataLink::LINUX_SLL => 16,
+            _ => panic!(
+                "Unsupported datalink type {:?} of this capture",
+                pcap_reader.header.datalink
+            ),
+        };
 
         let mut next_id = 0;
         let ip_packets = pcap_reader
             .map(|pcap| {
-                let pcap = pcap.unwrap();
-                match pcap.data[12..14] {
-                    [0x08, 0x00] => {
-                        next_id += 1;
-                        Packet {
-                            id: next_id,
-                            data: Vec::from(&pcap.data[14..pcap.data.len()]),
-                        }
-                    }
-                    _ => panic!("The packet must start as with IP header"),
+                next_id += 1;
+                Packet {
+                    id: next_id,
+                    data: Vec::from(&pcap.unwrap().data[start..]),
                 }
             })
             .collect();

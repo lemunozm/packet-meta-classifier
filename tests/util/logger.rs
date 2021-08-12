@@ -50,15 +50,23 @@ fn configure_logger() -> Result<(), fern::InitError> {
                     .map(|n| format!(" [{}]", n))
                     .unwrap_or(String::new()),
                 w = if PACKET_NUMBER.read().unwrap().is_some() {
-                    4
+                    5
                 } else {
                     0
                 }
             );
+
             let target = record
                 .target()
                 .strip_prefix("packet_classifier::")
-                .unwrap_or(record.target());
+                .map(|x| String::from(x))
+                .unwrap_or(
+                    record
+                        .target()
+                        .rsplit_once("::")
+                        .map(|(_, module)| format!("test::{}", module))
+                        .unwrap_or("test".into()),
+                );
 
             out.finish(format_args!(
                 "{} {:<5}{} [{}]{} {}",

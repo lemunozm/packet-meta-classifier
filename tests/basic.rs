@@ -15,9 +15,9 @@ fn basic_http_capture() {
     let config = Config::new();
 
     let rules = vec![
-        (Expr::value(TcpSourcePort(80)), 200),
-        (Expr::value(Tcp), 300),
-        (Expr::value(IpVersion::V4), 400),
+        (Expr::value(TcpSourcePort(80)), "TcpSp80"),
+        (Expr::value(Tcp), "Tcp"),
+        (Expr::value(IpVersion::V4), "Ipv4"),
     ];
 
     let mut classifier = Classifier::new(config, rules);

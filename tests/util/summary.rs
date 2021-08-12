@@ -38,13 +38,13 @@ impl<T: fmt::Display + Default + Ord> fmt::Display for Summary<T> {
             if *tag == T::default() {
                 default_bytes = *bytes;
             } else {
-                write!(f, "{:<4}-> Rule: {} -> {} bytes\n", "", tag, bytes)?;
+                write!(f, "{:<4} -> Rule: '{}' -> {} bytes\n", "", tag, bytes)?;
             }
         }
 
         write!(
             f,
-            "{:<4}-> Rule: {} -> {} bytes\n",
+            "{:<4} -> Rule: '{}' -> {} bytes\n",
             "",
             T::default(),
             default_bytes

@@ -50,7 +50,7 @@ pub mod analyzer {
                     source: Ipv4Addr::from(*array_ref![data, 12, 4]),
                     dest: Ipv4Addr::from(*array_ref![data, 16, 4]),
                 }),
-                6 => todo!(),
+                6 => return AnalyzerStatus::Abort, //Fixed when Ipv6 be implemented
                 _ => return AnalyzerStatus::Abort,
             };
 
