@@ -83,10 +83,9 @@ pub mod analyzer {
     }
 }
 
-//TODO: modify name to expression
-pub mod rules {
+pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
-    use crate::expression::ExprValue;
+    use crate::expression::ExpressionValue;
     use crate::flow::NoFlow;
 
     use std::net::IpAddr;
@@ -94,7 +93,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct Ip;
 
-    impl ExprValue for Ip {
+    impl ExpressionValue for Ip {
         type Analyzer = IpAnalyzer;
         type Flow = NoFlow<IpAnalyzer>;
 
@@ -113,7 +112,7 @@ pub mod rules {
         V6,
     }
 
-    impl ExprValue for IpVersion {
+    impl ExpressionValue for IpVersion {
         type Analyzer = IpAnalyzer;
         type Flow = NoFlow<IpAnalyzer>;
 
@@ -132,7 +131,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl ExprValue for IpSource {
+    impl ExpressionValue for IpSource {
         type Analyzer = IpAnalyzer;
         type Flow = NoFlow<IpAnalyzer>;
 
@@ -151,7 +150,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl ExprValue for IpDest {
+    impl ExpressionValue for IpDest {
         type Analyzer = IpAnalyzer;
         type Flow = NoFlow<IpAnalyzer>;
 

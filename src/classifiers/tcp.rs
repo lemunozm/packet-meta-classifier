@@ -70,16 +70,16 @@ pub mod flow {
     }
 }
 
-pub mod rules {
+pub mod expression {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
 
-    use crate::expression::ExprValue;
+    use crate::expression::ExpressionValue;
 
     #[derive(Debug)]
     pub struct Tcp;
 
-    impl ExprValue for Tcp {
+    impl ExpressionValue for Tcp {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
@@ -95,7 +95,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
-    impl ExprValue for TcpSourcePort {
+    impl ExpressionValue for TcpSourcePort {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
@@ -111,7 +111,7 @@ pub mod rules {
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
 
-    impl ExprValue for TcpDestPort {
+    impl ExpressionValue for TcpDestPort {
         type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 

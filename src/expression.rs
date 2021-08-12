@@ -2,7 +2,7 @@ use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
 use crate::classifiers::ClassifierId;
 use crate::flow::{Flow, GenericFlow, GenericFlowImpl};
 
-pub trait ExprValue: std::fmt::Debug {
+pub trait ExpressionValue: std::fmt::Debug {
     type Flow: Flow;
     type Analyzer: Analyzer;
 
@@ -36,7 +36,7 @@ impl ValidatedExpr {
 impl Expr {
     pub fn value<V, A, F>(value: V) -> Expr
     where
-        V: ExprValue<Analyzer = A, Flow = F> + 'static,
+        V: ExpressionValue<Analyzer = A, Flow = F> + 'static,
         A: Analyzer<Flow = F> + 'static,
         F: Flow<Analyzer = A> + 'static,
     {
@@ -113,7 +113,7 @@ impl<V: std::fmt::Debug> std::fmt::Debug for GenericValueImpl<V> {
 
 impl<V, A, F> GenericValue for GenericValueImpl<V>
 where
-    V: ExprValue<Analyzer = A, Flow = F>,
+    V: ExpressionValue<Analyzer = A, Flow = F>,
     A: Analyzer<Flow = F> + 'static,
     F: Flow<Analyzer = A> + 'static,
 {

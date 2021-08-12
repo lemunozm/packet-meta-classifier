@@ -1,6 +1,7 @@
+use packet_classifier::classifiers::ip::expression::IpVersion;
+use packet_classifier::classifiers::tcp::expression::{Tcp, TcpSourcePort};
+
 use packet_classifier::classifier::Classifier;
-use packet_classifier::classifiers::ip::rules::IpVersion;
-use packet_classifier::classifiers::tcp::rules::{Tcp, TcpSourcePort};
 use packet_classifier::config::Config;
 use packet_classifier::expression::Expr;
 
