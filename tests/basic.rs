@@ -6,10 +6,7 @@ use packet_classifier::config::Config;
 use packet_classifier::expression::Expr;
 
 mod util;
-
-use util::capture::Capture;
-use util::injector::Injector;
-use util::logger;
+use util::{logger, Capture, Injector, Summary};
 
 #[test]
 fn basic_http_capture() {
@@ -27,5 +24,7 @@ fn basic_http_capture() {
 
     let capture = Capture::open("captures/http.cap");
     let mut injector = Injector::new(&mut classifier, &capture);
-    injector.inject_packets(1, capture.len());
+    let result = injector.inject_packets(1, capture.len());
+
+    log::info!("{}", Summary::new(&result.classifications));
 }

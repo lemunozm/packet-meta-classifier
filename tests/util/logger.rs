@@ -35,26 +35,37 @@ fn configure_logger() -> Result<(), fern::InitError> {
             let classification = false;
 
             #[cfg(feature = "framework-logs")]
-            let framework = _metadata.target().contains("framework");
+            let framework = !_metadata.target().contains("packet_classifier");
             #[cfg(not(feature = "framework-logs"))]
             let framework = false;
 
             classification || framework
         })
         .format(move |out, message, record| {
-            out.finish(format_args!(
-                "{} {:<5} {:<4} [{}]{} {}",
-                format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
-                level_colors.color(record.level()),
+            let packet_number = format!(
+                "{:<w$}",
                 PACKET_NUMBER
                     .read()
                     .unwrap()
-                    .map(|n| format!("[{}]", n))
+                    .map(|n| format!(" [{}]", n))
                     .unwrap_or(String::new()),
-                record
-                    .target()
-                    .strip_prefix("packet_classifier::")
-                    .unwrap_or(record.target()),
+                w = if PACKET_NUMBER.read().unwrap().is_some() {
+                    4
+                } else {
+                    0
+                }
+            );
+            let target = record
+                .target()
+                .strip_prefix("packet_classifier::")
+                .unwrap_or(record.target());
+
+            out.finish(format_args!(
+                "{} {:<5}{} [{}]{} {}",
+                format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
+                level_colors.color(record.level()),
+                packet_number,
+                target,
                 String::from(":").bright_black(),
                 message,
             ))

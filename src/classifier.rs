@@ -7,21 +7,21 @@ use crate::flow::FlowPool;
 
 use std::fmt::Display;
 
-struct Rule<T> {
+pub struct Rule<T> {
     pub exp: Expr,
     pub tag: T,
-    pub priority: usize,
 }
 
 impl<T> Rule<T> {
-    pub fn new(exp: Expr, tag: T, priority: usize) -> Self {
-        Self { exp, tag, priority }
+    pub fn new(exp: Expr, tag: T) -> Self {
+        Self { exp, tag }
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct ClassificationResult<T> {
     pub rule: T,
+    pub bytes: usize,
 }
 
 pub struct Classifier<T> {
@@ -33,22 +33,23 @@ pub struct Classifier<T> {
 
 impl<T: Display + Default + Clone> Classifier<T> {
     pub fn new(config: Config, rule_exp: Vec<(Expr, T)>) -> Classifier<T> {
-        let rules = rule_exp
-            .into_iter()
-            .enumerate()
-            .map(|(index, (exp, tag))| Rule::new(exp, tag, index + 1))
-            .collect();
-
         let mut analyzers = AnalyzerRegistry::default();
         analyzers.register(IpAnalyzer::default());
         analyzers.register(TcpAnalyzer::default());
 
         Classifier {
             config,
-            rules,
+            rules: rule_exp
+                .into_iter()
+                .map(|(exp, tag)| Rule::new(exp, tag))
+                .collect(),
             analyzers,
             flow_pool: FlowPool::default(),
         }
+    }
+
+    pub fn rules(&self) -> &Vec<Rule<T>> {
+        &self.rules
     }
 
     pub fn classify_packet(&mut self, data: &[u8]) -> ClassificationResult<T> {
@@ -68,8 +69,8 @@ impl<T: Display + Default + Clone> Classifier<T> {
         };
 
         log::trace!("Start packet classification");
-        for rule in rules {
-            log::trace!("Check rule {}: {}", rule.priority, rule.tag);
+        for (priority, rule) in rules.iter().enumerate() {
+            log::trace!("Check rule {}: {}", priority, rule.tag);
             let validated_expression = rule.exp.check(&mut |expr_value| {
                 log::trace!(
                     "Check expresion value of {:?}: [{:?}]",
@@ -96,6 +97,7 @@ impl<T: Display + Default + Clone> Classifier<T> {
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult {
                         rule: rule.tag.clone(),
+                        bytes: data.len(),
                     };
                 }
                 ValidatedExpr::NotClassified => continue,
@@ -104,7 +106,10 @@ impl<T: Display + Default + Clone> Classifier<T> {
         }
 
         log::trace!("Not classified: not rule matched");
-        ClassificationResult { rule: T::default() }
+        ClassificationResult {
+            rule: T::default(),
+            bytes: data.len(),
+        }
     }
 }
 
