@@ -48,7 +48,7 @@ impl<'a, T: std::fmt::Display + Default + Clone> Injector<'a, T> {
         result
     }
 
-    fn total_results(&self) -> &InjectionResult<T> {
+    pub fn results(&self) -> &InjectionResult<T> {
         &self.total_results
     }
 }

@@ -24,7 +24,7 @@ fn basic_http_capture() {
 
     let capture = Capture::open("captures/http.cap");
     let mut injector = Injector::new(&mut classifier, &capture);
-    let result = injector.inject_packets(1, capture.len());
+    injector.inject_packets(1, capture.len());
 
-    log::info!("{}", Summary::new(&result.classifications));
+    log::info!("{}", Summary::new(&injector.results().classifications));
 }
