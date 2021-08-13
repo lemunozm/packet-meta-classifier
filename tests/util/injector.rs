@@ -34,9 +34,9 @@ impl<'a, T: std::fmt::Display + Default + Clone> Injector<'a, T> {
             let classification_result = self.classifier.classify_packet(&packet.data);
             log::info!(
                 "Classified as {:<tag_width$} => {} bytes",
-                format!("'{}'", classification_result.rule),
+                classification_result.rule,
                 classification_result.bytes,
-                tag_width = self.max_rule_tag_display_size + 2, // +2 because of quotes arround tag
+                tag_width = self.max_rule_tag_display_size, // +2 because of quotes arround tag
             );
 
             result.add_packet_result(classification_result);
