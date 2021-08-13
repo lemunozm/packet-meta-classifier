@@ -3,11 +3,10 @@ use crate::classifiers::ClassifierId;
 use crate::flow::{Flow, GenericFlow, GenericFlowImpl};
 
 pub trait ExpressionValue: std::fmt::Debug {
-    type Flow: Flow;
     type Analyzer: Analyzer;
 
     fn description() -> &'static str;
-    fn check(&self, analyzer: &Self::Analyzer, flow: &Self::Flow) -> bool;
+    fn check(&self, analyzer: &Self::Analyzer, flow: &<Self::Analyzer as Analyzer>::Flow) -> bool;
 }
 
 #[non_exhaustive]
@@ -36,7 +35,7 @@ impl ValidatedExpr {
 impl Expr {
     pub fn value<V, A, F>(value: V) -> Expr
     where
-        V: ExpressionValue<Analyzer = A, Flow = F> + 'static,
+        V: ExpressionValue<Analyzer = A> + 'static,
         A: Analyzer<Flow = F> + 'static,
         F: Flow<Analyzer = A> + 'static,
     {
@@ -113,7 +112,7 @@ impl<V: std::fmt::Debug> std::fmt::Debug for GenericValueImpl<V> {
 
 impl<V, A, F> GenericValue for GenericValueImpl<V>
 where
-    V: ExpressionValue<Analyzer = A, Flow = F>,
+    V: ExpressionValue<Analyzer = A>,
     A: Analyzer<Flow = F> + 'static,
     F: Flow<Analyzer = A> + 'static,
 {

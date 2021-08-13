@@ -80,7 +80,6 @@ pub mod expression {
     pub struct Tcp;
 
     impl ExpressionValue for Tcp {
-        type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {
@@ -96,7 +95,6 @@ pub mod expression {
     pub struct TcpSourcePort(pub u16);
 
     impl ExpressionValue for TcpSourcePort {
-        type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {
@@ -112,7 +110,6 @@ pub mod expression {
     pub struct TcpDestPort(pub u16);
 
     impl ExpressionValue for TcpDestPort {
-        type Flow = TcpFlow;
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {

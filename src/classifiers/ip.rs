@@ -105,13 +105,12 @@ pub mod expression {
 
     impl ExpressionValue for Ip {
         type Analyzer = IpAnalyzer;
-        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
         }
 
-        fn check(&self, _analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, _analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
             true
         }
     }
@@ -124,13 +123,12 @@ pub mod expression {
 
     impl ExpressionValue for IpVersion {
         type Analyzer = IpAnalyzer;
-        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
             match self {
                 Self::V4 => matches!(analyzer.version, Version::V4(_)),
                 Self::V6 => matches!(analyzer.version, Version::V6(_)),
@@ -143,13 +141,12 @@ pub mod expression {
 
     impl ExpressionValue for IpSource {
         type Analyzer = IpAnalyzer;
-        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.source == self.0,
                 Version::V6(ipv6) => ipv6.source == self.0,
@@ -162,13 +159,12 @@ pub mod expression {
 
     impl ExpressionValue for IpDest {
         type Analyzer = IpAnalyzer;
-        type Flow = NoFlow<IpAnalyzer>;
 
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _flow: &Self::Flow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow<IpAnalyzer>) -> bool {
             match &analyzer.version {
                 Version::V4(ipv4) => ipv4.dest == self.0,
                 Version::V6(ipv6) => ipv6.dest == self.0,
