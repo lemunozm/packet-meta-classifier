@@ -22,13 +22,13 @@ pub mod analyzer {
             self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
             self.dest_port = u16::from_be_bytes(*array_ref![data, 2, 2]);
 
-            let header_length = (((data[12] & 0xF0) as usize) >> 4) << 2;
+            let header_len = (((data[12] & 0xF0) as usize) >> 4) << 2;
 
             if self.source_port == 80 || self.source_port == 8080 {
-                //AnalyzerStatus::Next(AnalyzerId::Http, data[header_length..])
-                AnalyzerStatus::Finished(&data[header_length..])
+                //AnalyzerStatus::Next(AnalyzerId::Http, data[header_len..])
+                AnalyzerStatus::Finished(&data[header_len..])
             } else {
-                AnalyzerStatus::Finished(&data[header_length..])
+                AnalyzerStatus::Finished(&data[header_len..])
             }
         }
 

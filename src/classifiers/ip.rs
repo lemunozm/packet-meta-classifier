@@ -45,24 +45,34 @@ pub mod analyzer {
 
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
             let ip_version = (data[0] & 0xF0) >> 4;
-            self.version = match ip_version {
-                4 => Version::V4(V4 {
-                    source: Ipv4Addr::from(*array_ref![data, 12, 4]),
-                    dest: Ipv4Addr::from(*array_ref![data, 16, 4]),
-                }),
-                6 => return AnalyzerStatus::Abort, //Fixed when Ipv6 be implemented
+
+            let header_len = match ip_version {
+                4 => {
+                    self.protocol = data[9];
+                    self.version = Version::V4(V4 {
+                        source: Ipv4Addr::from(*array_ref![data, 12, 4]),
+                        dest: Ipv4Addr::from(*array_ref![data, 16, 4]),
+                    });
+                    ((data[0] & 0x0F) as usize) << 2
+                }
+                6 => {
+                    self.protocol = data[6];
+                    self.version = Version::V6(V6 {
+                        source: Ipv6Addr::from(*array_ref![data, 8, 16]),
+                        dest: Ipv6Addr::from(*array_ref![data, 24, 16]),
+                    });
+                    40
+                }
                 _ => return AnalyzerStatus::Abort,
             };
 
-            self.protocol = data[9];
             let next_classifier = match self.protocol {
-                17 => return AnalyzerStatus::Abort, //TODO: remove when exists UDP analyzer.
                 6 => ClassifierId::Tcp,
-                _ => return AnalyzerStatus::Abort,
+                //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
+                _ => return AnalyzerStatus::Finished(&data[header_len..]),
             };
 
-            let header_length = ((data[0] & 0x0F) as usize) << 2;
-            AnalyzerStatus::Next(next_classifier, &data[header_length..])
+            AnalyzerStatus::Next(next_classifier, &data[header_len..])
         }
 
         fn write_flow_signature(&self, mut signature: impl Write) -> bool {

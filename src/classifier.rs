@@ -12,12 +12,6 @@ pub struct Rule<T> {
     pub tag: T,
 }
 
-impl<T> Rule<T> {
-    pub fn new(exp: Expr, tag: T) -> Self {
-        Self { exp, tag }
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct ClassificationResult<T> {
     pub rule: T,
@@ -41,7 +35,7 @@ impl<T: Display + Default + Clone> Classifier<T> {
             config,
             rules: rule_exp
                 .into_iter()
-                .map(|(exp, tag)| Rule::new(exp, tag))
+                .map(|(exp, tag)| Rule { exp, tag })
                 .collect(),
             analyzers,
             flow_pool: FlowPool::default(),

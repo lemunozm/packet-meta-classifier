@@ -20,7 +20,9 @@ pub struct NoFlow<A> {
 impl<A: Analyzer> Flow for NoFlow<A> {
     type Analyzer = A;
     fn create(_analyzer: &Self::Analyzer) -> Self {
-        unreachable!()
+        NoFlow {
+            _analyzer: std::marker::PhantomData::default(),
+        }
     }
 
     fn update(&mut self, _analyzer: &Self::Analyzer) {
@@ -84,7 +86,7 @@ impl Default for FlowPool {
                 .collect(),
 
             flow_cache: (0..ClassifierId::COUNT).map(|_| None).collect(),
-            current_flow_signature: Vec::with_capacity(16),
+            current_flow_signature: Vec::with_capacity(64),
         }
     }
 }
