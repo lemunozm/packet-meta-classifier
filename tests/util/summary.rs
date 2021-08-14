@@ -28,7 +28,7 @@ pub struct Summary<T> {
     max_rule_tag_display_size: usize,
 }
 
-impl<T: fmt::Display + Eq + std::hash::Hash + Clone + Default> Summary<T> {
+impl<T: fmt::Display + Eq + std::hash::Hash + Copy + Default> Summary<T> {
     pub fn new(
         mut rule_tags: Vec<T>,
         classifications: &Vec<ClassificationResult<T>>,

@@ -24,10 +24,12 @@ fn basic_http_capture() {
     let mut classifier = Classifier::new(config, rules);
 
     let capture = Capture::open("captures/ipv6-http-get.pcap");
-    let mut injector = Injector::new(&mut classifier, &capture);
+    let mut injector = Injector::new(&capture);
 
-    injector.inject_packets(1, capture.len());
+    injector.inject_packets(&mut classifier, 1, capture.len());
 
-    let results = injector.results().classifications.clone();
-    log::info!("{}", Summary::new(classifier.rule_tags(), &results));
+    log::info!(
+        "{}",
+        Summary::new(classifier.rule_tags(), &injector.results().classifications)
+    );
 }

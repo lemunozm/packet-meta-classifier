@@ -19,21 +19,21 @@ pub struct ClassificationResult<T> {
 }
 
 pub struct Classifier<T> {
-    config: Config,
+    _config: Config,
     rules: Vec<Rule<T>>,
     analyzers: AnalyzerRegistry,
     flow_pool: FlowPool,
 }
 
-impl<T: Display + Default + Clone + Eq> Classifier<T> {
-    pub fn new(config: Config, rule_exp: Vec<(T, Expr)>) -> Classifier<T> {
+impl<T: Display + Default + Eq + Copy> Classifier<T> {
+    pub fn new(_config: Config, rule_exprs: Vec<(T, Expr)>) -> Classifier<T> {
         let mut analyzers = AnalyzerRegistry::default();
         analyzers.register(IpAnalyzer::default());
         analyzers.register(TcpAnalyzer::default());
 
         Classifier {
-            config,
-            rules: rule_exp
+            _config,
+            rules: rule_exprs
                 .into_iter()
                 .map(|(tag, exp)| {
                     assert!(
@@ -49,12 +49,12 @@ impl<T: Display + Default + Clone + Eq> Classifier<T> {
     }
 
     pub fn rule_tags(&self) -> Vec<T> {
-        self.rules.iter().map(|rule| rule.tag.clone()).collect()
+        self.rules.iter().map(|rule| rule.tag).collect()
     }
 
     pub fn classify_packet(&mut self, data: &[u8]) -> ClassificationResult<T> {
         let Self {
-            config,
+            _config,
             rules,
             analyzers,
             flow_pool,
@@ -96,7 +96,7 @@ impl<T: Display + Default + Clone + Eq> Classifier<T> {
                 ValidatedExpr::Classified => {
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult {
-                        rule_tag: rule.tag.clone(),
+                        rule_tag: rule.tag,
                         bytes: data.len(),
                     };
                 }

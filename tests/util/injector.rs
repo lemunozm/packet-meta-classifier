@@ -4,39 +4,40 @@ use super::logger;
 use packet_classifier::classifier::{ClassificationResult, Classifier};
 
 pub struct Injector<'a, T> {
-    classifier: &'a mut Classifier<T>,
     capture: &'a Capture,
     total_results: InjectionResult<T>,
-    max_rule_tag_display_size: usize,
 }
 
-impl<'a, T: std::fmt::Display + Default + Clone + Eq> Injector<'a, T> {
-    pub fn new(classifier: &'a mut Classifier<T>, capture: &'a Capture) -> Self {
+impl<'a, T: std::fmt::Display + Default + Copy + Eq> Injector<'a, T> {
+    pub fn new(capture: &'a Capture) -> Self {
         Self {
-            max_rule_tag_display_size: classifier
-                .rule_tags()
-                .iter()
-                .map(|rule_tag| format!("{}", rule_tag).len())
-                .max()
-                .unwrap_or(0),
-            classifier,
             capture,
             total_results: InjectionResult::default(),
         }
     }
 
-    pub fn inject_packets<'b>(&'b mut self, from_id: usize, to_id: usize) -> InjectionResult<T> {
+    pub fn inject_packets(
+        &mut self,
+        classifier: &mut Classifier<T>,
+        from_id: usize,
+        to_id: usize,
+    ) -> InjectionResult<T> {
         let mut result = InjectionResult::default();
 
         for packet in self.capture.iter_section(from_id, to_id) {
             logger::set_log_packet_number(Some(packet.id));
 
-            let classification_result = self.classifier.classify_packet(&packet.data);
+            let classification_result = classifier.classify_packet(&packet.data);
             log::info!(
                 "Classified as {:<tag_width$} => {} bytes",
                 classification_result.rule_tag,
                 classification_result.bytes,
-                tag_width = self.max_rule_tag_display_size, // +2 because of quotes arround tag
+                tag_width = classifier
+                    .rule_tags()
+                    .iter()
+                    .map(|rule_tag| format!("{}", rule_tag).len())
+                    .max()
+                    .unwrap_or(0),
             );
 
             result.add_packet_result(classification_result);
