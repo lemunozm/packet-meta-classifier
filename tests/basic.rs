@@ -26,10 +26,14 @@ fn basic_http_capture() {
     let capture = Capture::open("captures/ipv6-http-get.pcap");
     let mut injector = Injector::new(&capture);
 
-    injector.inject_packets(&mut classifier, 1, capture.len());
+    let results = injector.inject_packets(&mut classifier, 1, capture.len());
+    assert_eq!(
+        results,
+        vec!["Tcp80", "Tcp", "Tcp80", "Tcp80", "Tcp", "Tcp", "Tcp80", "Tcp80", "Tcp", "Tcp80"]
+    );
 
     log::info!(
         "{}",
-        Summary::new(classifier.rule_tags(), &injector.results().classifications)
+        Summary::new(classifier.rule_tags(), &results.classifications)
     );
 }

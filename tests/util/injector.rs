@@ -54,17 +54,34 @@ impl<'a, T: std::fmt::Display + Default + Copy + Eq> Injector<'a, T> {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct InjectionResult<T> {
     pub classifications: Vec<ClassificationResult<T>>,
 }
 
-impl<T> InjectionResult<T> {
+impl<T: Copy> InjectionResult<T> {
     pub fn chain(&mut self, other: InjectionResult<T>) {
         self.classifications.extend(other.classifications);
     }
 
     pub fn add_packet_result(&mut self, classification: ClassificationResult<T>) {
         self.classifications.push(classification);
+    }
+
+    pub fn tags(&self) -> Vec<T> {
+        self.classifications
+            .iter()
+            .map(|result| result.rule_tag)
+            .collect::<Vec<T>>()
+    }
+}
+
+impl<T: PartialEq + Copy> PartialEq<Vec<T>> for InjectionResult<T> {
+    fn eq(&self, other: &Vec<T>) -> bool {
+        self.classifications
+            .iter()
+            .map(|result| result.rule_tag)
+            .collect::<Vec<T>>()
+            == *other
     }
 }

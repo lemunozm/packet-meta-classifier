@@ -12,7 +12,7 @@ pub struct Rule<T> {
     pub tag: T,
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ClassificationResult<T> {
     pub rule_tag: T,
     pub bytes: usize,
