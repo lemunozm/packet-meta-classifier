@@ -14,7 +14,7 @@ pub struct Rule<T> {
 
 #[derive(Clone, Default)]
 pub struct ClassificationResult<T> {
-    pub rule: T,
+    pub rule_tag: T,
     pub bytes: usize,
 }
 
@@ -25,8 +25,8 @@ pub struct Classifier<T> {
     flow_pool: FlowPool,
 }
 
-impl<T: Display + Default + Clone> Classifier<T> {
-    pub fn new(config: Config, rule_exp: Vec<(Expr, T)>) -> Classifier<T> {
+impl<T: Display + Default + Clone + Eq> Classifier<T> {
+    pub fn new(config: Config, rule_exp: Vec<(T, Expr)>) -> Classifier<T> {
         let mut analyzers = AnalyzerRegistry::default();
         analyzers.register(IpAnalyzer::default());
         analyzers.register(TcpAnalyzer::default());
@@ -35,15 +35,21 @@ impl<T: Display + Default + Clone> Classifier<T> {
             config,
             rules: rule_exp
                 .into_iter()
-                .map(|(exp, tag)| Rule { exp, tag })
+                .map(|(tag, exp)| {
+                    assert!(
+                        tag != T::default(),
+                        "The default tag value is reserved for not maching packets"
+                    );
+                    Rule { exp, tag }
+                })
                 .collect(),
             analyzers,
             flow_pool: FlowPool::default(),
         }
     }
 
-    pub fn rules(&self) -> &Vec<Rule<T>> {
-        &self.rules
+    pub fn rule_tags(&self) -> Vec<T> {
+        self.rules.iter().map(|rule| rule.tag.clone()).collect()
     }
 
     pub fn classify_packet(&mut self, data: &[u8]) -> ClassificationResult<T> {
@@ -90,7 +96,7 @@ impl<T: Display + Default + Clone> Classifier<T> {
                 ValidatedExpr::Classified => {
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult {
-                        rule: rule.tag.clone(),
+                        rule_tag: rule.tag.clone(),
                         bytes: data.len(),
                     };
                 }
@@ -101,7 +107,7 @@ impl<T: Display + Default + Clone> Classifier<T> {
 
         log::trace!("Not classified: not rule matched");
         ClassificationResult {
-            rule: T::default(),
+            rule_tag: T::default(),
             bytes: data.len(),
         }
     }
