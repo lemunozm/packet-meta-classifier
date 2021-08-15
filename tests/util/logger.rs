@@ -7,6 +7,16 @@ use std::sync::{Once, RwLock};
 // Used to init the log only one time for all tests;
 static INIT: Once = Once::new();
 
+#[cfg(feature = "classifier-logs")]
+const ENABLED_CLASSIFIER_LOGS: bool = true;
+#[cfg(not(feature = "classifier-logs"))]
+const ENABLED_CLASSIFIER_LOGS: bool = false;
+
+#[cfg(feature = "testing-logs")]
+const ENABLED_TESTING_LOGS: bool = true;
+#[cfg(not(feature = "testing-logs"))]
+const ENABLED_TESTING_LOGS: bool = false;
+
 lazy_static::lazy_static! {
     static ref PACKET_NUMBER: RwLock<Option<usize>> = RwLock::new(None);
 }
@@ -20,37 +30,33 @@ pub fn set_log_packet_number(packet_number: Option<usize>) {
 }
 
 fn configure_logger() -> Result<(), fern::InitError> {
-    let level_colors = ColoredLevelConfig::new()
-        .error(Color::Red)
-        .warn(Color::Yellow)
-        .info(Color::BrightCyan)
-        .debug(Color::Magenta)
-        .trace(Color::White);
-
     fern::Dispatch::new()
         .filter(|_metadata| {
-            #[cfg(feature = "classifier-logs")]
-            let classification = _metadata.target().starts_with("packet_classifier");
-            #[cfg(not(feature = "classifier-logs"))]
-            let classification = false;
+            let classifier = if ENABLED_CLASSIFIER_LOGS {
+                _metadata.target().starts_with("packet_classifier")
+            } else {
+                false
+            };
 
-            #[cfg(feature = "testing-logs")]
-            let framework = !_metadata.target().contains("packet_classifier");
-            #[cfg(not(feature = "testing-logs"))]
-            let framework = false;
+            let testing = if ENABLED_TESTING_LOGS {
+                !_metadata.target().contains("packet_classifier")
+            } else {
+                false
+            };
 
-            classification || framework
+            classifier || testing
         })
-        .format(move |out, message, record| {
+        .format(|out, message, record| {
             let packet_number = format!(
                 "{:<w$}",
                 PACKET_NUMBER
                     .read()
                     .unwrap()
-                    .map(|n| format!("[{}]", n))
+                    .map(|n| format!("[{}]", format!("{}", n).bright_yellow()))
                     .unwrap_or(String::new()),
                 w = if PACKET_NUMBER.read().unwrap().is_some() {
-                    4
+                    // The console color adds extra characters that must be contemplated
+                    format!("{}", format!("").bright_yellow()).len() + 4
                 } else {
                     0
                 }
@@ -74,11 +80,11 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 "{} {} {:<4} [{}]{} {}",
                 format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
                 if !from_classifier {
-                    if cfg!(feature = "classifier-logs") {
-                        format!("{:<10}", "TEST".bright_cyan())
-                    } else {
-                        format!("{}", "TEST".bright_cyan())
-                    }
+                    format!(
+                        "{:<spaced$}",
+                        "TEST".bright_cyan(),
+                        spaced = if ENABLED_CLASSIFIER_LOGS { 10 } else { 0 }
+                    )
                 } else {
                     format!("{}", "CLASSIFIER".yellow())
                 },
