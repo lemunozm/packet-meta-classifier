@@ -45,7 +45,7 @@ impl<'a, T: std::fmt::Display + Default + Copy + Eq> Injector<'a, T> {
 
         logger::set_log_packet_number(None);
 
-        self.total_results.chain(result.clone());
+        self.total_results.chain(&result);
         result
     }
 
@@ -60,8 +60,8 @@ pub struct InjectionResult<T> {
 }
 
 impl<T: Copy> InjectionResult<T> {
-    pub fn chain(&mut self, other: InjectionResult<T>) {
-        self.classifications.extend(other.classifications);
+    pub fn chain(&mut self, other: &InjectionResult<T>) {
+        self.classifications.extend(other.classifications.clone());
     }
 
     pub fn add_packet_result(&mut self, classification: ClassificationResult<T>) {
