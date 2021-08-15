@@ -47,14 +47,16 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 PACKET_NUMBER
                     .read()
                     .unwrap()
-                    .map(|n| format!(" [{}]", n))
+                    .map(|n| format!("[{}]", n))
                     .unwrap_or(String::new()),
                 w = if PACKET_NUMBER.read().unwrap().is_some() {
-                    5
+                    4
                 } else {
                     0
                 }
             );
+
+            let from_classifier = record.target().contains("packet_classifier");
 
             let target = record
                 .target()
@@ -64,14 +66,22 @@ fn configure_logger() -> Result<(), fern::InitError> {
                     record
                         .target()
                         .rsplit_once("::")
-                        .map(|(_, module)| format!("test::{}", module))
-                        .unwrap_or("test".into()),
+                        .map(|(_, module)| String::from(module))
+                        .unwrap_or(String::new()),
                 );
 
             out.finish(format_args!(
-                "{} {:<5}{} [{}]{} {}",
+                "{} {} {:<4} [{}]{} {}",
                 format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
-                level_colors.color(record.level()),
+                if !from_classifier {
+                    if cfg!(feature = "classification-logs") {
+                        format!("{:<10}", "TEST".bright_cyan())
+                    } else {
+                        format!("{}", "TEST".bright_cyan())
+                    }
+                } else {
+                    format!("{}", "CLASSIFIER".white())
+                },
                 packet_number,
                 target,
                 String::from(":").bright_black(),
