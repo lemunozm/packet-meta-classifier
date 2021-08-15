@@ -1,3 +1,7 @@
+mod analyzer;
+mod expression;
+mod flow;
+
 use crate::analyzer::{AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
 use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
 use crate::expression::{Expr, ValidatedExpr};
