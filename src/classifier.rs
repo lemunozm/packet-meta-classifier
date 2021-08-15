@@ -3,9 +3,9 @@ use super::config::Config;
 use crate::analyzer::{AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
 use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
 use crate::expression::{Expr, ValidatedExpr};
-use crate::flow::FlowPool;
+use crate::flow::{Direction, FlowPool};
 
-use std::fmt::Display;
+use std::fmt;
 
 pub struct Rule<T> {
     pub exp: Expr,
@@ -25,7 +25,7 @@ pub struct Classifier<T> {
     flow_pool: FlowPool,
 }
 
-impl<T: Display + Default + Eq + Copy> Classifier<T> {
+impl<T: fmt::Display + Default + Eq + Copy> Classifier<T> {
     pub fn new(_config: Config, rule_exprs: Vec<(T, Expr)>) -> Classifier<T> {
         let mut analyzers = AnalyzerRegistry::default();
         analyzers.register(IpAnalyzer::default());
@@ -52,7 +52,11 @@ impl<T: Display + Default + Eq + Copy> Classifier<T> {
         self.rules.iter().map(|rule| rule.tag).collect()
     }
 
-    pub fn classify_packet(&mut self, data: &[u8]) -> ClassificationResult<T> {
+    pub fn classify_packet(
+        &mut self,
+        data: &[u8],
+        direction: Direction,
+    ) -> ClassificationResult<T> {
         let Self {
             _config,
             rules,
@@ -62,13 +66,15 @@ impl<T: Display + Default + Eq + Copy> Classifier<T> {
 
         let mut state = ClassificationState {
             data,
+            direction,
             next_classifier_id: ClassifierId::Ip,
             analyzers,
             flow_pool,
             finished_analysis: false,
         };
 
-        log::trace!("Start packet classification");
+        state.prepare();
+
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
             let validated_expression = rule.exp.check(&mut |expr_value| {
@@ -113,21 +119,27 @@ impl<T: Display + Default + Eq + Copy> Classifier<T> {
     }
 }
 
-struct ClassificationState<'a> {
-    data: &'a [u8],
-    next_classifier_id: ClassifierId,
-    analyzers: &'a mut AnalyzerRegistry,
-    flow_pool: &'a mut FlowPool,
-    finished_analysis: bool,
-}
-
 enum ClassificationStatus {
     CanClassify,
     NotClassify,
     Abort,
 }
 
+struct ClassificationState<'a> {
+    data: &'a [u8],
+    direction: Direction,
+    next_classifier_id: ClassifierId,
+    analyzers: &'a mut AnalyzerRegistry,
+    flow_pool: &'a mut FlowPool,
+    finished_analysis: bool,
+}
+
 impl<'a> ClassificationState<'a> {
+    fn prepare(&mut self) {
+        log::trace!("Start {} packet classification", self.direction);
+        self.flow_pool.prepare_for_packet();
+    }
+
     fn analyze_classification_for(&mut self, classifier_id: ClassifierId) -> ClassificationStatus {
         loop {
             let status = self
@@ -148,7 +160,7 @@ impl<'a> ClassificationState<'a> {
                         break ClassificationStatus::Abort;
                     }
 
-                    self.flow_pool.update(analyzer);
+                    self.flow_pool.update(analyzer, self.direction);
 
                     match analyzer_status {
                         AnalyzerStatus::Finished(_) => {

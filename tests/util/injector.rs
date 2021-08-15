@@ -2,6 +2,7 @@ use super::capture::CaptureIterator;
 use super::logger;
 
 use packet_classifier::classifier::{ClassificationResult, Classifier};
+use packet_classifier::flow::Direction;
 
 use colored::Colorize;
 
@@ -28,7 +29,8 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         for packet in capture_section {
             logger::set_log_packet_number(Some(packet.id));
 
-            let classification_result = classifier.classify_packet(&packet.data);
+            let classification_result =
+                classifier.classify_packet(&packet.data, Direction::from(packet.uplink));
 
             self.log(
                 classifier.rule_tags(),

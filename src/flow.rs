@@ -3,9 +3,34 @@ use crate::classifiers::ClassifierId;
 
 use std::cell::{Ref, RefCell};
 use std::collections::{hash_map::Entry, HashMap};
+use std::fmt;
 use std::rc::Rc;
 
 use strum::EnumCount;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Direction {
+    Uplink,
+    Downlink,
+}
+
+impl From<bool> for Direction {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::Uplink,
+            false => Self::Downlink,
+        }
+    }
+}
+
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Uplink => write!(f, "uplink"),
+            Self::Downlink => write!(f, "downlink"),
+        }
+    }
+}
 
 pub trait Flow {
     type Analyzer: Analyzer;
@@ -96,7 +121,7 @@ impl FlowPool {
         self.current_flow_signature.clear();
     }
 
-    pub fn update(&mut self, analyzer: &dyn GenericAnalyzer) {
+    pub fn update(&mut self, analyzer: &dyn GenericAnalyzer, _direction: Direction) {
         if analyzer.update_flow_signature(&mut self.current_flow_signature) {
             //IDEA: The vec alloc could be avoided using an array in FlowPool?
             let entry =
