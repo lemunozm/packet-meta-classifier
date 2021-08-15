@@ -1,5 +1,4 @@
 use packet_classifier::classifier::Classifier;
-use packet_classifier::config::Config;
 use packet_classifier::expression::Expr;
 
 use super::logger;
@@ -14,15 +13,15 @@ pub struct CaptureData {
     pub sections: Vec<(usize, usize)>,
 }
 
-pub struct TestConfig<T> {
-    pub config: Config,
+pub struct TestConfig<C, T> {
+    pub config: C,
     pub rules: Vec<(T, Expr)>,
     pub captures: Vec<CaptureData>,
     pub expected_classification: Vec<T>,
 }
 
-pub fn run_classification_test<T: fmt::Debug + fmt::Display + Default + Copy + Eq>(
-    test_config: TestConfig<T>,
+pub fn run_classification_test<C, T: fmt::Debug + fmt::Display + Default + Copy + Eq>(
+    test_config: TestConfig<C, T>,
 ) {
     logger::init();
 

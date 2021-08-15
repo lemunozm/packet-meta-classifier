@@ -1,5 +1,3 @@
-use super::config::Config;
-
 use crate::analyzer::{AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
 use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
 use crate::expression::{Expr, ValidatedExpr};
@@ -18,15 +16,15 @@ pub struct ClassificationResult<T> {
     pub bytes: usize,
 }
 
-pub struct Classifier<T> {
-    _config: Config,
+pub struct Classifier<C, T> {
+    _config: C,
     rules: Vec<Rule<T>>,
     analyzers: AnalyzerRegistry,
     flow_pool: FlowPool,
 }
 
-impl<T: fmt::Display + Default + Eq + Copy> Classifier<T> {
-    pub fn new(_config: Config, rule_exprs: Vec<(T, Expr)>) -> Classifier<T> {
+impl<C, T: fmt::Display + Default + Eq + Copy> Classifier<C, T> {
+    pub fn new(_config: C, rule_exprs: Vec<(T, Expr)>) -> Self {
         let mut analyzers = AnalyzerRegistry::default();
         analyzers.register(IpAnalyzer::default());
         analyzers.register(TcpAnalyzer::default());

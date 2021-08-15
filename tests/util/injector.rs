@@ -19,9 +19,9 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         }
     }
 
-    pub fn inject_packets(
+    pub fn inject_packets<C>(
         &mut self,
-        classifier: &mut Classifier<T>,
+        classifier: &mut Classifier<C, T>,
         capture_section: CaptureIterator,
     ) -> InjectionResult<T> {
         let mut current_injection_result = InjectionResult::default();

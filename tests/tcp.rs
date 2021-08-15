@@ -1,6 +1,5 @@
 use packet_classifier::classifiers::tcp::expression::{TcpDestPort, TcpSourcePort};
 
-use packet_classifier::config::Config;
 use packet_classifier::expression::Expr;
 
 mod util;
@@ -9,7 +8,7 @@ use util::{CaptureData, TestConfig};
 #[test]
 fn tcp_ports() {
     util::run_classification_test(TestConfig {
-        config: Config::new(),
+        config: (),
         rules: vec![
             ("DestPort80", Expr::value(TcpDestPort(80))),
             ("SourcePort80", Expr::value(TcpSourcePort(80))),
