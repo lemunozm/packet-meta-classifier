@@ -5,8 +5,8 @@ authors = ["lemunozm <lemunozm@gmail.com>"]
 edition = "2018"
 
 [features]
-classification-logs = []
-framework-logs = []
+classifier-logs = []
+testing-logs = []
 
 [dependencies]
 log = "0.4"

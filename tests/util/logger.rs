@@ -29,14 +29,14 @@ fn configure_logger() -> Result<(), fern::InitError> {
 
     fern::Dispatch::new()
         .filter(|_metadata| {
-            #[cfg(feature = "classification-logs")]
+            #[cfg(feature = "classifier-logs")]
             let classification = _metadata.target().starts_with("packet_classifier");
-            #[cfg(not(feature = "classification-logs"))]
+            #[cfg(not(feature = "classifier-logs"))]
             let classification = false;
 
-            #[cfg(feature = "framework-logs")]
+            #[cfg(feature = "testing-logs")]
             let framework = !_metadata.target().contains("packet_classifier");
-            #[cfg(not(feature = "framework-logs"))]
+            #[cfg(not(feature = "testing-logs"))]
             let framework = false;
 
             classification || framework
@@ -74,13 +74,13 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 "{} {} {:<4} [{}]{} {}",
                 format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
                 if !from_classifier {
-                    if cfg!(feature = "classification-logs") {
+                    if cfg!(feature = "classifier-logs") {
                         format!("{:<10}", "TEST".bright_cyan())
                     } else {
                         format!("{}", "TEST".bright_cyan())
                     }
                 } else {
-                    format!("{}", "CLASSIFIER".white())
+                    format!("{}", "CLASSIFIER".yellow())
                 },
                 packet_number,
                 target,
