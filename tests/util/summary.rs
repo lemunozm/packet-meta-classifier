@@ -1,5 +1,7 @@
 use packet_classifier::classifier::ClassificationResult;
 
+use colored::Colorize;
+
 use std::fmt;
 
 #[derive(Debug, Default, Clone)]
@@ -25,7 +27,7 @@ impl std::ops::AddAssign for RuleResult {
 pub struct Summary<T> {
     results: Vec<(T, RuleResult)>,
     total_packets: usize,
-    max_rule_tag_display_size: usize,
+    rule_tags: Vec<T>,
 }
 
 impl<T: fmt::Display + Eq + Copy + Default> Summary<T> {
@@ -49,30 +51,41 @@ impl<T: fmt::Display + Eq + Copy + Default> Summary<T> {
             .collect::<Vec<(T, RuleResult)>>();
 
         Self {
-            results,
             total_packets: classifications.len(),
-            max_rule_tag_display_size: rule_tags
-                .iter()
-                .map(|rule_tag| format!("{}", rule_tag).len())
-                .max()
-                .unwrap_or(0),
+            results,
+            rule_tags,
         }
     }
 }
 
 impl<T: fmt::Display + Default> fmt::Display for Summary<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let max_rule_tag_display_width = self
+            .rule_tags
+            .iter()
+            .map(|rule_tag| format!("{}", rule_tag).len())
+            .max()
+            .unwrap_or(0);
+
+        let max_packet_classified_width = self
+            .results
+            .iter()
+            .map(|(_, result)| format!("{}", result.packets).len())
+            .max()
+            .unwrap_or(0);
+
         write!(f, "Summary:\n")?;
         write!(f, "{:<4}Processed {} packets:\n", "", self.total_packets)?;
         for (tag, rule_result) in &self.results {
             write!(
                 f,
-                "{:<4} · Rule: {:<tag_width$} -> {} packets, {} bytes\n",
+                "{:<4} · Rule: {:<tag_width$} -> {:<packet_width$} packets, {:>4} bytes\n",
                 "",
-                tag,
-                rule_result.packets,
-                rule_result.bytes,
-                tag_width = self.max_rule_tag_display_size
+                format!("{}", tag).bright_blue(),
+                format!("{}", rule_result.packets).bright_yellow(),
+                format!("{}", rule_result.bytes).bright_magenta(),
+                tag_width = max_rule_tag_display_width,
+                packet_width = max_packet_classified_width,
             )?;
         }
         Ok(())

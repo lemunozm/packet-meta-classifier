@@ -23,7 +23,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
     let level_colors = ColoredLevelConfig::new()
         .error(Color::Red)
         .warn(Color::Yellow)
-        .info(Color::Cyan)
+        .info(Color::BrightCyan)
         .debug(Color::Magenta)
         .trace(Color::White);
 

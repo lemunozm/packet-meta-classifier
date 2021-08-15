@@ -43,10 +43,10 @@ impl Capture {
     }
 
     pub fn iter(&self) -> CaptureIterator {
-        self.iter_section(1, self.ip_packets.len())
+        self.section(1, self.ip_packets.len())
     }
 
-    pub fn iter_section(&self, from_id: usize, to_id: usize) -> CaptureIterator {
+    pub fn section(&self, from_id: usize, to_id: usize) -> CaptureIterator {
         assert!(from_id > 0, "The first packet must be higher than one");
         assert!(
             to_id <= self.ip_packets.len(),

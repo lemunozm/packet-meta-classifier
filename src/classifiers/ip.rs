@@ -40,7 +40,7 @@ pub mod analyzer {
 
     impl Analyzer for IpAnalyzer {
         type PrevAnalyzer = NoAnalyzer;
-        type Flow = NoFlow<IpAnalyzer>;
+        type Flow = NoFlow<Self>;
         const ID: ClassifierId = ClassifierId::Ip;
 
         fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
