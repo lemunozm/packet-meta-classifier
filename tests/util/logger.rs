@@ -1,5 +1,3 @@
-use fern::colors::{Color, ColoredLevelConfig};
-
 use colored::Colorize;
 
 use std::sync::{Once, RwLock};
@@ -17,16 +15,22 @@ const ENABLED_TESTING_LOGS: bool = true;
 #[cfg(not(feature = "testing-logs"))]
 const ENABLED_TESTING_LOGS: bool = false;
 
+#[derive(Debug, Clone)]
+pub struct PacketProps {
+    pub number: usize,
+    pub uplink: bool,
+}
+
 lazy_static::lazy_static! {
-    static ref PACKET_NUMBER: RwLock<Option<usize>> = RwLock::new(None);
+    static ref PACKET_PROPS: RwLock<Option<PacketProps>> = RwLock::new(None);
 }
 
 pub fn init() {
     INIT.call_once(|| configure_logger().unwrap());
 }
 
-pub fn set_log_packet_number(packet_number: Option<usize>) {
-    *PACKET_NUMBER.write().unwrap() = packet_number;
+pub fn set_log_packet_number(packet_number: Option<PacketProps>) {
+    *PACKET_PROPS.write().unwrap() = packet_number;
 }
 
 fn configure_logger() -> Result<(), fern::InitError> {
@@ -49,14 +53,18 @@ fn configure_logger() -> Result<(), fern::InitError> {
         .format(|out, message, record| {
             let packet_number = format!(
                 "{:<w$}",
-                PACKET_NUMBER
+                PACKET_PROPS
                     .read()
                     .unwrap()
-                    .map(|n| format!("[{}]", format!("{}", n).bright_yellow()))
+                    .clone()
+                    .map(|PacketProps { number, uplink }| format!(
+                        "[{}]",
+                        format!("{} {}", number, if uplink { "ul" } else { "dl" }).bright_yellow()
+                    ))
                     .unwrap_or(String::new()),
-                w = if PACKET_NUMBER.read().unwrap().is_some() {
+                w = if PACKET_PROPS.read().unwrap().is_some() {
                     // The console color adds extra characters that must be contemplated
-                    format!("{}", format!("").bright_yellow()).len() + 4
+                    format!("{}", format!("").bright_yellow()).len() + 7
                 } else {
                     0
                 }
@@ -77,7 +85,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 );
 
             out.finish(format_args!(
-                "{} {} {:<4} [{}]{} {}",
+                "{} {} {:<7} [{}]{} {}",
                 format!("[{}]", chrono::Local::now().format("%M:%S:%3f")).white(), // min:sec:nano
                 if !from_classifier {
                     format!(

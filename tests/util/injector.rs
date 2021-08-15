@@ -1,5 +1,5 @@
-use super::capture::CaptureIterator;
-use super::logger;
+use super::logger::{self, PacketProps};
+use super::CaptureIterator;
 
 use packet_classifier::classifier::{ClassificationResult, Classifier};
 use packet_classifier::flow::Direction;
@@ -27,7 +27,10 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         let mut current_injection_result = InjectionResult::default();
 
         for packet in capture_section {
-            logger::set_log_packet_number(Some(packet.id));
+            logger::set_log_packet_number(Some(PacketProps {
+                number: packet.id,
+                uplink: packet.uplink,
+            }));
 
             let classification_result =
                 classifier.classify_packet(&packet.data, Direction::from(packet.uplink));
