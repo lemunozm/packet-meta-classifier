@@ -1,7 +1,7 @@
 use super::flow::{Flow, NoFlow};
 use super::id::ClassifierId;
 
-use crate::core::packet::Packet;
+use crate::core::packet::{Direction, Packet};
 
 use std::io::Write;
 
@@ -17,7 +17,7 @@ pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
     const ID: I;
 
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
-    fn write_flow_signature(&self, signature: impl Write) -> bool;
+    fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
 }
 
 #[derive(Default)]
@@ -31,7 +31,7 @@ impl<I: ClassifierId> Analyzer<I> for NoAnalyzer {
         unreachable!()
     }
 
-    fn write_flow_signature(&self, _signature: impl Write) -> bool {
+    fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
         unreachable!()
     }
 }

@@ -2,7 +2,7 @@ pub mod analyzer {
     use super::flow::TcpFlow;
 
     use crate::core::base::analyzer::{Analyzer, AnalyzerStatus};
-    use crate::core::packet::Packet;
+    use crate::core::packet::{Direction, Packet};
     use crate::internet::ip::analyzer::IpAnalyzer;
     use crate::internet::ClassifierId;
 
@@ -33,9 +33,14 @@ pub mod analyzer {
             }
         }
 
-        fn write_flow_signature(&self, mut signature: impl Write) -> bool {
-            signature.write(&self.source_port.to_le_bytes()).unwrap();
-            signature.write(&self.dest_port.to_le_bytes()).unwrap();
+        fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
+            let (first, second) = match direction {
+                Direction::Uplink => (self.source_port, self.dest_port),
+                Direction::Downlink => (self.dest_port, self.source_port),
+            };
+
+            signature.write(&first.to_le_bytes()).unwrap();
+            signature.write(&second.to_le_bytes()).unwrap();
             true
         }
     }

@@ -16,7 +16,7 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
     fn as_any(&self) -> &dyn Any;
     fn reset(&mut self);
-    fn update_flow_signature(&self, current_signature: &mut Vec<u8>) -> bool;
+    fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
     fn create_flow(&self, direction: Direction) -> Rc<RefCell<dyn GenericFlowHandler<I>>>;
 }
 
@@ -60,8 +60,13 @@ where
         self.analyzer = A::default();
     }
 
-    fn update_flow_signature(&self, mut current_signature: &mut Vec<u8>) -> bool {
-        self.analyzer.write_flow_signature(&mut current_signature)
+    fn update_flow_signature(
+        &self,
+        mut current_signature: &mut Vec<u8>,
+        direction: Direction,
+    ) -> bool {
+        self.analyzer
+            .write_flow_signature(&mut current_signature, direction)
     }
 
     fn create_flow(&self, direction: Direction) -> Rc<RefCell<dyn GenericFlowHandler<I>>> {

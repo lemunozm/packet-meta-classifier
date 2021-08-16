@@ -1,7 +1,7 @@
 pub mod analyzer {
     use crate::core::base::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
     use crate::core::base::flow::NoFlow;
-    use crate::core::packet::Packet;
+    use crate::core::packet::{Direction, Packet};
     use crate::internet::ClassifierId;
 
     use std::io::Write;
@@ -76,19 +76,27 @@ pub mod analyzer {
             AnalyzerStatus::Next(next_classifier, header_len)
         }
 
-        fn write_flow_signature(&self, mut signature: impl Write) -> bool {
+        fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
             match &self.version {
                 Version::V4(v4) => {
-                    signature.write(&v4.source.octets()).unwrap();
-                    signature.write(&v4.dest.octets()).unwrap();
+                    let (first, second) = match direction {
+                        Direction::Uplink => (v4.source.octets(), v4.dest.octets()),
+                        Direction::Downlink => (v4.dest.octets(), v4.source.octets()),
+                    };
+                    signature.write(&first).unwrap();
+                    signature.write(&second).unwrap();
                 }
                 Version::V6(v6) => {
-                    signature.write(&v6.source.octets()).unwrap();
-                    signature.write(&v6.dest.octets()).unwrap();
+                    let (first, second) = match direction {
+                        Direction::Uplink => (v6.source.octets(), v6.dest.octets()),
+                        Direction::Downlink => (v6.dest.octets(), v6.source.octets()),
+                    };
+                    signature.write(&first).unwrap();
+                    signature.write(&second).unwrap();
                 }
             };
 
-            // For IP, we only add the signature but we do not want a IP flow itself
+            // For IP, we only add the to signature but we do not want to create an IP flow
             false
         }
     }

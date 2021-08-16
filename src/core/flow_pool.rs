@@ -28,13 +28,13 @@ impl<I: ClassifierId> FlowPool<I> {
     }
 
     pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
-        if analyzer.update_flow_signature(&mut self.current_flow_signature) {
+        if analyzer.update_flow_signature(&mut self.current_flow_signature, direction) {
             //IDEA: The vec alloc could be avoided using an array in FlowPool?
             let entry =
                 self.flows[analyzer.id().inner()].entry(self.current_flow_signature.clone());
 
             log::trace!(
-                "{} flow {:?}. Sig: {:?}",
+                "{} {:?} flow. Sig: {:?}",
                 if let Entry::Vacant(_) = entry {
                     "Create"
                 } else {
