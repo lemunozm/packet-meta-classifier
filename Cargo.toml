@@ -1,24 +1,7 @@
-[package]
-name = "packet-classifier"
-version = "0.1.0"
-authors = ["lemunozm <lemunozm@gmail.com>"]
-edition = "2018"
+[workspace]
 
-[features]
-classifier-logs = []
-testing-logs = []
-
-[dependencies]
-log = "0.4"
-arrayref = "0.3.6"
-num-traits = "0.2"
-num-derive = "0.3"
-strum = { version = "0.21.0", features = ["derive"]}
-
-[dev-dependencies]
-lazy_static = "1.4"
-pcap-file = "1.1.0"
-fern = { version = "0.6", features = ["colored"] }
-chrono = "0.4.19"
-colored = "2.0.0"
-
+members = [
+    "gpc-core",
+    "gpc-internet",
+    "gpc-testing",
+]

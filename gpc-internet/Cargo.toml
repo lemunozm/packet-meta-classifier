@@ -1,0 +1,16 @@
+[package]
+name = "gpc-internet"
+version = "0.1.0"
+authors = ["lemunozm <lemunozm@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+gpc-core = { path = "../gpc-core" }
+log = "0.4"
+arrayref = "0.3.6"
+num-traits = "0.2"
+num-derive = "0.3"
+strum = { version = "0.21.0", features = ["derive"]}
+
+[dev-dependencies]
+gpc-testing = { path = "../gpc-testing" }

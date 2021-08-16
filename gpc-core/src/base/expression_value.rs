@@ -1,5 +1,5 @@
-use super::analyzer::Analyzer;
-use super::id::ClassifierId;
+use crate::base::analyzer::Analyzer;
+use crate::base::id::ClassifierId;
 
 pub trait ExpressionValue<I: ClassifierId>: std::fmt::Debug + 'static {
     type Analyzer: Analyzer<I>;

@@ -1,7 +1,7 @@
-use super::base::analyzer::Analyzer;
-use super::base::flow::Flow;
-use super::base::id::ClassifierId;
-use super::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::base::analyzer::Analyzer;
+use crate::base::flow::Flow;
+use crate::base::id::ClassifierId;
+use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 
 pub struct AnalyzerLoader<I: ClassifierId> {
     analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,

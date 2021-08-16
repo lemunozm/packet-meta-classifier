@@ -1,4 +1,4 @@
-use super::base::id::ClassifierId;
+use crate::base::id::ClassifierId;
 
 use std::collections::BTreeSet;
 

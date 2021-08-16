@@ -1,8 +1,9 @@
 pub mod analyzer {
-    use crate::core::base::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
-    use crate::core::base::flow::NoFlow;
-    use crate::core::packet::{Direction, Packet};
-    use crate::internet::ClassifierId;
+    use crate::ClassifierId;
+
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
+    use gpc_core::base::flow::NoFlow;
+    use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
     use std::net::{Ipv4Addr, Ipv6Addr};
@@ -105,9 +106,9 @@ pub mod analyzer {
 pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
 
-    use crate::core::base::expression_value::ExpressionValue;
-    use crate::core::base::flow::NoFlow;
-    use crate::internet::ClassifierId;
+    use crate::ClassifierId;
+    use gpc_core::base::expression_value::ExpressionValue;
+    use gpc_core::base::flow::NoFlow;
 
     use std::net::IpAddr;
 

@@ -1,11 +1,10 @@
-use super::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
-use super::flow::{FlowHandler, GenericFlowHandler};
-
-use crate::core::base::analyzer::Analyzer;
-use crate::core::base::expression_value::ExpressionValue;
-use crate::core::base::flow::Flow;
-use crate::core::base::id::ClassifierId;
-use crate::core::packet::Direction;
+use crate::base::analyzer::Analyzer;
+use crate::base::expression_value::ExpressionValue;
+use crate::base::flow::Flow;
+use crate::base::id::ClassifierId;
+use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::handler::flow::{FlowHandler, GenericFlowHandler};
+use crate::packet::Direction;
 
 use std::fmt;
 

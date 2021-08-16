@@ -1,10 +1,10 @@
-use super::flow::{FlowHandler, GenericFlowHandler};
+use crate::handler::flow::{FlowHandler, GenericFlowHandler};
 
-use crate::core::base::analyzer::{Analyzer, AnalyzerStatus};
-use crate::core::base::flow::Flow;
-use crate::core::base::id::ClassifierId;
+use crate::base::analyzer::{Analyzer, AnalyzerStatus};
+use crate::base::flow::Flow;
+use crate::base::id::ClassifierId;
 
-use crate::core::packet::{Direction, Packet};
+use crate::packet::{Direction, Packet};
 
 use std::any::Any;
 use std::cell::RefCell;

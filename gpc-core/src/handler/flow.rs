@@ -1,8 +1,7 @@
-use super::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
-
-use crate::core::base::flow::Flow;
-use crate::core::base::id::ClassifierId;
-use crate::core::packet::Direction;
+use crate::base::flow::Flow;
+use crate::base::id::ClassifierId;
+use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::packet::Direction;
 
 pub trait GenericFlowHandler<I: ClassifierId> {
     fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction);

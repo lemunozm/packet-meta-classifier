@@ -1,10 +1,13 @@
+#[macro_use]
+extern crate arrayref;
+
 pub mod http;
 pub mod ip;
 pub mod tcp;
 pub mod udp;
 
-use crate::core::base::id::ClassifierId as ClassifierIdTrait;
-use crate::core::loader::AnalyzerLoader;
+use gpc_core::base::id::ClassifierId as ClassifierIdTrait;
+use gpc_core::loader::AnalyzerLoader;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;

@@ -1,6 +1,6 @@
-use super::analyzer::Analyzer;
-use super::id::ClassifierId;
-use crate::core::packet::Direction;
+use crate::base::analyzer::Analyzer;
+use crate::base::id::ClassifierId;
+use crate::packet::Direction;
 
 pub trait Flow<I: ClassifierId>: Sized + 'static {
     type Analyzer: Analyzer<I>;

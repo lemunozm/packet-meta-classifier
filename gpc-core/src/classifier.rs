@@ -1,11 +1,11 @@
-use super::analyzer_cache::AnalyzerCache;
-use super::base::analyzer::AnalyzerStatus;
-use super::base::id::ClassifierId;
-use super::dependency_checker::{DependencyChecker, DependencyStatus};
-use super::expression::{Expr, ValidatedExpr};
-use super::flow_pool::FlowPool;
-use super::loader::AnalyzerLoader;
-use super::packet::Packet;
+use crate::analyzer_cache::AnalyzerCache;
+use crate::base::analyzer::AnalyzerStatus;
+use crate::base::id::ClassifierId;
+use crate::dependency_checker::{DependencyChecker, DependencyStatus};
+use crate::expression::{Expr, ValidatedExpr};
+use crate::flow_pool::FlowPool;
+use crate::loader::AnalyzerLoader;
+use crate::packet::Packet;
 
 use std::fmt;
 

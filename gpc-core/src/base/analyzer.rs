@@ -1,7 +1,7 @@
-use super::flow::{Flow, NoFlow};
-use super::id::ClassifierId;
+use crate::base::flow::{Flow, NoFlow};
+use crate::base::id::ClassifierId;
 
-use crate::core::packet::{Direction, Packet};
+use crate::packet::{Direction, Packet};
 
 use std::io::Write;
 

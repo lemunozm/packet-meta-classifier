@@ -1,7 +1,7 @@
-use super::base::id::ClassifierId;
-use super::handler::analyzer::GenericAnalyzerHandler;
-use super::handler::flow::GenericFlowHandler;
-use super::packet::Direction;
+use crate::base::id::ClassifierId;
+use crate::handler::analyzer::GenericAnalyzerHandler;
+use crate::handler::flow::GenericFlowHandler;
+use crate::packet::Direction;
 
 use std::cell::{Ref, RefCell};
 use std::collections::{hash_map::Entry, HashMap};
