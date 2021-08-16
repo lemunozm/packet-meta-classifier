@@ -38,12 +38,12 @@ pub mod analyzer {
         }
     }
 
-    impl Analyzer for IpAnalyzer {
+    impl Analyzer<ClassifierId> for IpAnalyzer {
         type PrevAnalyzer = NoAnalyzer;
         type Flow = NoFlow<Self>;
         const ID: ClassifierId = ClassifierId::Ip;
 
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
+        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, ClassifierId> {
             let ip_version = (data[0] & 0xF0) >> 4;
 
             let header_len = match ip_version {
@@ -95,6 +95,7 @@ pub mod analyzer {
 
 pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
+    use crate::classifiers::ClassifierId;
     use crate::expression::ExpressionValue;
     use crate::flow::NoFlow;
 
@@ -103,7 +104,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct Ip;
 
-    impl ExpressionValue for Ip {
+    impl ExpressionValue<ClassifierId> for Ip {
         type Analyzer = IpAnalyzer;
 
         fn description() -> &'static str {
@@ -121,7 +122,7 @@ pub mod expression {
         V6,
     }
 
-    impl ExpressionValue for IpVersion {
+    impl ExpressionValue<ClassifierId> for IpVersion {
         type Analyzer = IpAnalyzer;
 
         fn description() -> &'static str {
@@ -139,7 +140,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl ExpressionValue for IpSource {
+    impl ExpressionValue<ClassifierId> for IpSource {
         type Analyzer = IpAnalyzer;
 
         fn description() -> &'static str {
@@ -157,7 +158,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl ExpressionValue for IpDest {
+    impl ExpressionValue<ClassifierId> for IpDest {
         type Analyzer = IpAnalyzer;
 
         fn description() -> &'static str {

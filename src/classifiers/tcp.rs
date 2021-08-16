@@ -13,12 +13,12 @@ pub mod analyzer {
         pub dest_port: u16,
     }
 
-    impl Analyzer for TcpAnalyzer {
+    impl Analyzer<ClassifierId> for TcpAnalyzer {
         type PrevAnalyzer = IpAnalyzer;
         type Flow = TcpFlow;
         const ID: ClassifierId = ClassifierId::Tcp;
 
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
+        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, ClassifierId> {
             self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
             self.dest_port = u16::from_be_bytes(*array_ref![data, 2, 2]);
 
@@ -42,6 +42,7 @@ pub mod analyzer {
 
 pub mod flow {
     use super::analyzer::TcpAnalyzer;
+    use crate::classifiers::ClassifierId;
 
     use crate::flow::Flow;
 
@@ -55,7 +56,7 @@ pub mod flow {
         pub handshake: Handshake,
     }
 
-    impl Flow for TcpFlow {
+    impl Flow<ClassifierId> for TcpFlow {
         type Analyzer = TcpAnalyzer;
 
         fn create(_analyzer: &TcpAnalyzer) -> Self {
@@ -74,12 +75,13 @@ pub mod expression {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
 
+    use crate::classifiers::ClassifierId;
     use crate::expression::ExpressionValue;
 
     #[derive(Debug)]
     pub struct Tcp;
 
-    impl ExpressionValue for Tcp {
+    impl ExpressionValue<ClassifierId> for Tcp {
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {
@@ -94,7 +96,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
-    impl ExpressionValue for TcpSourcePort {
+    impl ExpressionValue<ClassifierId> for TcpSourcePort {
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {
@@ -109,7 +111,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
 
-    impl ExpressionValue for TcpDestPort {
+    impl ExpressionValue<ClassifierId> for TcpDestPort {
         type Analyzer = TcpAnalyzer;
 
         fn description() -> &'static str {

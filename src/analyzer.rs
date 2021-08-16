@@ -1,36 +1,33 @@
-use crate::classifiers::ClassifierId;
+use crate::classifier::id::ClassifierIdTrait;
 use crate::flow::{Flow, GenericFlow, GenericFlowImpl, NoFlow};
 
-use strum::EnumCount;
-
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::io::Write;
 use std::rc::Rc;
 
-pub enum AnalyzerStatus<'a> {
-    Next(ClassifierId, &'a [u8]),
+pub enum AnalyzerStatus<'a, I: ClassifierIdTrait> {
+    Next(I, &'a [u8]),
     Finished(&'a [u8]),
     Abort,
 }
 
-pub trait Analyzer: Sized + Default {
-    type PrevAnalyzer: Analyzer;
-    type Flow: Flow;
-    const ID: ClassifierId;
+pub trait Analyzer<I: ClassifierIdTrait>: Sized + Default {
+    type Flow: Flow<I>;
+    type PrevAnalyzer: Analyzer<I>;
+    const ID: I;
 
-    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, I>;
     fn write_flow_signature(&self, signature: impl Write) -> bool;
 }
 
 #[derive(Default)]
 pub struct NoAnalyzer;
-impl Analyzer for NoAnalyzer {
-    type PrevAnalyzer = NoAnalyzer;
+impl<I: ClassifierIdTrait> Analyzer<I> for NoAnalyzer {
     type Flow = NoFlow<NoAnalyzer>;
-    const ID: ClassifierId = ClassifierId::None;
+    type PrevAnalyzer = Self;
+    const ID: I = I::NONE;
 
-    fn analyze<'a>(&mut self, _data: &'a [u8]) -> AnalyzerStatus<'a> {
+    fn analyze<'a>(&mut self, _data: &'a [u8]) -> AnalyzerStatus<'a, I> {
         unreachable!()
     }
 
@@ -39,14 +36,14 @@ impl Analyzer for NoAnalyzer {
     }
 }
 
-pub trait GenericAnalyzer {
-    fn id(&self) -> ClassifierId;
-    fn prev_id(&self) -> ClassifierId;
-    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a>;
+pub trait GenericAnalyzer<I: ClassifierIdTrait> {
+    fn id(&self) -> I;
+    fn prev_id(&self) -> I;
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, I>;
     fn as_any(&self) -> &dyn std::any::Any;
     fn reset(&mut self);
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>) -> bool;
-    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow>>;
+    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow<I>>>;
 }
 
 pub struct GenericAnalyzerImpl<A> {
@@ -54,7 +51,7 @@ pub struct GenericAnalyzerImpl<A> {
 }
 
 impl<A> GenericAnalyzerImpl<A> {
-    fn new(analyzer: A) -> Self {
+    pub fn new(analyzer: A) -> Self {
         Self { analyzer }
     }
 
@@ -63,20 +60,21 @@ impl<A> GenericAnalyzerImpl<A> {
     }
 }
 
-impl<A, F> GenericAnalyzer for GenericAnalyzerImpl<A>
+impl<A, F, I> GenericAnalyzer<I> for GenericAnalyzerImpl<A>
 where
-    A: Analyzer<Flow = F> + 'static,
-    F: Flow<Analyzer = A> + 'static,
+    A: Analyzer<I, Flow = F> + 'static,
+    F: Flow<I, Analyzer = A> + 'static,
+    I: ClassifierIdTrait,
 {
-    fn id(&self) -> ClassifierId {
+    fn id(&self) -> I {
         A::ID
     }
 
-    fn prev_id(&self) -> ClassifierId {
+    fn prev_id(&self) -> I {
         A::PrevAnalyzer::ID
     }
 
-    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a> {
+    fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, I> {
         self.analyzer.analyze(data)
     }
 
@@ -92,92 +90,9 @@ where
         self.analyzer.write_flow_signature(&mut current_signature)
     }
 
-    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow>> {
+    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlow<I>>> {
         Rc::new(RefCell::new(GenericFlowImpl::new(F::create(
             &self.analyzer,
         ))))
-    }
-}
-
-pub enum DependencyStatus {
-    Ok,
-    NeedAnalysis,
-    None,
-}
-
-pub struct AnalyzerRegistry {
-    analyzers: Vec<Box<dyn GenericAnalyzer>>,
-    dependencies: Vec<HashSet<ClassifierId>>,
-}
-
-impl Default for AnalyzerRegistry {
-    fn default() -> Self {
-        Self {
-            analyzers: (0..ClassifierId::COUNT)
-                .map(|_| Box::new(GenericAnalyzerImpl::new(NoAnalyzer)) as Box<dyn GenericAnalyzer>)
-                .collect::<Vec<_>>(),
-
-            dependencies: (0..ClassifierId::COUNT)
-                .map(|_| HashSet::default())
-                .collect::<Vec<_>>(),
-        }
-    }
-}
-
-impl AnalyzerRegistry {
-    pub fn register<A, F>(&mut self, analyzer: A)
-    where
-        A: Analyzer<Flow = F> + 'static,
-        F: Flow<Analyzer = A> + 'static,
-    {
-        assert!(
-            self.dependencies[A::ID as usize].is_empty(),
-            "Analyzer already registered"
-        );
-
-        self.dependencies[A::ID as usize].insert(A::ID);
-        self.dependencies[A::PrevAnalyzer::ID as usize].insert(A::ID);
-        Self::dependency_tree_creation(&mut self.dependencies, A::ID, A::PrevAnalyzer::ID);
-
-        self.analyzers
-            .insert(A::ID as usize, Box::new(GenericAnalyzerImpl::new(analyzer)));
-    }
-
-    fn dependency_tree_creation<'a>(
-        dependencies: &mut Vec<HashSet<ClassifierId>>,
-        id: ClassifierId,
-        looking: ClassifierId,
-    ) {
-        for selected_id in 0..dependencies.len() {
-            let classifier_ids = &mut dependencies[selected_id];
-            if selected_id != looking.into() && classifier_ids.contains(&looking) {
-                classifier_ids.insert(id);
-                Self::dependency_tree_creation(dependencies, id, selected_id.into());
-                break;
-            }
-        }
-    }
-
-    pub fn get(&self, id: ClassifierId) -> &dyn GenericAnalyzer {
-        &*self.analyzers[id as usize]
-    }
-
-    pub fn get_clean_mut(&mut self, id: ClassifierId) -> &mut dyn GenericAnalyzer {
-        self.analyzers[id as usize].reset();
-        &mut *self.analyzers[id as usize]
-    }
-
-    pub fn contains(&self, id: ClassifierId) -> bool {
-        self.analyzers.get(id as usize).is_some()
-    }
-
-    pub fn check_dependencies(&self, next: ClassifierId, to: ClassifierId) -> DependencyStatus {
-        if self.dependencies[next as usize].contains(&to) {
-            DependencyStatus::NeedAnalysis
-        } else if self.dependencies[to as usize].contains(&next) {
-            DependencyStatus::Ok
-        } else {
-            DependencyStatus::None
-        }
     }
 }

@@ -1,6 +1,7 @@
 use super::logger::{self, PacketProps};
 use super::CaptureIterator;
 
+use packet_classifier::classifier::id::ClassifierIdTrait;
 use packet_classifier::classifier::{ClassificationResult, Classifier};
 use packet_classifier::flow::Direction;
 
@@ -19,9 +20,9 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         }
     }
 
-    pub fn inject_packets<C>(
+    pub fn inject_packets<C, I: ClassifierIdTrait>(
         &mut self,
-        classifier: &mut Classifier<C, T>,
+        classifier: &mut Classifier<C, T, I>,
         capture_section: CaptureIterator,
     ) -> InjectionResult<T> {
         let mut current_injection_result = InjectionResult::default();

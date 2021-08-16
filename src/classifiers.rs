@@ -3,13 +3,29 @@ pub mod ip;
 pub mod tcp;
 pub mod udp;
 
-#[derive(strum::EnumCount, num_derive::FromPrimitive, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+use crate::classifier::id::ClassifierIdTrait;
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub enum ClassifierId {
     None,
     Ip,
     Tcp,
     Udp,
     Http,
+    Total,
+}
+
+impl From<usize> for ClassifierId {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Ip,
+            2 => Self::Tcp,
+            3 => Self::Udp,
+            4 => Self::Http,
+            _ => panic!("The value is not a valid ClassifierId"),
+        }
+    }
 }
 
 impl From<ClassifierId> for usize {
@@ -18,9 +34,8 @@ impl From<ClassifierId> for usize {
     }
 }
 
-impl From<usize> for ClassifierId {
-    fn from(number: usize) -> ClassifierId {
-        num_traits::FromPrimitive::from_usize(number)
-            .expect("The number must represent an existing Classifier ID")
-    }
+impl ClassifierIdTrait for ClassifierId {
+    const NONE: ClassifierId = ClassifierId::None;
+    const INITIAL: ClassifierId = ClassifierId::Ip;
+    const TOTAL: usize = ClassifierId::Total as usize;
 }

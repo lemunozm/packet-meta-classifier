@@ -1,6 +1,8 @@
+use packet_classifier::classifier::loader::AnalyzerLoader;
 use packet_classifier::classifiers::tcp::expression::{TcpDestPort, TcpSourcePort};
-
 use packet_classifier::expression::Expr;
+
+use packet_classifier::classifiers::{ip, tcp};
 
 mod util;
 use util::{CaptureData, TestConfig};
@@ -8,6 +10,9 @@ use util::{CaptureData, TestConfig};
 #[test]
 fn tcp_ports() {
     util::run_classification_test(TestConfig {
+        loader: AnalyzerLoader::new()
+            .load(ip::analyzer::IpAnalyzer::default())
+            .load(tcp::analyzer::TcpAnalyzer::default()),
         config: (),
         rules: vec![
             ("DestPort80", Expr::value(TcpDestPort(80))),

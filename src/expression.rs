@@ -1,20 +1,24 @@
 use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
-use crate::classifiers::ClassifierId;
+use crate::classifier::id::ClassifierIdTrait;
 use crate::flow::{Flow, GenericFlow, GenericFlowImpl};
 
-pub trait ExpressionValue: std::fmt::Debug {
-    type Analyzer: Analyzer;
+pub trait ExpressionValue<I: ClassifierIdTrait>: std::fmt::Debug {
+    type Analyzer: Analyzer<I>;
 
     fn description() -> &'static str;
-    fn check(&self, analyzer: &Self::Analyzer, flow: &<Self::Analyzer as Analyzer>::Flow) -> bool;
+    fn check(
+        &self,
+        analyzer: &Self::Analyzer,
+        flow: &<Self::Analyzer as Analyzer<I>>::Flow,
+    ) -> bool;
 }
 
 #[non_exhaustive]
-pub enum Expr {
-    Value(Box<dyn GenericValue>),
-    Not(Box<Expr>),
-    And(Vec<Expr>),
-    Or(Vec<Expr>),
+pub enum Expr<I: ClassifierIdTrait> {
+    Value(Box<dyn GenericValue<I>>),
+    Not(Box<Expr<I>>),
+    And(Vec<Expr<I>>),
+    Or(Vec<Expr<I>>),
 }
 
 pub enum ValidatedExpr {
@@ -32,31 +36,31 @@ impl ValidatedExpr {
     }
 }
 
-impl Expr {
-    pub fn value<V, A, F>(value: V) -> Expr
+impl<I: ClassifierIdTrait> Expr<I> {
+    pub fn value<V, A, F>(value: V) -> Expr<I>
     where
-        V: ExpressionValue<Analyzer = A> + 'static,
-        A: Analyzer<Flow = F> + 'static,
-        F: Flow<Analyzer = A> + 'static,
+        V: ExpressionValue<I, Analyzer = A> + 'static,
+        A: Analyzer<I, Flow = F> + 'static,
+        F: Flow<I, Analyzer = A> + 'static,
     {
         Expr::Value(Box::new(GenericValueImpl::new(value)))
     }
 
-    pub fn not(rule: Expr) -> Expr {
+    pub fn not(rule: Expr<I>) -> Expr<I> {
         Expr::Not(Box::new(rule))
     }
 
-    pub fn and(expressions: Vec<Expr>) -> Expr {
+    pub fn and(expressions: Vec<Expr<I>>) -> Expr<I> {
         Expr::And(expressions)
     }
 
-    pub fn or(expressions: Vec<Expr>) -> Expr {
+    pub fn or(expressions: Vec<Expr<I>>) -> Expr<I> {
         Expr::Or(expressions)
     }
 
     pub fn check(
         &self,
-        value_validator: &mut dyn FnMut(&Box<dyn GenericValue>) -> ValidatedExpr,
+        value_validator: &mut dyn FnMut(&Box<dyn GenericValue<I>>) -> ValidatedExpr,
     ) -> ValidatedExpr {
         match self {
             Expr::Value(value) => value_validator(value),
@@ -89,9 +93,9 @@ impl Expr {
     }
 }
 
-pub trait GenericValue: std::fmt::Debug {
-    fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool;
-    fn classifier_id(&self) -> ClassifierId;
+pub trait GenericValue<I: ClassifierIdTrait>: std::fmt::Debug {
+    fn check(&self, analyzer: &dyn GenericAnalyzer<I>, flow: Option<&dyn GenericFlow<I>>) -> bool;
+    fn classifier_id(&self) -> I;
 }
 
 struct GenericValueImpl<V> {
@@ -110,13 +114,14 @@ impl<V: std::fmt::Debug> std::fmt::Debug for GenericValueImpl<V> {
     }
 }
 
-impl<V, A, F> GenericValue for GenericValueImpl<V>
+impl<V, A, F, I> GenericValue<I> for GenericValueImpl<V>
 where
-    V: ExpressionValue<Analyzer = A>,
-    A: Analyzer<Flow = F> + 'static,
-    F: Flow<Analyzer = A> + 'static,
+    V: ExpressionValue<I, Analyzer = A>,
+    A: Analyzer<I, Flow = F> + 'static,
+    F: Flow<I, Analyzer = A> + 'static,
+    I: ClassifierIdTrait,
 {
-    fn check(&self, analyzer: &dyn GenericAnalyzer, flow: Option<&dyn GenericFlow>) -> bool {
+    fn check(&self, analyzer: &dyn GenericAnalyzer<I>, flow: Option<&dyn GenericFlow<I>>) -> bool {
         let analyzer = analyzer
             .as_any()
             .downcast_ref::<GenericAnalyzerImpl<A>>()
@@ -127,7 +132,7 @@ where
             Some(flow) => {
                 let flow = flow
                     .as_any()
-                    .downcast_ref::<GenericFlowImpl<F>>()
+                    .downcast_ref::<GenericFlowImpl<F, I>>()
                     .unwrap()
                     .flow();
 
@@ -137,7 +142,7 @@ where
         }
     }
 
-    fn classifier_id(&self) -> ClassifierId {
+    fn classifier_id(&self) -> I {
         A::ID
     }
 }

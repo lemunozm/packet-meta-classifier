@@ -1,16 +1,24 @@
 mod analyzer;
+mod analyzer_cache;
+mod dependency;
 mod expression;
 mod flow;
+pub mod id;
+pub mod loader;
 
-use crate::analyzer::{AnalyzerRegistry, AnalyzerStatus, DependencyStatus};
-use crate::classifiers::{ip::analyzer::IpAnalyzer, tcp::analyzer::TcpAnalyzer, ClassifierId};
+use crate::analyzer::AnalyzerStatus;
 use crate::expression::{Expr, ValidatedExpr};
 use crate::flow::{Direction, FlowPool};
 
+use analyzer_cache::AnalyzerCache;
+use dependency::{DependencyChecker, DependencyStatus};
+use id::ClassifierIdTrait;
+use loader::AnalyzerLoader;
+
 use std::fmt;
 
-pub struct Rule<T> {
-    pub exp: Expr,
+pub struct Rule<I: ClassifierIdTrait, T> {
+    pub exp: Expr<I>,
     pub tag: T,
 }
 
@@ -20,18 +28,27 @@ pub struct ClassificationResult<T> {
     pub bytes: usize,
 }
 
-pub struct Classifier<C, T> {
+pub struct Classifier<C, T, I: ClassifierIdTrait> {
     _config: C,
-    rules: Vec<Rule<T>>,
-    analyzers: AnalyzerRegistry,
-    flow_pool: FlowPool,
+    rules: Vec<Rule<I, T>>,
+    analyzer_cache: AnalyzerCache<I>,
+    dependency_checker: DependencyChecker<I>,
+    flow_pool: FlowPool<I>,
 }
 
-impl<C, T: fmt::Display + Default + Eq + Copy> Classifier<C, T> {
-    pub fn new(_config: C, rule_exprs: Vec<(T, Expr)>) -> Self {
-        let mut analyzers = AnalyzerRegistry::default();
-        analyzers.register(IpAnalyzer::default());
-        analyzers.register(TcpAnalyzer::default());
+impl<C, T: fmt::Display + Default + Eq + Copy, I: ClassifierIdTrait> Classifier<C, T, I> {
+    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, loader: AnalyzerLoader<I>) -> Self {
+        let analyzers = loader.list();
+
+        let dependency_checker = DependencyChecker::new(
+            analyzers
+                .iter()
+                .map(|analyzer| (analyzer.id(), analyzer.prev_id()))
+                .collect(),
+        );
+
+        let flow_pool = FlowPool::new();
+        let analyzer_cache = AnalyzerCache::new(analyzers);
 
         Classifier {
             _config,
@@ -45,8 +62,9 @@ impl<C, T: fmt::Display + Default + Eq + Copy> Classifier<C, T> {
                     Rule { exp, tag }
                 })
                 .collect(),
-            analyzers,
-            flow_pool: FlowPool::default(),
+            analyzer_cache,
+            dependency_checker,
+            flow_pool,
         }
     }
 
@@ -62,15 +80,17 @@ impl<C, T: fmt::Display + Default + Eq + Copy> Classifier<C, T> {
         let Self {
             _config,
             rules,
-            analyzers,
+            analyzer_cache,
+            dependency_checker,
             flow_pool,
         } = self;
 
         let mut state = ClassificationState {
             data,
             direction,
-            next_classifier_id: ClassifierId::Ip,
-            analyzers,
+            next_classifier_id: I::INITIAL,
+            analyzer_cache,
+            dependency_checker,
             flow_pool,
             finished_analysis: false,
         };
@@ -88,7 +108,7 @@ impl<C, T: fmt::Display + Default + Eq + Copy> Classifier<C, T> {
                 let status = state.analyze_classification_for(expr_value.classifier_id());
                 match status {
                     ClassificationStatus::CanClassify => {
-                        let analyzer = state.analyzers.get(expr_value.classifier_id());
+                        let analyzer = state.analyzer_cache.get(expr_value.classifier_id());
                         let flow = state.flow_pool.get_cached(expr_value.classifier_id());
                         let answer = expr_value.check(analyzer, flow.as_ref().map(|flow| &**flow));
 
@@ -127,26 +147,27 @@ enum ClassificationStatus {
     Abort,
 }
 
-struct ClassificationState<'a> {
+struct ClassificationState<'a, I: ClassifierIdTrait> {
     data: &'a [u8],
     direction: Direction,
-    next_classifier_id: ClassifierId,
-    analyzers: &'a mut AnalyzerRegistry,
-    flow_pool: &'a mut FlowPool,
+    next_classifier_id: I,
+    analyzer_cache: &'a mut AnalyzerCache<I>,
+    dependency_checker: &'a DependencyChecker<I>,
+    flow_pool: &'a mut FlowPool<I>,
     finished_analysis: bool,
 }
 
-impl<'a> ClassificationState<'a> {
+impl<'a, I: ClassifierIdTrait> ClassificationState<'a, I> {
     fn prepare(&mut self) {
         log::trace!("Start {} packet classification", self.direction);
         self.flow_pool.prepare_for_packet();
     }
 
-    fn analyze_classification_for(&mut self, classifier_id: ClassifierId) -> ClassificationStatus {
+    fn analyze_classification_for(&mut self, classifier_id: I) -> ClassificationStatus {
         loop {
             let status = self
-                .analyzers
-                .check_dependencies(self.next_classifier_id, classifier_id);
+                .dependency_checker
+                .check(self.next_classifier_id, classifier_id);
 
             match status {
                 DependencyStatus::NeedAnalysis => {
@@ -155,7 +176,7 @@ impl<'a> ClassificationState<'a> {
                     }
 
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);
-                    let analyzer = self.analyzers.get_clean_mut(self.next_classifier_id);
+                    let analyzer = self.analyzer_cache.get_clean_mut(self.next_classifier_id);
                     let analyzer_status = analyzer.analyze(self.data);
                     if let AnalyzerStatus::Abort = analyzer_status {
                         log::trace!("Analysis aborted: cannot classify");
