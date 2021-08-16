@@ -59,12 +59,16 @@ fn configure_logger() -> Result<(), fern::InitError> {
                     .clone()
                     .map(|PacketProps { number, uplink }| format!(
                         "[{}]",
-                        format!("{} {}", number, if uplink { "ul" } else { "dl" }).bright_yellow()
+                        format!(
+                            "{} {}",
+                            if uplink { "->".yellow() } else { "<-".blue() },
+                            number.to_string().bright_yellow()
+                        )
                     ))
                     .unwrap_or(String::new()),
                 w = if PACKET_PROPS.read().unwrap().is_some() {
                     // The console color adds extra characters that must be contemplated
-                    format!("{}", format!("").bright_yellow()).len() + 7
+                    format!("{}", format!("").white()).len() * 2 + 7
                 } else {
                     0
                 }

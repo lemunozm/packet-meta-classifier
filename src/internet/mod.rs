@@ -4,6 +4,7 @@ pub mod tcp;
 pub mod udp;
 
 use crate::core::base::id::ClassifierId as ClassifierIdTrait;
+use crate::core::loader::AnalyzerLoader;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -34,4 +35,10 @@ impl ClassifierIdTrait for ClassifierId {
     const NONE: ClassifierId = ClassifierId::None;
     const INITIAL: ClassifierId = ClassifierId::Ip;
     const TOTAL: usize = ClassifierId::COUNT;
+}
+
+pub fn loader() -> AnalyzerLoader<ClassifierId> {
+    AnalyzerLoader::new()
+        .load(ip::analyzer::IpAnalyzer::default())
+        .load(tcp::analyzer::TcpAnalyzer::default())
 }

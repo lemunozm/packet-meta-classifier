@@ -1,7 +1,7 @@
-use packet_classifier::classifier::id::ClassifierIdTrait;
-use packet_classifier::classifier::loader::AnalyzerLoader;
-use packet_classifier::classifier::Classifier;
-use packet_classifier::expression::Expr;
+use packet_classifier::core::base::id::ClassifierId;
+use packet_classifier::core::classifier::Classifier;
+use packet_classifier::core::expression::Expr;
+use packet_classifier::core::loader::AnalyzerLoader;
 
 use super::logger;
 use super::Capture;
@@ -15,7 +15,7 @@ pub struct CaptureData {
     pub sections: Vec<(usize, usize)>,
 }
 
-pub struct TestConfig<C, T, I: ClassifierIdTrait> {
+pub struct TestConfig<C, T, I: ClassifierId> {
     pub loader: AnalyzerLoader<I>,
     pub config: C,
     pub rules: Vec<(T, Expr<I>)>,
@@ -23,14 +23,23 @@ pub struct TestConfig<C, T, I: ClassifierIdTrait> {
     pub expected_classification: Vec<T>,
 }
 
-pub fn run_classification_test<
-    C,
+pub fn run_classification_test<C, T, I>(test_config: TestConfig<C, T, I>)
+where
     T: fmt::Debug + fmt::Display + Default + Copy + Eq,
-    I: ClassifierIdTrait,
->(
-    test_config: TestConfig<C, T, I>,
-) {
+    I: ClassifierId,
+{
     logger::init();
+
+    for rule_tag in &test_config.expected_classification {
+        test_config
+            .rules
+            .iter()
+            .find(|(tag, _)| tag == rule_tag)
+            .expect(&format!(
+                "The expected classification rule '{}' must be a defined rule",
+                rule_tag,
+            ));
+    }
 
     let mut classifier = Classifier::new(test_config.config, test_config.rules, test_config.loader);
     let mut injector = Injector::new(&test_config.expected_classification);

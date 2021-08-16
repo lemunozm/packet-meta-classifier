@@ -28,7 +28,11 @@ pub struct Classifier<C, T, I: ClassifierId> {
     flow_pool: FlowPool<I>,
 }
 
-impl<C, T: fmt::Display + Default + Eq + Copy, I: ClassifierId> Classifier<C, T, I> {
+impl<C, T, I> Classifier<C, T, I>
+where
+    T: fmt::Display + Default + Eq + Copy,
+    I: ClassifierId,
+{
     pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, loader: AnalyzerLoader<I>) -> Self {
         let analyzers = loader.list();
 

@@ -1,9 +1,9 @@
 use super::logger::{self, PacketProps};
 use super::CaptureIterator;
 
-use packet_classifier::classifier::id::ClassifierIdTrait;
-use packet_classifier::classifier::{ClassificationResult, Classifier};
-use packet_classifier::flow::Direction;
+use packet_classifier::core::base::id::ClassifierId;
+use packet_classifier::core::classifier::{ClassificationResult, Classifier};
+use packet_classifier::core::packet::Direction;
 
 use colored::Colorize;
 
@@ -20,7 +20,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         }
     }
 
-    pub fn inject_packets<C, I: ClassifierIdTrait>(
+    pub fn inject_packets<C, I: ClassifierId>(
         &mut self,
         classifier: &mut Classifier<C, T, I>,
         capture_section: CaptureIterator,

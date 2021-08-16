@@ -1,4 +1,4 @@
-use packet_classifier::classifier::ClassificationResult;
+use packet_classifier::core::classifier::ClassificationResult;
 
 use colored::Colorize;
 
