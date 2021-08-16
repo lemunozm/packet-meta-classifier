@@ -1,3 +1,4 @@
+/*
 pub mod http;
 pub mod ip;
 pub mod tcp;
@@ -39,3 +40,4 @@ impl ClassifierIdTrait for ClassifierId {
     const INITIAL: ClassifierId = ClassifierId::Ip;
     const TOTAL: usize = ClassifierId::Total as usize;
 }
+*/

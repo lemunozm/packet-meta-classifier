@@ -1,4 +1,5 @@
-use crate::classifier::id::ClassifierIdTrait;
+use super::base::id::ClassifierId;
+
 use std::collections::BTreeSet;
 
 pub enum DependencyStatus {
@@ -7,11 +8,11 @@ pub enum DependencyStatus {
     None,
 }
 
-pub struct DependencyChecker<I: ClassifierIdTrait> {
+pub struct DependencyChecker<I: ClassifierId> {
     dependencies: Vec<BTreeSet<I>>,
 }
 
-impl<I: ClassifierIdTrait> DependencyChecker<I> {
+impl<I: ClassifierId> DependencyChecker<I> {
     pub fn new(dependency_list: Vec<(I, I)>) -> Self {
         let mut dependencies: Vec<BTreeSet<I>> =
             (0..I::TOTAL).map(|_| BTreeSet::default()).collect();

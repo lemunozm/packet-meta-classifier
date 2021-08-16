@@ -1,23 +1,15 @@
-mod analyzer;
-mod analyzer_cache;
-mod dependency;
-mod expression;
-mod flow;
-pub mod id;
-pub mod loader;
-
-use crate::analyzer::AnalyzerStatus;
-use crate::expression::{Expr, ValidatedExpr};
-use crate::flow::{Direction, FlowPool};
-
-use analyzer_cache::AnalyzerCache;
-use dependency::{DependencyChecker, DependencyStatus};
-use id::ClassifierIdTrait;
-use loader::AnalyzerLoader;
+use super::analyzer_cache::AnalyzerCache;
+use super::base::analyzer::AnalyzerStatus;
+use super::base::id::ClassifierId;
+use super::dependency_checker::{DependencyChecker, DependencyStatus};
+use super::expression::{Expr, ValidatedExpr};
+use super::flow_pool::FlowPool;
+use super::loader::AnalyzerLoader;
+use super::packet::Direction;
 
 use std::fmt;
 
-pub struct Rule<I: ClassifierIdTrait, T> {
+pub struct Rule<I: ClassifierId, T> {
     pub exp: Expr<I>,
     pub tag: T,
 }
@@ -28,7 +20,7 @@ pub struct ClassificationResult<T> {
     pub bytes: usize,
 }
 
-pub struct Classifier<C, T, I: ClassifierIdTrait> {
+pub struct Classifier<C, T, I: ClassifierId> {
     _config: C,
     rules: Vec<Rule<I, T>>,
     analyzer_cache: AnalyzerCache<I>,
@@ -36,7 +28,7 @@ pub struct Classifier<C, T, I: ClassifierIdTrait> {
     flow_pool: FlowPool<I>,
 }
 
-impl<C, T: fmt::Display + Default + Eq + Copy, I: ClassifierIdTrait> Classifier<C, T, I> {
+impl<C, T: fmt::Display + Default + Eq + Copy, I: ClassifierId> Classifier<C, T, I> {
     pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, loader: AnalyzerLoader<I>) -> Self {
         let analyzers = loader.list();
 
@@ -147,7 +139,7 @@ enum ClassificationStatus {
     Abort,
 }
 
-struct ClassificationState<'a, I: ClassifierIdTrait> {
+struct ClassificationState<'a, I: ClassifierId> {
     data: &'a [u8],
     direction: Direction,
     next_classifier_id: I,
@@ -157,7 +149,7 @@ struct ClassificationState<'a, I: ClassifierIdTrait> {
     finished_analysis: bool,
 }
 
-impl<'a, I: ClassifierIdTrait> ClassificationState<'a, I> {
+impl<'a, I: ClassifierId> ClassificationState<'a, I> {
     fn prepare(&mut self) {
         log::trace!("Start {} packet classification", self.direction);
         self.flow_pool.prepare_for_packet();

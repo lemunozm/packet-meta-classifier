@@ -1,12 +1,13 @@
-use crate::analyzer::{Analyzer, GenericAnalyzer, GenericAnalyzerImpl};
-use crate::classifier::ClassifierIdTrait;
-use crate::flow::Flow;
+use super::base::analyzer::Analyzer;
+use super::base::flow::Flow;
+use super::base::id::ClassifierId;
+use super::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 
-pub struct AnalyzerLoader<I: ClassifierIdTrait> {
-    analyzers: Vec<Box<dyn GenericAnalyzer<I>>>,
+pub struct AnalyzerLoader<I: ClassifierId> {
+    analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,
 }
 
-impl<I: ClassifierIdTrait> AnalyzerLoader<I> {
+impl<I: ClassifierId> AnalyzerLoader<I> {
     pub fn new() -> Self {
         Self {
             analyzers: Vec::new(),
@@ -31,11 +32,11 @@ impl<I: ClassifierIdTrait> AnalyzerLoader<I> {
         );
 
         self.analyzers
-            .push(Box::new(GenericAnalyzerImpl::new(analyzer)));
+            .push(Box::new(AnalyzerHandler::new(analyzer)));
         self
     }
 
-    pub fn list(self) -> Vec<Box<dyn GenericAnalyzer<I>>> {
+    pub fn list(self) -> Vec<Box<dyn GenericAnalyzerHandler<I>>> {
         self.analyzers
     }
 }

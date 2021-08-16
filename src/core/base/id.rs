@@ -1,5 +1,5 @@
-pub trait ClassifierIdTrait:
-    From<usize> + Into<usize> + Copy + Eq + std::hash::Hash + std::fmt::Debug + Ord + 'static
+pub trait ClassifierId:
+    From<usize> + Into<usize> + std::hash::Hash + std::fmt::Debug + Copy + Eq + Ord + 'static
 {
     const NONE: Self;
     const INITIAL: Self;
