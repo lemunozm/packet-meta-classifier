@@ -5,7 +5,7 @@ use super::dependency_checker::{DependencyChecker, DependencyStatus};
 use super::expression::{Expr, ValidatedExpr};
 use super::flow_pool::FlowPool;
 use super::loader::AnalyzerLoader;
-use super::packet::Direction;
+use super::packet::Packet;
 
 use std::fmt;
 
@@ -68,11 +68,7 @@ where
         self.rules.iter().map(|rule| rule.tag).collect()
     }
 
-    pub fn classify_packet(
-        &mut self,
-        data: &[u8],
-        direction: Direction,
-    ) -> ClassificationResult<T> {
+    pub fn classify_packet(&mut self, packet: Packet) -> ClassificationResult<T> {
         let Self {
             _config,
             rules,
@@ -82,8 +78,7 @@ where
         } = self;
 
         let mut state = ClassificationState {
-            data,
-            direction,
+            packet,
             next_classifier_id: I::INITIAL,
             analyzer_cache,
             dependency_checker,
@@ -121,7 +116,7 @@ where
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult {
                         rule_tag: rule.tag,
-                        bytes: data.len(),
+                        bytes: state.packet.data.len(),
                     };
                 }
                 ValidatedExpr::NotClassified => continue,
@@ -132,7 +127,7 @@ where
         log::trace!("Not classified: not rule matched");
         ClassificationResult {
             rule_tag: T::default(),
-            bytes: data.len(),
+            bytes: state.packet.data.len(),
         }
     }
 }
@@ -144,8 +139,7 @@ enum ClassificationStatus {
 }
 
 struct ClassificationState<'a, I: ClassifierId> {
-    data: &'a [u8],
-    direction: Direction,
+    packet: Packet<'a>,
     next_classifier_id: I,
     analyzer_cache: &'a mut AnalyzerCache<I>,
     dependency_checker: &'a DependencyChecker<I>,
@@ -155,7 +149,11 @@ struct ClassificationState<'a, I: ClassifierId> {
 
 impl<'a, I: ClassifierId> ClassificationState<'a, I> {
     fn prepare(&mut self) {
-        log::trace!("Start {} packet classification", self.direction);
+        log::trace!(
+            "Start {} bytes of {} packet classification",
+            self.packet.data.len(),
+            self.packet.direction
+        );
         self.flow_pool.prepare_for_packet();
     }
 
@@ -173,13 +171,13 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
 
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);
                     let analyzer = self.analyzer_cache.get_clean_mut(self.next_classifier_id);
-                    let analyzer_status = analyzer.analyze(self.data);
+                    let analyzer_status = analyzer.analyze(&self.packet);
                     if let AnalyzerStatus::Abort = analyzer_status {
                         log::trace!("Analysis aborted: cannot classify");
                         break ClassificationStatus::Abort;
                     }
 
-                    self.flow_pool.update(analyzer, self.direction);
+                    self.flow_pool.update(analyzer, self.packet.direction);
 
                     match analyzer_status {
                         AnalyzerStatus::Finished(_) => {
@@ -190,8 +188,8 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                                 false => ClassificationStatus::NotClassify,
                             };
                         }
-                        AnalyzerStatus::Next(classifier_id, next_data) => {
-                            self.data = next_data;
+                        AnalyzerStatus::Next(classifier_id, bytes_parsed) => {
+                            self.packet.data = &self.packet.data[bytes_parsed..];
                             self.next_classifier_id = classifier_id;
                         }
                         AnalyzerStatus::Abort => unreachable!(),

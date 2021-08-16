@@ -1,6 +1,7 @@
 pub mod analyzer {
     use crate::core::base::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
     use crate::core::base::flow::NoFlow;
+    use crate::core::packet::Packet;
     use crate::internet::ClassifierId;
 
     use std::io::Write;
@@ -43,23 +44,23 @@ pub mod analyzer {
         type Flow = NoFlow<Self>;
         const ID: ClassifierId = ClassifierId::Ip;
 
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, ClassifierId> {
-            let ip_version = (data[0] & 0xF0) >> 4;
+        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
+            let ip_version = (packet.data[0] & 0xF0) >> 4;
 
             let header_len = match ip_version {
                 4 => {
-                    self.protocol = data[9];
+                    self.protocol = packet.data[9];
                     self.version = Version::V4(V4 {
-                        source: Ipv4Addr::from(*array_ref![data, 12, 4]),
-                        dest: Ipv4Addr::from(*array_ref![data, 16, 4]),
+                        source: Ipv4Addr::from(*array_ref![packet.data, 12, 4]),
+                        dest: Ipv4Addr::from(*array_ref![packet.data, 16, 4]),
                     });
-                    ((data[0] & 0x0F) as usize) << 2
+                    ((packet.data[0] & 0x0F) as usize) << 2
                 }
                 6 => {
-                    self.protocol = data[6];
+                    self.protocol = packet.data[6];
                     self.version = Version::V6(V6 {
-                        source: Ipv6Addr::from(*array_ref![data, 8, 16]),
-                        dest: Ipv6Addr::from(*array_ref![data, 24, 16]),
+                        source: Ipv6Addr::from(*array_ref![packet.data, 8, 16]),
+                        dest: Ipv6Addr::from(*array_ref![packet.data, 24, 16]),
                     });
                     40
                 }
@@ -69,10 +70,10 @@ pub mod analyzer {
             let next_classifier = match self.protocol {
                 6 => ClassifierId::Tcp,
                 //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
-                _ => return AnalyzerStatus::Finished(&data[header_len..]),
+                _ => return AnalyzerStatus::Finished(header_len),
             };
 
-            AnalyzerStatus::Next(next_classifier, &data[header_len..])
+            AnalyzerStatus::Next(next_classifier, header_len)
         }
 
         fn write_flow_signature(&self, mut signature: impl Write) -> bool {

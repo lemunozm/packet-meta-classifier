@@ -23,3 +23,8 @@ impl fmt::Display for Direction {
         }
     }
 }
+
+pub struct Packet<'a> {
+    pub data: &'a [u8],
+    pub direction: Direction,
+}

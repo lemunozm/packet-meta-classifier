@@ -2,6 +2,7 @@ pub mod analyzer {
     use super::flow::TcpFlow;
 
     use crate::core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::core::packet::Packet;
     use crate::internet::ip::analyzer::IpAnalyzer;
     use crate::internet::ClassifierId;
 
@@ -18,17 +19,17 @@ pub mod analyzer {
         type Flow = TcpFlow;
         const ID: ClassifierId = ClassifierId::Tcp;
 
-        fn analyze<'a>(&mut self, data: &'a [u8]) -> AnalyzerStatus<'a, ClassifierId> {
-            self.source_port = u16::from_be_bytes(*array_ref![data, 0, 2]);
-            self.dest_port = u16::from_be_bytes(*array_ref![data, 2, 2]);
+        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
+            self.source_port = u16::from_be_bytes(*array_ref![packet.data, 0, 2]);
+            self.dest_port = u16::from_be_bytes(*array_ref![packet.data, 2, 2]);
 
-            let header_len = (((data[12] & 0xF0) as usize) >> 4) << 2;
+            let header_len = (((packet.data[12] & 0xF0) as usize) >> 4) << 2;
 
             if self.source_port == 80 || self.source_port == 8080 {
                 //AnalyzerStatus::Next(AnalyzerId::Http, data[header_len..])
-                AnalyzerStatus::Finished(&data[header_len..])
+                AnalyzerStatus::Finished(header_len)
             } else {
-                AnalyzerStatus::Finished(&data[header_len..])
+                AnalyzerStatus::Finished(header_len)
             }
         }
 

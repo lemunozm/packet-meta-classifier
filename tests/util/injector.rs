@@ -3,7 +3,7 @@ use super::CaptureIterator;
 
 use packet_classifier::core::base::id::ClassifierId;
 use packet_classifier::core::classifier::{ClassificationResult, Classifier};
-use packet_classifier::core::packet::Direction;
+use packet_classifier::core::packet::{Direction, Packet};
 
 use colored::Colorize;
 
@@ -27,14 +27,18 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
     ) -> InjectionResult<T> {
         let mut current_injection_result = InjectionResult::default();
 
-        for packet in capture_section {
+        for captured_packet in capture_section {
             logger::set_log_packet_number(Some(PacketProps {
-                number: packet.id,
-                uplink: packet.uplink,
+                number: captured_packet.id,
+                uplink: captured_packet.uplink,
             }));
 
-            let classification_result =
-                classifier.classify_packet(&packet.data, Direction::from(packet.uplink));
+            let packet = Packet {
+                data: &captured_packet.data,
+                direction: Direction::from(captured_packet.uplink),
+            };
+
+            let classification_result = classifier.classify_packet(packet);
 
             self.log(
                 classifier.rule_tags(),
