@@ -1,9 +1,9 @@
 pub mod analyzer {
     use super::flow::TcpFlow;
 
-    use crate::analyzer::{Analyzer, AnalyzerStatus};
-    use crate::classifiers::ip::analyzer::IpAnalyzer;
-    use crate::classifiers::ClassifierId;
+    use crate::core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use crate::internet::ip::analyzer::IpAnalyzer;
+    use crate::internet::ClassifierId;
 
     use std::io::Write;
 
@@ -42,9 +42,9 @@ pub mod analyzer {
 
 pub mod flow {
     use super::analyzer::TcpAnalyzer;
-    use crate::classifiers::ClassifierId;
 
-    use crate::flow::Flow;
+    use crate::core::base::flow::Flow;
+    use crate::internet::ClassifierId;
 
     pub enum Handshake {
         Send,
@@ -75,8 +75,8 @@ pub mod expression {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
 
-    use crate::classifiers::ClassifierId;
-    use crate::expression::ExpressionValue;
+    use crate::core::base::expression_value::ExpressionValue;
+    use crate::internet::ClassifierId;
 
     #[derive(Debug)]
     pub struct Tcp;
