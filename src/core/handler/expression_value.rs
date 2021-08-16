@@ -5,6 +5,7 @@ use crate::core::base::analyzer::Analyzer;
 use crate::core::base::expression_value::ExpressionValue;
 use crate::core::base::flow::Flow;
 use crate::core::base::id::ClassifierId;
+use crate::core::packet::Direction;
 
 use std::fmt;
 
@@ -61,7 +62,11 @@ where
 
                 self.value.check(analyzer, flow)
             }
-            None => self.value.check(analyzer, &F::create(&analyzer)),
+            None => {
+                // The flow created here is always a NoFlow
+                self.value
+                    .check(analyzer, &F::create(&analyzer, Direction::Uplink))
+            }
         }
     }
 

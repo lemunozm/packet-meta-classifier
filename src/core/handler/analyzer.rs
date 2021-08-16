@@ -4,7 +4,7 @@ use crate::core::base::analyzer::{Analyzer, AnalyzerStatus};
 use crate::core::base::flow::Flow;
 use crate::core::base::id::ClassifierId;
 
-use crate::core::packet::Packet;
+use crate::core::packet::{Direction, Packet};
 
 use std::any::Any;
 use std::cell::RefCell;
@@ -17,7 +17,7 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn as_any(&self) -> &dyn Any;
     fn reset(&mut self);
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>) -> bool;
-    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlowHandler<I>>>;
+    fn create_flow(&self, direction: Direction) -> Rc<RefCell<dyn GenericFlowHandler<I>>>;
 }
 
 pub struct AnalyzerHandler<A> {
@@ -64,7 +64,10 @@ where
         self.analyzer.write_flow_signature(&mut current_signature)
     }
 
-    fn create_flow(&self) -> Rc<RefCell<dyn GenericFlowHandler<I>>> {
-        Rc::new(RefCell::new(FlowHandler::new(F::create(&self.analyzer))))
+    fn create_flow(&self, direction: Direction) -> Rc<RefCell<dyn GenericFlowHandler<I>>> {
+        Rc::new(RefCell::new(FlowHandler::new(F::create(
+            &self.analyzer,
+            direction,
+        ))))
     }
 }

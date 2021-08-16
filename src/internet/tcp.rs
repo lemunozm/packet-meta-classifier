@@ -45,6 +45,7 @@ pub mod flow {
     use super::analyzer::TcpAnalyzer;
 
     use crate::core::base::flow::Flow;
+    use crate::core::packet::Direction;
     use crate::internet::ClassifierId;
 
     pub enum Handshake {
@@ -60,13 +61,13 @@ pub mod flow {
     impl Flow<ClassifierId> for TcpFlow {
         type Analyzer = TcpAnalyzer;
 
-        fn create(_analyzer: &TcpAnalyzer) -> Self {
+        fn create(_analyzer: &TcpAnalyzer, _direction: Direction) -> Self {
             TcpFlow {
                 handshake: Handshake::Send,
             }
         }
 
-        fn update(&mut self, _analyzer: &TcpAnalyzer) {
+        fn update(&mut self, _analyzer: &TcpAnalyzer, _direction: Direction) {
             //TODO
         }
     }

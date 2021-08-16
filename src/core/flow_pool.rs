@@ -27,7 +27,7 @@ impl<I: ClassifierId> FlowPool<I> {
         self.current_flow_signature.clear();
     }
 
-    pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, _direction: Direction) {
+    pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
         if analyzer.update_flow_signature(&mut self.current_flow_signature) {
             //IDEA: The vec alloc could be avoided using an array in FlowPool?
             let entry =
@@ -46,12 +46,12 @@ impl<I: ClassifierId> FlowPool<I> {
 
             match entry {
                 Entry::Vacant(entry) => {
-                    let shared_flow = analyzer.create_flow();
+                    let shared_flow = analyzer.create_flow(direction);
                     entry.insert(shared_flow.clone());
                     self.flow_cache[analyzer.id().inner()] = Some(shared_flow);
                 }
                 Entry::Occupied(mut entry) => {
-                    entry.get_mut().borrow_mut().update(analyzer);
+                    entry.get_mut().borrow_mut().update(analyzer, direction);
                 }
             }
         } else {
