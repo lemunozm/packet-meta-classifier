@@ -4,7 +4,7 @@ use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::handler::expression_value::{ExpressionValueHandler, GenericExpressionValueHandler};
 
-use std::ops::Not;
+use std::ops::{BitAnd, BitOr, Not};
 
 pub(crate) enum ValidatedExpr {
     Classified,
@@ -21,12 +21,19 @@ impl ValidatedExpr {
     }
 }
 
-#[non_exhaustive]
 pub enum Expr<I: ClassifierId> {
+    #[non_exhaustive]
     Value(Box<dyn GenericExpressionValueHandler<I>>),
+    #[non_exhaustive]
     Not(Box<Expr<I>>),
-    And(Vec<Expr<I>>),
-    Or(Vec<Expr<I>>),
+    #[non_exhaustive]
+    All(Vec<Expr<I>>),
+    #[non_exhaustive]
+    Any(Vec<Expr<I>>),
+    #[non_exhaustive]
+    And(Box<(Expr<I>, Expr<I>)>),
+    #[non_exhaustive]
+    Or(Box<(Expr<I>, Expr<I>)>),
 }
 
 impl<I: ClassifierId> Expr<I> {
@@ -39,12 +46,12 @@ impl<I: ClassifierId> Expr<I> {
         Expr::Value(Box::new(ExpressionValueHandler::new(value)))
     }
 
-    pub fn and(expressions: Vec<Expr<I>>) -> Expr<I> {
-        Expr::And(expressions)
+    pub fn all(expressions: Vec<Expr<I>>) -> Expr<I> {
+        Expr::All(expressions)
     }
 
-    pub fn or(expressions: Vec<Expr<I>>) -> Expr<I> {
-        Expr::Or(expressions)
+    pub fn any(expressions: Vec<Expr<I>>) -> Expr<I> {
+        Expr::Any(expressions)
     }
 
     pub(crate) fn check(
@@ -60,7 +67,7 @@ impl<I: ClassifierId> Expr<I> {
                 ValidatedExpr::NotClassified => ValidatedExpr::Classified,
                 ValidatedExpr::Abort => ValidatedExpr::Abort,
             },
-            Expr::And(rules) => {
+            Expr::All(rules) => {
                 for rule in rules.iter() {
                     match rule.check(value_validator) {
                         ValidatedExpr::Classified => continue,
@@ -70,7 +77,7 @@ impl<I: ClassifierId> Expr<I> {
                 }
                 ValidatedExpr::Classified
             }
-            Expr::Or(rules) => {
+            Expr::Any(rules) => {
                 for rule in rules.iter() {
                     match rule.check(value_validator) {
                         ValidatedExpr::Classified => return ValidatedExpr::Classified,
@@ -80,6 +87,16 @@ impl<I: ClassifierId> Expr<I> {
                 }
                 ValidatedExpr::NotClassified
             }
+            Expr::And(pair) => match pair.0.check(value_validator) {
+                ValidatedExpr::Classified => pair.1.check(value_validator),
+                ValidatedExpr::NotClassified => ValidatedExpr::NotClassified,
+                ValidatedExpr::Abort => ValidatedExpr::Abort,
+            },
+            Expr::Or(pair) => match pair.0.check(value_validator) {
+                ValidatedExpr::Classified => ValidatedExpr::Classified,
+                ValidatedExpr::NotClassified => pair.1.check(value_validator),
+                ValidatedExpr::Abort => ValidatedExpr::Abort,
+            },
         }
     }
 }
@@ -88,5 +105,19 @@ impl<I: ClassifierId> Not for Expr<I> {
     type Output = Expr<I>;
     fn not(self) -> Expr<I> {
         Expr::Not(Box::new(self))
+    }
+}
+
+impl<I: ClassifierId> BitAnd for Expr<I> {
+    type Output = Expr<I>;
+    fn bitand(self, expression: Expr<I>) -> Expr<I> {
+        Expr::And(Box::new((self, expression)))
+    }
+}
+
+impl<I: ClassifierId> BitOr for Expr<I> {
+    type Output = Expr<I>;
+    fn bitor(self, expression: Expr<I>) -> Expr<I> {
+        Expr::Or(Box::new((self, expression)))
     }
 }
