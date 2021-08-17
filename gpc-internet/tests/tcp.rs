@@ -20,7 +20,7 @@ fn tcp_ports() {
             ("SourcePort80", Expr::value(TcpSourcePort(80))),
         ],
         captures: vec![CaptureData {
-            capture: IpCapture::open("captures/ipv4-http-get.pcap"),
+            capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![
