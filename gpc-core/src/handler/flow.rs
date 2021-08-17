@@ -3,6 +3,11 @@ use crate::base::id::ClassifierId;
 use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 use crate::packet::Direction;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
+pub type SharedGenericFlowHandler<I> = Rc<RefCell<dyn GenericFlowHandler<I>>>;
+
 pub trait GenericFlowHandler<I: ClassifierId> {
     fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction);
     fn as_any(&self) -> &dyn std::any::Any;

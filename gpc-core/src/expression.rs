@@ -4,6 +4,8 @@ use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::handler::expression_value::{ExpressionValueHandler, GenericExpressionValueHandler};
 
+use std::ops::Not;
+
 pub(crate) enum ValidatedExpr {
     Classified,
     NotClassified,
@@ -35,10 +37,6 @@ impl<I: ClassifierId> Expr<I> {
         F: Flow<I, Analyzer = A>,
     {
         Expr::Value(Box::new(ExpressionValueHandler::new(value)))
-    }
-
-    pub fn not(rule: Expr<I>) -> Expr<I> {
-        Expr::Not(Box::new(rule))
     }
 
     pub fn and(expressions: Vec<Expr<I>>) -> Expr<I> {
@@ -83,5 +81,12 @@ impl<I: ClassifierId> Expr<I> {
                 ValidatedExpr::NotClassified
             }
         }
+    }
+}
+
+impl<I: ClassifierId> Not for Expr<I> {
+    type Output = Expr<I>;
+    fn not(self) -> Expr<I> {
+        Expr::Not(Box::new(self))
     }
 }

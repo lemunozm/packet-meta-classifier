@@ -13,14 +13,14 @@ pub struct Injector<T> {
 }
 
 impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
-    pub fn new(expected_classification: &Vec<T>) -> Self {
+    pub fn new(expected_classification: &[T]) -> Self {
         Self {
             total_results: InjectionResult::default(),
-            expected_classification: expected_classification.clone(),
+            expected_classification: expected_classification.to_owned(),
         }
     }
 
-    pub fn inject_packets<'a, C, I: ClassifierId>(
+    pub fn inject_packets<C, I: ClassifierId>(
         &mut self,
         classifier: &mut Classifier<C, T, I>,
         capture_section: CaptureIterator,
@@ -88,7 +88,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
             } else {
                 format!(
                     "{}, expected {}",
-                    format!("ERR").bright_red(),
+                    "ERR".bright_red(),
                     format!("{}", expected_rule_tag).bright_blue(),
                 )
             },
@@ -112,6 +112,10 @@ impl<T: Copy> InjectionResult<T> {
 
     pub fn len(&self) -> usize {
         self.classifications.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn tags(&self) -> Vec<T> {

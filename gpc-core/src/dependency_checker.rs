@@ -33,7 +33,7 @@ impl<I: ClassifierId> DependencyChecker<I> {
         Self { dependencies }
     }
 
-    fn dependency_tree_creation<'a>(dependencies: &mut Vec<BTreeSet<I>>, id: I, looking_id: I) {
+    fn dependency_tree_creation(dependencies: &mut Vec<BTreeSet<I>>, id: I, looking_id: I) {
         for selected_id in 0..dependencies.len() {
             let classifier_ids = &mut dependencies[selected_id];
             if selected_id != looking_id.into() && classifier_ids.contains(&looking_id) {

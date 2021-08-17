@@ -1,15 +1,14 @@
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::GenericAnalyzerHandler;
-use crate::handler::flow::GenericFlowHandler;
+use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
 use crate::packet::Direction;
 
-use std::cell::{Ref, RefCell};
+use std::cell::Ref;
 use std::collections::{hash_map::Entry, HashMap};
-use std::rc::Rc;
 
 pub struct FlowPool<I> {
-    flows: Vec<HashMap<Vec<u8>, Rc<RefCell<dyn GenericFlowHandler<I>>>>>,
-    flow_cache: Vec<Option<Rc<RefCell<dyn GenericFlowHandler<I>>>>>,
+    flows: Vec<HashMap<Vec<u8>, SharedGenericFlowHandler<I>>>,
+    flow_cache: Vec<Option<SharedGenericFlowHandler<I>>>,
     current_flow_signature: Vec<u8>,
 }
 

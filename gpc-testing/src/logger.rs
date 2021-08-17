@@ -26,7 +26,7 @@ lazy_static::lazy_static! {
 }
 
 pub fn init() {
-    println!(""); //flush everything before
+    println!(); //flush everything before
     INIT.call_once(|| configure_logger().unwrap());
 }
 
@@ -66,7 +66,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                             number.to_string().bright_yellow()
                         )
                     ))
-                    .unwrap_or(String::new()),
+                    .unwrap_or_default(),
                 w = if PACKET_PROPS.read().unwrap().is_some() {
                     // The console color adds extra characters that must be contemplated
                     format!("{}", format!("").white()).len() * 2 + 7
@@ -80,14 +80,14 @@ fn configure_logger() -> Result<(), fern::InitError> {
             let target = record
                 .target()
                 .strip_prefix("packet_classifier::")
-                .map(|x| String::from(x))
-                .unwrap_or(
+                .map(String::from)
+                .unwrap_or_else(|| {
                     record
                         .target()
                         .rsplit_once("::")
                         .map(|(_, module)| String::from(module))
-                        .unwrap_or(String::new()),
-                );
+                        .unwrap_or_default()
+                });
 
             out.finish(format_args!(
                 "{} {} {:<7} [{}]{} {}",

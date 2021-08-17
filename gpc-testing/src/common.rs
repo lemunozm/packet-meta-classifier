@@ -36,10 +36,12 @@ where
             .rules
             .iter()
             .find(|(tag, _)| tag == rule_tag)
-            .expect(&format!(
-                "The expected classification rule '{}' must be a defined rule",
-                rule_tag,
-            ));
+            .unwrap_or_else(|| {
+                panic!(
+                    "The expected classification rule '{}' must be a defined rule",
+                    rule_tag,
+                )
+            });
     }
 
     let mut classifier = Classifier::new(test_config.config, test_config.rules, test_config.loader);

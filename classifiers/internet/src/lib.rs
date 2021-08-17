@@ -41,7 +41,7 @@ impl ClassifierIdTrait for ClassifierId {
 }
 
 pub fn loader() -> AnalyzerLoader<ClassifierId> {
-    AnalyzerLoader::new()
+    AnalyzerLoader::default()
         .load(ip::analyzer::IpAnalyzer::default())
         .load(tcp::analyzer::TcpAnalyzer::default())
         .load(http::analyzer::HttpAnalyzer::default())

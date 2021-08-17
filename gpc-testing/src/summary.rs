@@ -31,10 +31,7 @@ pub struct Summary<T> {
 }
 
 impl<T: fmt::Display + Eq + Copy + Default> Summary<T> {
-    pub fn new(
-        mut rule_tags: Vec<T>,
-        classifications: &Vec<ClassificationResult<T>>,
-    ) -> Summary<T> {
+    pub fn new(mut rule_tags: Vec<T>, classifications: &[ClassificationResult<T>]) -> Summary<T> {
         rule_tags.push(T::default());
 
         let results = rule_tags
@@ -46,7 +43,7 @@ impl<T: fmt::Display + Eq + Copy + Default> Summary<T> {
                         rule_result += RuleResult::from_packet(classification.bytes);
                     }
                 }
-                (rule_tag.clone(), rule_result)
+                (*rule_tag, rule_result)
             })
             .collect::<Vec<(T, RuleResult)>>();
 
@@ -74,12 +71,12 @@ impl<T: fmt::Display + Default> fmt::Display for Summary<T> {
             .max()
             .unwrap_or(0);
 
-        write!(f, "Summary:\n")?;
-        write!(f, "{:<4}Processed {} packets:\n", "", self.total_packets)?;
+        writeln!(f, "Summary:")?;
+        writeln!(f, "{:<4}Processed {} packets:", "", self.total_packets)?;
         for (tag, rule_result) in &self.results {
-            write!(
+            writeln!(
                 f,
-                "{:<4} · Rule: {:<tag_width$} -> {:<packet_width$} packets, {:>4} bytes\n",
+                "{:<4} · Rule: {:<tag_width$} -> {:<packet_width$} packets, {:>4} bytes",
                 "",
                 format!("{}", tag).bright_blue(),
                 format!("{}", rule_result.packets).bright_yellow(),

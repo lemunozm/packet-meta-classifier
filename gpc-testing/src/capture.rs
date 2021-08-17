@@ -8,6 +8,11 @@ pub struct CapturedPacket {
 pub trait Capture {
     fn section(&self, first: usize, last: usize) -> CaptureIterator;
     fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn iter(&self) -> CaptureIterator {
         self.section(1, self.len())
     }

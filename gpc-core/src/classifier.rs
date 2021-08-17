@@ -101,7 +101,7 @@ where
                     ClassificationStatus::CanClassify => {
                         let analyzer = state.analyzer_cache.get(expr_value.classifier_id());
                         let flow = state.flow_pool.get_cached(expr_value.classifier_id());
-                        let answer = expr_value.check(analyzer, flow.as_ref().map(|flow| &**flow));
+                        let answer = expr_value.check(analyzer, flow.as_deref());
 
                         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
                         ValidatedExpr::from_bool(answer)

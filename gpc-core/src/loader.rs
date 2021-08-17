@@ -7,13 +7,15 @@ pub struct AnalyzerLoader<I: ClassifierId> {
     analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,
 }
 
-impl<I: ClassifierId> AnalyzerLoader<I> {
-    pub fn new() -> Self {
+impl<I: ClassifierId> Default for AnalyzerLoader<I> {
+    fn default() -> Self {
         Self {
-            analyzers: Vec::new(),
+            analyzers: Vec::default(),
         }
     }
+}
 
+impl<I: ClassifierId> AnalyzerLoader<I> {
     pub fn load<A, F>(mut self, analyzer: A) -> Self
     where
         A: Analyzer<I, Flow = F> + 'static,

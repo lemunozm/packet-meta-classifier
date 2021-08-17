@@ -44,8 +44,8 @@ pub mod analyzer {
                 Direction::Downlink => (self.dest_port, self.source_port),
             };
 
-            signature.write(&first.to_le_bytes()).unwrap();
-            signature.write(&second.to_le_bytes()).unwrap();
+            signature.write_all(&first.to_le_bytes()).unwrap();
+            signature.write_all(&second.to_le_bytes()).unwrap();
             true
         }
     }

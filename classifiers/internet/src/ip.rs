@@ -84,16 +84,16 @@ pub mod analyzer {
                         Direction::Uplink => (v4.source.octets(), v4.dest.octets()),
                         Direction::Downlink => (v4.dest.octets(), v4.source.octets()),
                     };
-                    signature.write(&first).unwrap();
-                    signature.write(&second).unwrap();
+                    signature.write_all(&first).unwrap();
+                    signature.write_all(&second).unwrap();
                 }
                 Version::V6(v6) => {
                     let (first, second) = match direction {
                         Direction::Uplink => (v6.source.octets(), v6.dest.octets()),
                         Direction::Downlink => (v6.dest.octets(), v6.source.octets()),
                     };
-                    signature.write(&first).unwrap();
-                    signature.write(&second).unwrap();
+                    signature.write_all(&first).unwrap();
+                    signature.write_all(&second).unwrap();
                 }
             };
 
