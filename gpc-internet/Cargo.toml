@@ -14,3 +14,4 @@ strum = { version = "0.21.0", features = ["derive"]}
 
 [dev-dependencies]
 gpc-testing = { path = "../gpc-testing" }
+pcap-file = "1.1.0"

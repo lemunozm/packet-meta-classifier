@@ -1,24 +1,26 @@
-use packet_classifier::core::expression::Expr;
+use gpc_core::expression::Expr;
 
-use packet_classifier::internet::{
+use gpc_internet::{
     self,
     tcp::expression::{TcpDestPort, TcpSourcePort},
 };
 
+use gpc_testing::common::{self, CaptureData, TestConfig};
+
 mod util;
-use util::{CaptureData, TestConfig};
+use util::capture::IpCapture;
 
 #[test]
 fn tcp_ports() {
-    util::run_classification_test(TestConfig {
-        loader: internet::loader(),
+    common::run_classification_test(TestConfig {
+        loader: gpc_internet::loader(),
         config: (),
         rules: vec![
             ("DestPort80", Expr::value(TcpDestPort(80))),
             ("SourcePort80", Expr::value(TcpSourcePort(80))),
         ],
         captures: vec![CaptureData {
-            name: "captures/ipv4-http-get.pcap",
+            capture: IpCapture::open("captures/ipv4-http-get.pcap"),
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![

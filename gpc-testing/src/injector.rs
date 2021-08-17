@@ -20,7 +20,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         }
     }
 
-    pub fn inject_packets<C, I: ClassifierId>(
+    pub fn inject_packets<'a, C, I: ClassifierId>(
         &mut self,
         classifier: &mut Classifier<C, T, I>,
         capture_section: CaptureIterator,

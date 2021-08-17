@@ -109,6 +109,7 @@ dependencies = [
  "log",
  "num-derive",
  "num-traits",
+ "pcap-file",
  "strum",
 ]
 
@@ -116,14 +117,12 @@ dependencies = [
 name = "gpc-testing"
 version = "0.1.0"
 dependencies = [
- "arrayref",
  "chrono",
  "colored 2.0.0",
  "fern",
  "gpc-core",
  "lazy_static",
  "log",
- "pcap-file",
 ]
 
 [[package]]

@@ -10,23 +10,24 @@ use crate::summary::Summary;
 
 use std::fmt::{self};
 
-pub struct CaptureData {
-    pub name: &'static str,
+pub struct CaptureData<R: Capture> {
+    pub capture: R,
     pub sections: Vec<(usize, usize)>,
 }
 
-pub struct TestConfig<C, T, I: ClassifierId> {
+pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
     pub loader: AnalyzerLoader<I>,
     pub config: C,
     pub rules: Vec<(T, Expr<I>)>,
-    pub captures: Vec<CaptureData>,
+    pub captures: Vec<CaptureData<R>>,
     pub expected_classification: Vec<T>,
 }
 
-pub fn run_classification_test<C, T, I>(test_config: TestConfig<C, T, I>)
+pub fn run_classification_test<C, T, I, R>(test_config: TestConfig<C, T, I, R>)
 where
     T: fmt::Debug + fmt::Display + Default + Copy + Eq,
     I: ClassifierId,
+    R: Capture,
 {
     logger::init();
 
@@ -45,9 +46,8 @@ where
     let mut injector = Injector::new(&test_config.expected_classification);
 
     for capture_data in test_config.captures {
-        let capture = Capture::open(capture_data.name);
         for (first, last) in &capture_data.sections {
-            injector.inject_packets(&mut classifier, capture.section(*first, *last));
+            injector.inject_packets(&mut classifier, capture_data.capture.section(*first, *last));
         }
     }
 

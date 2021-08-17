@@ -37,13 +37,13 @@ fn configure_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .filter(|_metadata| {
             let classifier = if ENABLED_CLASSIFIER_LOGS {
-                _metadata.target().starts_with("packet_classifier")
+                !_metadata.target().contains("gpc_testing")
             } else {
                 false
             };
 
             let testing = if ENABLED_TESTING_LOGS {
-                !_metadata.target().contains("packet_classifier")
+                _metadata.target().starts_with("gpc_testing")
             } else {
                 false
             };
@@ -61,7 +61,11 @@ fn configure_logger() -> Result<(), fern::InitError> {
                         "[{}]",
                         format!(
                             "{} {}",
-                            if uplink { "->".yellow() } else { "<-".blue() },
+                            if uplink {
+                                "->".yellow()
+                            } else {
+                                "<-".bright_blue()
+                            },
                             number.to_string().bright_yellow()
                         )
                     ))
@@ -74,7 +78,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 }
             );
 
-            let from_classifier = record.target().contains("packet_classifier");
+            let from_classifier = !record.target().contains("gpc_testing");
 
             let target = record
                 .target()
