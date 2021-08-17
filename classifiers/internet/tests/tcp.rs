@@ -1,19 +1,18 @@
-use gpc_core::expression::Expr;
+mod util;
+use util::capture::IpCapture;
 
-use gpc_internet::{
+use internet::{
     self,
     tcp::expression::{TcpDestPort, TcpSourcePort},
 };
 
+use gpc_core::expression::Expr;
 use gpc_testing::common::{self, CaptureData, TestConfig};
-
-mod util;
-use util::capture::IpCapture;
 
 #[test]
 fn tcp_ports() {
     common::run_classification_test(TestConfig {
-        loader: gpc_internet::loader(),
+        loader: internet::loader(),
         config: (),
         rules: vec![
             ("DestPort80", Expr::value(TcpDestPort(80))),

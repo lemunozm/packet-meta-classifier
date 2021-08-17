@@ -100,20 +100,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpc-internet"
-version = "0.1.0"
-dependencies = [
- "arrayref",
- "gpc-core",
- "gpc-testing",
- "log",
- "num-derive",
- "num-traits",
- "pcap-file",
- "strum",
-]
-
-[[package]]
 name = "gpc-testing"
 version = "0.1.0"
 dependencies = [
@@ -141,6 +127,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "internet"
+version = "0.1.0"
+dependencies = [
+ "arrayref",
+ "gpc-core",
+ "gpc-testing",
+ "log",
+ "num-derive",
+ "num-traits",
+ "pcap-file",
+ "strum",
 ]
 
 [[package]]

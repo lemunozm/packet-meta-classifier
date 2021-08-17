@@ -25,9 +25,14 @@ pub mod analyzer {
 
             let header_len = (((packet.data[12] & 0xF0) as usize) >> 4) << 2;
 
-            if self.source_port == 80 || self.source_port == 8080 {
-                //AnalyzerStatus::Next(AnalyzerId::Http, data[header_len..])
-                AnalyzerStatus::Finished(header_len)
+            let is_http = match packet.direction {
+                Direction::Uplink if (self.dest_port == 80 || self.dest_port == 8080) => true,
+                Direction::Downlink if (self.source_port == 80 || self.source_port == 8080) => true,
+                _ => false,
+            };
+
+            if is_http {
+                AnalyzerStatus::Next(ClassifierId::Http, header_len)
             } else {
                 AnalyzerStatus::Finished(header_len)
             }

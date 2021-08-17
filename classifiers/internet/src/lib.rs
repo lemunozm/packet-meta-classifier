@@ -44,4 +44,5 @@ pub fn loader() -> AnalyzerLoader<ClassifierId> {
     AnalyzerLoader::new()
         .load(ip::analyzer::IpAnalyzer::default())
         .load(tcp::analyzer::TcpAnalyzer::default())
+        .load(http::analyzer::HttpAnalyzer::default())
 }
