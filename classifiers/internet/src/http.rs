@@ -69,7 +69,7 @@ pub mod expression {
         type Analyzer = HttpAnalyzer;
 
         fn description() -> &'static str {
-            "Valid if the packet is TCP"
+            "Valid if the packet is HTTP"
         }
 
         fn check(&self, _analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {

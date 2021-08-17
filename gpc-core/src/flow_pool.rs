@@ -29,7 +29,7 @@ impl<I: ClassifierId> FlowPool<I> {
 
     pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
         if analyzer.update_flow_signature(&mut self.current_flow_signature, direction) {
-            //IDEA: The vec alloc could be avoided using an array in FlowPool?
+            //TODO: PERF: The vec alloc could be avoided using an array in FlowPool?
             let entry =
                 self.flows[analyzer.id().inner()].entry(self.current_flow_signature.clone());
 

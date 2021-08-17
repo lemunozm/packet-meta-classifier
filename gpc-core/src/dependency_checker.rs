@@ -10,6 +10,7 @@ pub enum DependencyStatus {
 
 pub struct DependencyChecker<I: ClassifierId> {
     dependencies: Vec<BTreeSet<I>>,
+    //TODO: PERF: make it as a table.
 }
 
 impl<I: ClassifierId> DependencyChecker<I> {
@@ -38,7 +39,6 @@ impl<I: ClassifierId> DependencyChecker<I> {
             if selected_id != looking_id.into() && classifier_ids.contains(&looking_id) {
                 classifier_ids.insert(id);
                 Self::dependency_tree_creation(dependencies, id, selected_id.into());
-                break;
             }
         }
     }

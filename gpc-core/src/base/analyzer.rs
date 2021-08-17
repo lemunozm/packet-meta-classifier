@@ -12,6 +12,7 @@ pub enum AnalyzerStatus<I: ClassifierId> {
 }
 
 pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
+    //TODO: PERF: Use 'a lifetime that be less than the packet data.
     type Flow: Flow<I>;
     type PrevAnalyzer: Analyzer<I>;
     const ID: I;

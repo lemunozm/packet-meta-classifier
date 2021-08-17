@@ -26,6 +26,7 @@ lazy_static::lazy_static! {
 }
 
 pub fn init() {
+    println!(""); //flush everything before
     INIT.call_once(|| configure_logger().unwrap());
 }
 
@@ -61,11 +62,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                         "[{}]",
                         format!(
                             "{} {}",
-                            if uplink {
-                                "->".yellow()
-                            } else {
-                                "<-".bright_blue()
-                            },
+                            if uplink { "->".yellow() } else { "<-".cyan() },
                             number.to_string().bright_yellow()
                         )
                     ))
@@ -102,7 +99,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                         spaced = if ENABLED_CLASSIFIER_LOGS { 10 } else { 0 }
                     )
                 } else {
-                    format!("{}", "CLASSIFIER".yellow())
+                    format!("{}", "CLASSIFIER".blue())
                 },
                 packet_number,
                 target,

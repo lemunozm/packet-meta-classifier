@@ -25,17 +25,17 @@ pub mod analyzer {
 
             let header_len = (((packet.data[12] & 0xF0) as usize) >> 4) << 2;
 
-            let is_http = match packet.direction {
-                Direction::Uplink if (self.dest_port == 80 || self.dest_port == 8080) => true,
-                Direction::Downlink if (self.source_port == 80 || self.source_port == 8080) => true,
-                _ => false,
+            let server_port = match packet.direction {
+                Direction::Uplink => self.dest_port,
+                Direction::Downlink => self.source_port,
             };
 
-            if is_http {
-                AnalyzerStatus::Next(ClassifierId::Http, header_len)
-            } else {
-                AnalyzerStatus::Finished(header_len)
+            if packet.data.len() - header_len > 0 {
+                if let Some(next_protocol) = Self::expected_l7_protocol(server_port) {
+                    return AnalyzerStatus::Next(next_protocol, header_len);
+                }
             }
+            AnalyzerStatus::Finished(header_len)
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
@@ -47,6 +47,17 @@ pub mod analyzer {
             signature.write(&first.to_le_bytes()).unwrap();
             signature.write(&second.to_le_bytes()).unwrap();
             true
+        }
+    }
+
+    impl TcpAnalyzer {
+        fn expected_l7_protocol(server_port: u16) -> Option<ClassifierId> {
+            let id = match server_port {
+                80 => ClassifierId::Http,
+                8080 => ClassifierId::Http,
+                _ => return None,
+            };
+            Some(id)
         }
     }
 }
