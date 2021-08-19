@@ -179,20 +179,17 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
 
                     self.flow_pool.update(analyzer, self.packet.direction);
 
-                    match analyzer_status {
-                        AnalyzerStatus::Finished(_) => {
-                            log::trace!("Analysis finished");
-                            self.finished_analysis = true;
-                            break match self.next_classifier_id == classifier_id {
-                                true => ClassificationStatus::CanClassify,
-                                false => ClassificationStatus::NotClassify,
-                            };
-                        }
-                        AnalyzerStatus::Next(classifier_id, bytes_parsed) => {
-                            self.packet.data = &self.packet.data[bytes_parsed..];
-                            self.next_classifier_id = classifier_id;
-                        }
-                        AnalyzerStatus::Abort => unreachable!(),
+                    let (next_classifier_id, bytes_parsed) = analyzer_status.next();
+                    if next_classifier_id == I::NONE {
+                        log::trace!("Analysis finished");
+                        self.finished_analysis = true;
+                        break match self.next_classifier_id == classifier_id {
+                            true => ClassificationStatus::CanClassify,
+                            false => ClassificationStatus::NotClassify,
+                        };
+                    } else {
+                        self.packet.data = &self.packet.data[bytes_parsed..];
+                        self.next_classifier_id = next_classifier_id;
                     }
                 }
                 DependencyStatus::Predecessor => break ClassificationStatus::CanClassify,

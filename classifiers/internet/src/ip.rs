@@ -71,7 +71,7 @@ pub mod analyzer {
             let next_classifier = match self.protocol {
                 6 => ClassifierId::Tcp,
                 //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
-                _ => return AnalyzerStatus::Finished(header_len),
+                _ => ClassifierId::None,
             };
 
             AnalyzerStatus::Next(next_classifier, header_len)

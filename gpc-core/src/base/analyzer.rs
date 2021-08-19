@@ -7,8 +7,16 @@ use std::io::Write;
 
 pub enum AnalyzerStatus<I: ClassifierId> {
     Next(I, usize),
-    Finished(usize),
     Abort,
+}
+
+impl<I: ClassifierId> AnalyzerStatus<I> {
+    pub fn next(self) -> (I, usize) {
+        match self {
+            Self::Next(classifier_id, bytes_parsed) => (classifier_id, bytes_parsed),
+            Self::Abort => panic!("Expected Next variant"),
+        }
+    }
 }
 
 pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {

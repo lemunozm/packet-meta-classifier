@@ -16,7 +16,7 @@ pub mod analyzer {
         type Flow = HttpFlow;
 
         fn analyze(&mut self, _packet: &Packet) -> AnalyzerStatus<ClassifierId> {
-            AnalyzerStatus::Finished(0)
+            AnalyzerStatus::Next(ClassifierId::None, 0)
         }
 
         fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {

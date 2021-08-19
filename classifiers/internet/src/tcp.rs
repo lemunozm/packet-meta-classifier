@@ -29,12 +29,11 @@ pub mod analyzer {
                 Direction::Downlink => self.source_port,
             };
 
-            if packet.data.len() - header_len > 0 {
-                if let Some(next_protocol) = Self::expected_l7_protocol(server_port) {
-                    return AnalyzerStatus::Next(next_protocol, header_len);
-                }
-            }
-            AnalyzerStatus::Finished(header_len)
+            let next_protocol = match packet.data.len() - header_len > 0 {
+                true => Self::expected_l7_protocol(server_port),
+                false => ClassifierId::None,
+            };
+            AnalyzerStatus::Next(next_protocol, header_len)
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
@@ -50,13 +49,12 @@ pub mod analyzer {
     }
 
     impl TcpAnalyzer {
-        fn expected_l7_protocol(server_port: u16) -> Option<ClassifierId> {
-            let id = match server_port {
+        fn expected_l7_protocol(server_port: u16) -> ClassifierId {
+            match server_port {
                 80 => ClassifierId::Http,
                 8080 => ClassifierId::Http,
-                _ => return None,
-            };
-            Some(id)
+                _ => ClassifierId::None,
+            }
         }
     }
 }
