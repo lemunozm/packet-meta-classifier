@@ -3,6 +3,10 @@ use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 
+pub trait AnalyzerBuilder<I: ClassifierId>: Sized {
+    type Analyzer: Analyzer<I>;
+}
+
 pub struct AnalyzerLoader<I: ClassifierId> {
     analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,
 }
