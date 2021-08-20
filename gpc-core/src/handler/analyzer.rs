@@ -38,7 +38,7 @@ impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
     }
 }
 
-struct AnalyzerHandler<A> {
+pub struct AnalyzerHandler<A> {
     analyzer: A,
 }
 

@@ -11,7 +11,7 @@ where
 {
     pub analyzer: A,
     pub next_id: I,
-    pub bytes: usize,
+    pub bytes: usize, //TODO: rename: bytes_parsed
 }
 
 pub trait Analyzer<'a, I: ClassifierId>: Sized {
