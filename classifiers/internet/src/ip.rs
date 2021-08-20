@@ -1,7 +1,7 @@
 pub mod analyzer {
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus, NoAnalyzer};
+    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
     use gpc_core::base::flow::NoFlow;
     use gpc_core::packet::{Direction, Packet};
 
@@ -41,9 +41,9 @@ pub mod analyzer {
     }
 
     impl Analyzer<ClassifierId> for IpAnalyzer {
-        type PrevAnalyzer = NoAnalyzer;
-        type Flow = NoFlow<Self>;
         const ID: ClassifierId = ClassifierId::Ip;
+        const PREV_ID: ClassifierId = ClassifierId::None;
+        type Flow = NoFlow<Self>;
 
         fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;

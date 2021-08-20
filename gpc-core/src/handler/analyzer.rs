@@ -45,7 +45,7 @@ where
     }
 
     fn prev_id(&self) -> I {
-        A::PrevAnalyzer::ID
+        A::PREV_ID
     }
 
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I> {

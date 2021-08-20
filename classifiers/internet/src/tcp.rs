@@ -1,6 +1,5 @@
 pub mod analyzer {
     use super::flow::TcpFlow;
-    use crate::ip::analyzer::IpAnalyzer;
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
@@ -15,9 +14,9 @@ pub mod analyzer {
     }
 
     impl Analyzer<ClassifierId> for TcpAnalyzer {
-        type PrevAnalyzer = IpAnalyzer;
         type Flow = TcpFlow;
         const ID: ClassifierId = ClassifierId::Tcp;
+        const PREV_ID: ClassifierId = ClassifierId::Ip;
 
         fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
             self.source_port = u16::from_be_bytes(*array_ref![packet.data, 0, 2]);

@@ -13,9 +13,9 @@ pub enum AnalyzerStatus<I: ClassifierId> {
 
 pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
     //TODO: PERF: Use 'a lifetime that be less than the packet data.
-    type Flow: Flow<I>;
-    type PrevAnalyzer: Analyzer<I>;
     const ID: I;
+    const PREV_ID: I;
+    type Flow: Flow<I>;
 
     fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
@@ -24,9 +24,9 @@ pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
 #[derive(Default)]
 pub struct NoAnalyzer;
 impl<I: ClassifierId> Analyzer<I> for NoAnalyzer {
-    type Flow = NoFlow<NoAnalyzer>;
-    type PrevAnalyzer = Self;
     const ID: I = I::NONE;
+    const PREV_ID: I = I::NONE;
+    type Flow = NoFlow<NoAnalyzer>;
 
     fn analyze<'a>(&mut self, _packet: &Packet) -> AnalyzerStatus<I> {
         unreachable!()

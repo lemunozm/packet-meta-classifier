@@ -1,6 +1,5 @@
 pub mod analyzer {
     use super::flow::HttpFlow;
-    use crate::tcp::analyzer::TcpAnalyzer;
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
@@ -12,9 +11,9 @@ pub mod analyzer {
     pub struct HttpAnalyzer {}
 
     impl Analyzer<ClassifierId> for HttpAnalyzer {
-        type PrevAnalyzer = TcpAnalyzer;
-        type Flow = HttpFlow;
         const ID: ClassifierId = ClassifierId::Http;
+        const PREV_ID: ClassifierId = ClassifierId::Tcp;
+        type Flow = HttpFlow;
 
         fn analyze(&mut self, _packet: &Packet) -> AnalyzerStatus<ClassifierId> {
             AnalyzerStatus::Finished(0)
