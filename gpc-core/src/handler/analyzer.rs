@@ -1,43 +1,51 @@
 use crate::handler::flow::{FlowHandler, SharedGenericFlowHandler};
 
-use crate::base::analyzer::{Analyzer, AnalyzerStatus};
+use crate::base::analyzer::{AnalysisResult, Analyzer};
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
 
-use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub trait GenericAnalyzerHandler<I: ClassifierId> {
+pub trait GenericAnalyzerHandler<'a, I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
-    fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
-    fn as_any(&self) -> &dyn Any;
-    fn reset(&mut self);
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
     fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler<I>;
+    fn analyze(packet: &'a Packet) -> Option<AnalysisResult<Self, I>>
+    where
+        Self: Sized;
 }
 
-pub struct AnalyzerHandler<A> {
+impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
+    pub fn inner_ref<B: Analyzer<'a, I>>(&self) -> &B {
+        if self.id() == B::ID {
+            let handler = unsafe {
+                // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
+                // they are the same object.
+                &*(&*self as *const dyn GenericAnalyzerHandler<'a, I> as *const AnalyzerHandler<B>)
+            };
+            return &handler.analyzer;
+        }
+
+        panic!(
+            "Trying to cast analyzer of type {:?} into {:?}",
+            self.id(),
+            B::ID
+        );
+    }
+}
+
+struct AnalyzerHandler<A> {
     analyzer: A,
 }
 
-impl<A> AnalyzerHandler<A> {
-    pub fn new(analyzer: A) -> Self {
-        Self { analyzer }
-    }
-
-    pub fn analyzer(&self) -> &A {
-        &self.analyzer
-    }
-}
-
-impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A>
+impl<'a, A, F, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A>
 where
-    A: Analyzer<I, Flow = F>,
-    F: Flow<I, Analyzer = A>,
+    F: Flow<I, Analyzer = A> + 'static,
+    A: for<'b> Analyzer<'b, I, Flow = F>,
     I: ClassifierId,
 {
     fn id(&self) -> I {
@@ -48,16 +56,20 @@ where
         A::PREV_ID
     }
 
-    fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I> {
-        self.analyzer.analyze(packet)
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn reset(&mut self) {
-        self.analyzer = A::default();
+    fn analyze(packet: &'a Packet) -> Option<AnalysisResult<Self, I>> {
+        A::analyze(packet).map(
+            |AnalysisResult {
+                 analyzer,
+                 next_id,
+                 bytes,
+             }| {
+                AnalysisResult {
+                    analyzer: Self { analyzer },
+                    next_id,
+                    bytes,
+                }
+            },
+        )
     }
 
     fn update_flow_signature(

@@ -2,7 +2,7 @@ use crate::base::analyzer::Analyzer;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
+use crate::handler::analyzer::GenericAnalyzerHandler;
 use crate::handler::flow::{FlowHandler, GenericFlowHandler};
 use crate::packet::Direction;
 
@@ -36,8 +36,8 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
 impl<V, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Analyzer = A>,
-    A: Analyzer<I, Flow = F>,
-    F: Flow<I, Analyzer = A>,
+    A: for<'a> Analyzer<'a, I, Flow = F>,
+    F: Flow<I, Analyzer = A> + 'static,
     I: ClassifierId,
 {
     fn check(
@@ -45,26 +45,22 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler<I>>,
     ) -> bool {
-        let analyzer = analyzer
-            .as_any()
-            .downcast_ref::<AnalyzerHandler<A>>()
-            .unwrap()
-            .analyzer();
+        let this_analyzer = analyzer.inner_ref::<F::Analyzer>();
 
         match flow {
             Some(flow) => {
-                let flow = flow
+                let this_flow = flow
                     .as_any()
                     .downcast_ref::<FlowHandler<F>>()
                     .unwrap()
                     .flow();
 
-                self.value.check(analyzer, flow)
+                self.value.check(this_analyzer, this_flow)
             }
             None => {
                 // The flow created here is always a NoFlow
                 self.value
-                    .check(analyzer, &F::create(&analyzer, Direction::Uplink))
+                    .check(this_analyzer, &F::create(&this_analyzer, Direction::Uplink))
             }
         }
     }

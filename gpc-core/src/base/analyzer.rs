@@ -5,38 +5,36 @@ use crate::packet::{Direction, Packet};
 
 use std::io::Write;
 
-pub enum AnalyzerStatus<I: ClassifierId> {
-    Next(I, usize),
-    Abort,
+pub struct AnalysisResult<A, I>
+where
+    I: ClassifierId,
+{
+    pub analyzer: A,
+    pub next_id: I,
+    pub bytes: usize,
 }
 
-impl<I: ClassifierId> AnalyzerStatus<I> {
-    pub fn next(self) -> (I, usize) {
-        match self {
-            Self::Next(classifier_id, bytes_parsed) => (classifier_id, bytes_parsed),
-            Self::Abort => panic!("Expected Next variant"),
-        }
-    }
-}
-
-pub trait Analyzer<I: ClassifierId>: Sized + Default + 'static {
-    //TODO: PERF: Use 'a lifetime that be less than the packet data.
+pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
     type Flow: Flow<I>;
 
-    fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<I>;
+    fn analyze(packet: &'a Packet) -> Option<AnalysisResult<Self, I>>;
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
+}
+
+pub trait AnalyzerBuilder<'a, I: ClassifierId>: Sized {
+    type Analyzer: Analyzer<'a, I>;
 }
 
 #[derive(Default)]
 pub struct NoAnalyzer;
-impl<I: ClassifierId> Analyzer<I> for NoAnalyzer {
+impl<'a, I: ClassifierId> Analyzer<'a, I> for NoAnalyzer {
     const ID: I = I::NONE;
     const PREV_ID: I = I::NONE;
     type Flow = NoFlow<NoAnalyzer>;
 
-    fn analyze<'a>(&mut self, _packet: &Packet) -> AnalyzerStatus<I> {
+    fn analyze(_packet: &'a Packet) -> Option<AnalysisResult<Self, I>> {
         unreachable!()
     }
 
