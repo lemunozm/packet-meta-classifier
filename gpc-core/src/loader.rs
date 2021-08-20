@@ -1,44 +1,41 @@
-use crate::base::analyzer::Analyzer;
+use crate::analyzer_cache::{AnalyzerBuilderHandler, AnalyzerCache, GenericAnalyzerBuilder};
+use crate::base::analyzer::{Analyzer, AnalyzerBuilder};
 use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 
-pub struct AnalyzerLoader<I: ClassifierId> {
-    analyzers: Vec<Box<dyn GenericAnalyzerHandler<I>>>,
+struct AnalyzerFactory<I: ClassifierId> {
+    builders: Vec<Option<Box<dyn GenericAnalyzerBuilder<I>>>>,
+    last_id: usize,
 }
 
-impl<I: ClassifierId> Default for AnalyzerLoader<I> {
+impl<I: ClassifierId> Default for AnalyzerFactory<I> {
     fn default() -> Self {
         Self {
-            analyzers: Vec::default(),
+            builders: (0..I::TOTAL).map(|_| None).collect(),
+            last_id: 0,
         }
     }
 }
 
-impl<I: ClassifierId> AnalyzerLoader<I> {
-    pub fn load<A, F>(mut self, analyzer: A) -> Self
+impl<I: ClassifierId> AnalyzerFactory<I> {
+    fn builder<B, A, F>(mut self) -> Self
     where
-        A: Analyzer<I, Flow = F> + 'static,
+        B: for<'b> AnalyzerBuilder<'b, I, Analyzer = A> + 'static,
+        A: for<'b> Analyzer<'b, I, Flow = F>,
         F: Flow<I, Analyzer = A> + 'static,
     {
-        let last_id = self
-            .analyzers
-            .last()
-            .map(|analyzer| analyzer.id())
-            .unwrap_or(I::NONE);
-
         assert!(
-            A::ID > last_id,
+            A::ID > self.last_id.into(),
             "Expected ID with higher value than {:?}",
             A::ID
         );
 
-        self.analyzers
-            .push(Box::new(AnalyzerHandler::new(analyzer)));
+        self.builders[B::Analyzer::ID.inner()] =
+            Some(Box::new(AnalyzerBuilderHandler::<I, B>::new()));
         self
     }
 
-    pub fn list(self) -> Vec<Box<dyn GenericAnalyzerHandler<I>>> {
-        self.analyzers
+    pub(crate) fn into_cache(self) -> AnalyzerCache<I> {
+        AnalyzerCache::new(self.builders)
     }
 }

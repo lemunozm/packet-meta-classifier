@@ -6,7 +6,7 @@ use crate::packet::Packet;
 
 use std::mem::MaybeUninit;
 
-trait GenericAnalyzerBuilder<I: ClassifierId> {
+pub trait GenericAnalyzerBuilder<I: ClassifierId> {
     fn build_from_packet<'a>(
         &mut self,
         packet: &'a Packet,
@@ -16,7 +16,7 @@ trait GenericAnalyzerBuilder<I: ClassifierId> {
     unsafe fn get<'a>(&self, life_stamp: usize) -> Option<&dyn GenericAnalyzerHandler<'a, I>>;
 }
 
-struct AnalyzerBuilderHandler<'a, I, B>
+pub struct AnalyzerBuilderHandler<'a, I, B>
 where
     B: AnalyzerBuilder<'a, I>,
     I: ClassifierId,
@@ -30,7 +30,7 @@ where
     B: for<'e> AnalyzerBuilder<'e, I> + 'static,
     I: ClassifierId,
 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             analyzer_mem: std::mem::MaybeUninit::uninit(),
             life_stamp: 0,
@@ -87,43 +87,30 @@ where
     }
 }
 
-struct Cache<I: ClassifierId> {
+pub struct AnalyzerCache<I: ClassifierId> {
     builders: Vec<Option<Box<dyn GenericAnalyzerBuilder<I>>>>,
     life_stamp: usize,
 }
 
-impl<I: ClassifierId> Default for Cache<I> {
-    fn default() -> Self {
+impl<I: ClassifierId> AnalyzerCache<I> {
+    pub fn new(builders: Vec<Option<Box<dyn GenericAnalyzerBuilder<I>>>>) -> Self {
         Self {
             builders: (0..I::TOTAL).map(|_| None).collect(),
             life_stamp: 1, // Must be at least 1 to be safe.
         }
     }
-}
 
-impl<I: ClassifierId> Cache<I> {
-    fn add_builder<B, A, F>(mut self) -> Self
-    where
-        B: for<'b> AnalyzerBuilder<'b, I, Analyzer = A> + 'static,
-        A: for<'b> Analyzer<'b, I, Flow = F>,
-        F: Flow<I, Analyzer = A> + 'static,
-    {
-        self.builders[B::Analyzer::ID.inner()] =
-            Some(Box::new(AnalyzerBuilderHandler::<I, B>::new()));
-        self
-    }
-
-    fn prepare_for_data(&mut self) -> CacheFrame<I> {
+    pub fn prepare_for_data(&mut self) -> CacheFrame<I> {
         CacheFrame { cache: self }
     }
 }
 
-struct CacheFrame<'a, I: ClassifierId> {
-    cache: &'a mut Cache<I>,
+pub struct CacheFrame<'a, I: ClassifierId> {
+    cache: &'a mut AnalyzerCache<I>,
 }
 
 impl<'a, I: ClassifierId> CacheFrame<'a, I> {
-    fn build_from(
+    pub fn build_from(
         &mut self,
         id: I,
         packet: &'a Packet,
@@ -134,7 +121,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
             .build_from_packet(packet, self.cache.life_stamp)
     }
 
-    fn get(&self, id: I) -> Option<&dyn GenericAnalyzerHandler<'a, I>> {
+    pub fn get(&self, id: I) -> Option<&dyn GenericAnalyzerHandler<'a, I>> {
         unsafe {
             // SAFETY: The lifetime of the returned reference is the same as the data lifetime.
             // If the element has not be created, the inner life stamp will not match with this

@@ -39,9 +39,9 @@ pub enum Expr<I: ClassifierId> {
 impl<I: ClassifierId> Expr<I> {
     pub fn value<V, A, F>(value: V) -> Expr<I>
     where
-        V: ExpressionValue<I, Analyzer = A>,
-        A: Analyzer<I, Flow = F>,
-        F: Flow<I, Analyzer = A>,
+        V: ExpressionValue<I, Analyzer = A> + 'static,
+        A: for<'a> Analyzer<'a, I, Flow = F>,
+        F: Flow<I, Analyzer = A> + 'static,
     {
         Expr::Value(Box::new(ExpressionValueHandler::new(value)))
     }
