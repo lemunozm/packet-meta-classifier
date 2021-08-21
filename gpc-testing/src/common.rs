@@ -1,7 +1,7 @@
 use gpc_core::base::id::ClassifierId;
 use gpc_core::classifier::Classifier;
 use gpc_core::expression::Expr;
-use gpc_core::loader::AnalyzerLoader;
+use gpc_core::loader::AnalyzerFactory;
 
 use crate::capture::Capture;
 use crate::injector::Injector;
@@ -16,7 +16,7 @@ pub struct CaptureData<R: Capture> {
 }
 
 pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
-    pub loader: AnalyzerLoader<I>,
+    pub loader: AnalyzerFactory<I>,
     pub config: C,
     pub rules: Vec<(T, Expr<I>)>,
     pub captures: Vec<CaptureData<R>>,
