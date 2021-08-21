@@ -3,5 +3,5 @@
 members = [
     "gpc-core",
     "gpc-testing",
-    #"classifiers/internet",
+    "classifiers/internet",
 ]

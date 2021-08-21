@@ -5,6 +5,7 @@ use crate::packet::{Direction, Packet};
 
 use std::io::Write;
 
+//TODO: rename AnalyzerInfo?
 pub struct AnalysisResult<A, I>
 where
     I: ClassifierId,

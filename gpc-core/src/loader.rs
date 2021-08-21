@@ -21,7 +21,7 @@ impl<I: ClassifierId> Default for AnalyzerFactory<I> {
 }
 
 impl<I: ClassifierId> AnalyzerFactory<I> {
-    pub fn builder<B, A, F>(mut self) -> Self
+    pub fn builder<B, A, F>(mut self, _: B) -> Self
     where
         B: for<'b> AnalyzerBuilder<'b, I, Analyzer = A> + 'static,
         A: for<'b> Analyzer<'b, I, Flow = F>,

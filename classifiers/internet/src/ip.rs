@@ -1,7 +1,15 @@
+use crate::ClassifierId;
+use gpc_core::base::analyzer::AnalyzerBuilder;
+
+pub struct IpBuilder;
+impl<'a> AnalyzerBuilder<'a, ClassifierId> for IpBuilder {
+    type Analyzer = analyzer::IpAnalyzer;
+}
+
 pub mod analyzer {
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{AnalysisResult, Analyzer};
     use gpc_core::base::flow::NoFlow;
     use gpc_core::packet::{Direction, Packet};
 
@@ -40,12 +48,13 @@ pub mod analyzer {
         }
     }
 
-    impl Analyzer<ClassifierId> for IpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for IpAnalyzer {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
         type Flow = NoFlow<Self>;
 
-        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
+        fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, ClassifierId>> {
+            /*
             let ip_version = (packet.data[0] & 0xF0) >> 4;
 
             let header_len = match ip_version {
@@ -75,6 +84,8 @@ pub mod analyzer {
             };
 
             AnalyzerStatus::Next(next_classifier, header_len)
+            */
+            todo!()
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {

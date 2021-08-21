@@ -1,8 +1,16 @@
+use crate::ClassifierId;
+use gpc_core::base::analyzer::AnalyzerBuilder;
+
+pub struct HttpBuilder;
+impl<'a> AnalyzerBuilder<'a, ClassifierId> for HttpBuilder {
+    type Analyzer = analyzer::HttpAnalyzer;
+}
+
 pub mod analyzer {
     use super::flow::HttpFlow;
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{AnalysisResult, Analyzer};
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -10,13 +18,17 @@ pub mod analyzer {
     #[derive(Default)]
     pub struct HttpAnalyzer {}
 
-    impl Analyzer<ClassifierId> for HttpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for HttpAnalyzer {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
         type Flow = HttpFlow;
 
-        fn analyze(&mut self, _packet: &Packet) -> AnalyzerStatus<ClassifierId> {
-            AnalyzerStatus::Next(ClassifierId::None, 0)
+        fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, ClassifierId>> {
+            Some(AnalysisResult {
+                analyzer: HttpAnalyzer {},
+                next_id: ClassifierId::None,
+                bytes: 0,
+            })
         }
 
         fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {

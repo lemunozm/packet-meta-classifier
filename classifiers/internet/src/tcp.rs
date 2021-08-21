@@ -1,8 +1,16 @@
+use crate::ClassifierId;
+use gpc_core::base::analyzer::AnalyzerBuilder;
+
+pub struct TcpBuilder;
+impl<'a> AnalyzerBuilder<'a, ClassifierId> for TcpBuilder {
+    type Analyzer = analyzer::TcpAnalyzer;
+}
+
 pub mod analyzer {
     use super::flow::TcpFlow;
     use crate::ClassifierId;
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerStatus};
+    use gpc_core::base::analyzer::{AnalysisResult, Analyzer};
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
@@ -13,12 +21,13 @@ pub mod analyzer {
         pub dest_port: u16,
     }
 
-    impl Analyzer<ClassifierId> for TcpAnalyzer {
-        type Flow = TcpFlow;
+    impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
+        type Flow = TcpFlow;
 
-        fn analyze(&mut self, packet: &Packet) -> AnalyzerStatus<ClassifierId> {
+        fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, ClassifierId>> {
+            /*
             self.source_port = u16::from_be_bytes(*array_ref![packet.data, 0, 2]);
             self.dest_port = u16::from_be_bytes(*array_ref![packet.data, 2, 2]);
 
@@ -34,6 +43,8 @@ pub mod analyzer {
                 false => ClassifierId::None,
             };
             AnalyzerStatus::Next(next_protocol, header_len)
+            */
+            todo!()
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
