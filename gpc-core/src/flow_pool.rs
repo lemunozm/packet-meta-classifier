@@ -12,8 +12,8 @@ pub struct FlowPool<I> {
     current_flow_signature: Vec<u8>,
 }
 
-impl<I: ClassifierId> FlowPool<I> {
-    pub fn new() -> Self {
+impl<I: ClassifierId> Default for FlowPool<I> {
+    fn default() -> Self {
         Self {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
 
@@ -21,7 +21,9 @@ impl<I: ClassifierId> FlowPool<I> {
             current_flow_signature: Vec::with_capacity(64),
         }
     }
+}
 
+impl<I: ClassifierId> FlowPool<I> {
     pub fn prepare_for_packet(&mut self) {
         self.current_flow_signature.clear();
     }

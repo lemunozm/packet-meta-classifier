@@ -9,7 +9,7 @@ use std::mem::MaybeUninit;
 pub trait GenericAnalyzerBuilder<I: ClassifierId> {
     fn build_from_packet<'a>(
         &mut self,
-        packet: &'a Packet,
+        packet: &Packet<'a>,
         life_stamp: usize,
     ) -> Option<AnalysisResult<&dyn GenericAnalyzerHandler<'a, I>, I>>;
 
@@ -47,7 +47,7 @@ where
 {
     fn build_from_packet<'c>(
         &mut self,
-        packet: &'c Packet,
+        packet: &Packet<'c>,
         life_stamp: usize,
     ) -> Option<AnalysisResult<&dyn GenericAnalyzerHandler<'c, I>, I>> {
         AnalyzerHandler::<B::Analyzer>::analyze(packet).map(|result| {
@@ -95,12 +95,12 @@ pub struct AnalyzerCache<I: ClassifierId> {
 impl<I: ClassifierId> AnalyzerCache<I> {
     pub fn new(builders: Vec<Option<Box<dyn GenericAnalyzerBuilder<I>>>>) -> Self {
         Self {
-            builders: (0..I::TOTAL).map(|_| None).collect(),
+            builders: builders,
             life_stamp: 1, // Must be at least 1 to be safe.
         }
     }
 
-    pub fn prepare_for_data(&mut self) -> CacheFrame<I> {
+    pub fn prepare_for_packet(&mut self) -> CacheFrame<I> {
         CacheFrame { cache: self }
     }
 }
@@ -113,7 +113,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
     pub fn build_from(
         &mut self,
         id: I,
-        packet: &'a Packet,
+        packet: &Packet<'a>,
     ) -> Option<AnalysisResult<&dyn GenericAnalyzerHandler<'a, I>, I>> {
         self.cache.builders[id.inner()]
             .as_mut()
