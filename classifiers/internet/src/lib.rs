@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate arrayref;
-
 pub mod http;
 pub mod ip;
 pub mod tcp;
@@ -38,7 +35,7 @@ impl From<ClassifierId> for usize {
 
 impl ClassifierIdTrait for ClassifierId {
     const NONE: ClassifierId = ClassifierId::None;
-    const INITIAL: ClassifierId = ClassifierId::Ip;
+    const INITIAL: ClassifierId = ClassifierId::Ip; //TODO: Move to the initialization of the classifer.
     const TOTAL: usize = ClassifierId::COUNT;
 }
 

@@ -3,7 +3,7 @@ use gpc_core::base::analyzer::AnalyzerBuilder;
 
 pub struct TcpBuilder;
 impl<'a> AnalyzerBuilder<'a, ClassifierId> for TcpBuilder {
-    type Analyzer = analyzer::TcpAnalyzer;
+    type Analyzer = analyzer::TcpAnalyzer<'a>;
 }
 
 pub mod analyzer {
@@ -13,44 +13,47 @@ pub mod analyzer {
     use gpc_core::base::analyzer::{AnalysisResult, Analyzer};
     use gpc_core::packet::{Direction, Packet};
 
+    use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
+
     use std::io::Write;
 
     #[derive(Default)]
-    pub struct TcpAnalyzer {
-        pub source_port: u16,
-        pub dest_port: u16,
+    pub struct TcpAnalyzer<'a> {
+        pub header: &'a [u8],
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
         type Flow = TcpFlow;
 
         fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, ClassifierId>> {
-            /*
-            self.source_port = u16::from_be_bytes(*array_ref![packet.data, 0, 2]);
-            self.dest_port = u16::from_be_bytes(*array_ref![packet.data, 2, 2]);
-
-            let header_len = (((packet.data[12] & 0xF0) as usize) >> 4) << 2;
-
-            let server_port = match packet.direction {
-                Direction::Uplink => self.dest_port,
-                Direction::Downlink => self.source_port,
+            let analyzer = TcpAnalyzer {
+                header: packet.data,
             };
 
-            let next_protocol = match packet.data.len() - header_len > 0 {
-                true => Self::expected_l7_protocol(server_port),
+            let next_protocol = match packet.data.len() - analyzer.header_len() > 0 {
+                true => {
+                    let server_port = match packet.direction {
+                        Direction::Uplink => analyzer.dest_port(),
+                        Direction::Downlink => analyzer.source_port(),
+                    };
+                    Self::expected_l7_protocol(server_port)
+                }
                 false => ClassifierId::None,
             };
-            AnalyzerStatus::Next(next_protocol, header_len)
-            */
-            todo!()
+
+            Some(AnalysisResult {
+                analyzer,
+                next_id: next_protocol,
+                bytes: analyzer.header_len(),
+            })
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
             let (first, second) = match direction {
-                Direction::Uplink => (self.source_port, self.dest_port),
-                Direction::Downlink => (self.dest_port, self.source_port),
+                Direction::Uplink => (self.source_port(), self.dest_port()),
+                Direction::Downlink => (self.dest_port(), self.source_port()),
             };
 
             signature.write_all(&first.to_le_bytes()).unwrap();
@@ -59,13 +62,26 @@ pub mod analyzer {
         }
     }
 
-    impl TcpAnalyzer {
+    impl<'a> TcpAnalyzer<'a> {
         fn expected_l7_protocol(server_port: u16) -> ClassifierId {
+            //TODO: improved performance with an static array of 2¹⁶ elements.
             match server_port {
                 80 => ClassifierId::Http,
                 8080 => ClassifierId::Http,
                 _ => ClassifierId::None,
             }
+        }
+
+        fn header_len(&self) -> usize {
+            (((self.header[12] & 0xF0) as usize) >> 4) << 2
+        }
+
+        pub fn source_port(&self) -> u16 {
+            BigEndian::read_u16(&self.header[0..2])
+        }
+
+        pub fn dest_port(&self) -> u16 {
+            BigEndian::read_u16(&self.header[2..4])
         }
     }
 }
@@ -88,7 +104,7 @@ pub mod flow {
     }
 
     impl Flow<ClassifierId> for TcpFlow {
-        type Analyzer = TcpAnalyzer;
+        type Analyzer = TcpAnalyzer<ClassifierId>;
 
         fn create(_analyzer: &TcpAnalyzer, _direction: Direction) -> Self {
             TcpFlow {
@@ -114,7 +130,7 @@ pub mod expression {
     pub struct Tcp;
 
     impl ExpressionValue<ClassifierId> for Tcp {
-        type Analyzer = TcpAnalyzer;
+        type Analyzer<'a> = TcpAnalyzer<'a>;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
@@ -129,14 +145,14 @@ pub mod expression {
     pub struct TcpSourcePort(pub u16);
 
     impl ExpressionValue<ClassifierId> for TcpSourcePort {
-        type Analyzer = TcpAnalyzer;
+        type Analyzer<'a> = TcpAnalyzer<'a>;
 
         fn description() -> &'static str {
             "Valid if the source TCP port of the packet matches the given port"
         }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0 == analyzer.source_port
+            self.0 == analyzer.source_port()
         }
     }
 
@@ -144,14 +160,14 @@ pub mod expression {
     pub struct TcpDestPort(pub u16);
 
     impl ExpressionValue<ClassifierId> for TcpDestPort {
-        type Analyzer = TcpAnalyzer;
+        type Analyzer<'a> = TcpAnalyzer<'a>;
 
         fn description() -> &'static str {
             "Valid if the destination TCP port of the packet matches the given port"
         }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0 == analyzer.dest_port
+            self.0 == analyzer.dest_port()
         }
     }
 }
