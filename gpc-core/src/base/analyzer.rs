@@ -1,4 +1,4 @@
-use crate::base::flow::{Flow, NoFlow};
+use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
@@ -19,26 +19,10 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const PREV_ID: I;
     type Flow: Flow<I>;
 
-    fn analyze(packet: &'a Packet) -> Option<AnalysisResult<Self, I>>;
+    fn analyze(packet: &Packet<'a>) -> Option<AnalysisResult<Self, I>>; //TODO: packet inside lifetime
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
 }
 
 pub trait AnalyzerBuilder<'a, I: ClassifierId>: Sized {
     type Analyzer: Analyzer<'a, I>;
-}
-
-#[derive(Default)]
-pub struct NoAnalyzer;
-impl<'a, I: ClassifierId> Analyzer<'a, I> for NoAnalyzer {
-    const ID: I = I::NONE;
-    const PREV_ID: I = I::NONE;
-    type Flow = NoFlow<NoAnalyzer>;
-
-    fn analyze(_packet: &'a Packet) -> Option<AnalysisResult<Self, I>> {
-        unreachable!()
-    }
-
-    fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
-        unreachable!()
-    }
 }
