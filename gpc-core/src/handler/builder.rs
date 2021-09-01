@@ -1,8 +1,7 @@
 use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
 use crate::base::builder::Builder;
-use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::GenericAnalyzerHandler;
+use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 use crate::packet::Packet;
 
 use std::mem::MaybeUninit;
@@ -27,7 +26,7 @@ impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
     {
         Box::new(BuilderHandler {
             _builder: builder,
-            cached_analyzer: None,
+            cached_analyzer: MaybeUninit::uninit(),
             life_stamp: 0,
         })
     }
@@ -35,11 +34,11 @@ impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
 
 struct BuilderHandler<'a, B, I>
 where
-    B: for<'b> Builder<'b, I> + 'static,
+    B: Builder<'a, I> + 'static,
     I: ClassifierId,
 {
     _builder: B,
-    cached_analyzer: Option<Box<dyn GenericAnalyzerHandler<'a, I> + 'a>>,
+    cached_analyzer: MaybeUninit<AnalyzerHandler<B::Analyzer, B::Flow>>,
     life_stamp: usize,
 }
 
@@ -53,42 +52,32 @@ where
         packet: &Packet<'c>,
         life_stamp: usize,
     ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<'c, I>, I> {
-        /*
-        match A::build(packet) {
-            Ok(info) => {
-                match &mut self.cached_analyzer {
-                    Some(analyzer) => analyzer.update::<A, F>(info.analyzer),
-                    None => {
-                        self.cached_analyzer.insert(
-                            <dyn GenericAnalyzerHandler<I>>::new::<A, F>(info.analyzer),
-                        );
-                    }
-                }
+        B::Analyzer::build(packet).map(|info| {
+            self.life_stamp = life_stamp;
+            unsafe {
+                // SAFETY: TODO
+                let analyzer = &mut *self.cached_analyzer.as_mut_ptr();
+                *analyzer = std::mem::transmute_copy(&info.analyzer);
 
-                self.life_stamp = life_stamp;
-
-                Ok(AnalyzerInfo {
-                    analyzer: self.cached_analyzer.as_deref_mut().unwrap(),
+                AnalyzerInfo {
+                    analyzer: std::mem::transmute(
+                        analyzer as &mut dyn GenericAnalyzerHandler<'a, I>,
+                    ),
                     next_classifier_id: info.next_classifier_id,
                     bytes_parsed: info.bytes_parsed,
-                })
+                }
             }
-            Err(reason) => Err(reason),
-        }
-        */
-        todo!()
+        })
     }
 
     unsafe fn get<'c>(&self, life_stamp: usize) -> &dyn GenericAnalyzerHandler<'c, I> {
-        /*
         if life_stamp != self.life_stamp {
             panic!(
                 "Expected life stamp: {}, found: {}",
                 self.life_stamp, life_stamp
             );
         }
-        self.cached_analyzer.as_deref().unwrap()
-        */
-        todo!()
+        let analyzer = &*self.cached_analyzer.as_ptr();
+        std::mem::transmute(analyzer as &dyn GenericAnalyzerHandler<'a, I>)
     }
 }

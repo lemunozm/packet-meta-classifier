@@ -15,7 +15,11 @@ pub trait GenericAnalyzerHandler<'a, I: ClassifierId> {
 }
 
 impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
-    pub fn inner_ref<A: Analyzer<'a, I>, F: Flow<A>>(&self) -> &A {
+    pub fn inner_ref<A, F>(&self) -> &A
+    where
+        A: Analyzer<'a, I>,
+        F: Flow<A>,
+    {
         if self.id() != A::ID {
             panic!(
                 "Trying to cast analyzer of type {:?} into {:?}",
@@ -32,34 +36,9 @@ impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
 
         &handler.0
     }
-
-    pub fn update<A: Analyzer<'a, I>, F: Flow<A>>(&mut self, new_analyzer: A) {
-        if self.id() != A::ID {
-            panic!(
-                "Trying to cast analyzer of type {:?} into {:?}",
-                self.id(),
-                A::ID
-            );
-        }
-
-        let handler = unsafe {
-            // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
-            // they are the same object.
-            &mut *(self as *mut dyn GenericAnalyzerHandler<I> as *mut AnalyzerHandler<A, F>)
-        };
-        handler.0 = new_analyzer;
-    }
-
-    pub fn new<A, F>(analyzer: A) -> Box<dyn GenericAnalyzerHandler<'a, I> + 'a>
-    where
-        A: Analyzer<'a, I> + 'a,
-        F: Flow<A>,
-    {
-        Box::new(AnalyzerHandler(analyzer, PhantomData::<F>::default()))
-    }
 }
 
-pub struct AnalyzerHandler<A, F>(A, PhantomData<F>);
+pub struct AnalyzerHandler<A, F>(pub A, pub PhantomData<F>);
 
 impl<'a, A, F, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A, F>
 where
