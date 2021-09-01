@@ -19,9 +19,13 @@ pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
 }
 
 impl<I: ClassifierId> dyn GenericExpressionValueHandler<I> {
-    pub fn new<V: ExpressionValue<I> + 'static>(
-        expression_value: V,
-    ) -> Box<dyn GenericExpressionValueHandler<I>> {
+    pub fn new<V, B, A, F>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
+    where
+        V: ExpressionValue<I, Builder = B> + 'static,
+        B: for<'a> Builder<'a, I, Analyzer = A, Flow = F>,
+        A: for<'a> Analyzer<'a, I>,
+        F: Flow<A>,
+    {
         Box::new(ExpressionValueHandler(expression_value))
     }
 }
@@ -37,8 +41,8 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
 impl<V, B, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Builder = B>,
-    B: Builder<I, Analyzer = A, Flow = F>,
-    A: Analyzer<I>,
+    B: for<'a> Builder<'a, I, Analyzer = A, Flow = F>,
+    A: for<'a> Analyzer<'a, I>,
     F: Flow<A>,
     I: ClassifierId,
 {

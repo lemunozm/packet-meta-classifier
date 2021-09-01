@@ -6,7 +6,7 @@ use crate::packet::Direction;
 
 use std::marker::PhantomData;
 
-pub trait GenericAnalyzerHandler<I: ClassifierId> {
+pub trait GenericAnalyzerHandler<'a, I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
     fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
@@ -14,8 +14,8 @@ pub trait GenericAnalyzerHandler<I: ClassifierId> {
     fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction);
 }
 
-impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
-    pub fn inner_ref<A: Analyzer<I>, F: Flow<A>>(&self) -> &A {
+impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
+    pub fn inner_ref<A: Analyzer<'a, I>, F: Flow<A>>(&self) -> &A {
         if self.id() != A::ID {
             panic!(
                 "Trying to cast analyzer of type {:?} into {:?}",
@@ -33,7 +33,7 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
         &handler.0
     }
 
-    pub fn update<A: Analyzer<I>, F: Flow<A>>(&mut self, new_analyzer: A) {
+    pub fn update<A: Analyzer<'a, I>, F: Flow<A>>(&mut self, new_analyzer: A) {
         if self.id() != A::ID {
             panic!(
                 "Trying to cast analyzer of type {:?} into {:?}",
@@ -50,18 +50,20 @@ impl<I: ClassifierId> dyn GenericAnalyzerHandler<I> + '_ {
         handler.0 = new_analyzer;
     }
 
-    pub fn new<'a, A: Analyzer<I> + 'a, F: Flow<A>>(
-        analyzer: A,
-    ) -> Box<dyn GenericAnalyzerHandler<I> + 'a> {
+    pub fn new<A, F>(analyzer: A) -> Box<dyn GenericAnalyzerHandler<'a, I> + 'a>
+    where
+        A: Analyzer<'a, I> + 'a,
+        F: Flow<A>,
+    {
         Box::new(AnalyzerHandler(analyzer, PhantomData::<F>::default()))
     }
 }
 
-struct AnalyzerHandler<A, F>(A, PhantomData<F>);
+pub struct AnalyzerHandler<A, F>(A, PhantomData<F>);
 
-impl<A, F, I> GenericAnalyzerHandler<I> for AnalyzerHandler<A, F>
+impl<'a, A, F, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A, F>
 where
-    A: Analyzer<I>,
+    A: Analyzer<'a, I>,
     F: Flow<A> + 'static,
     I: ClassifierId,
 {

@@ -4,8 +4,8 @@ use gpc_core::base::builder::Builder;
 use gpc_core::base::flow::NoFlow;
 
 pub struct IpBuilder;
-impl Builder<ClassifierId> for IpBuilder {
-    type Analyzer = analyzer::IpAnalyzer;
+impl<'a> Builder<'a, ClassifierId> for IpBuilder {
+    type Analyzer = analyzer::IpAnalyzer<'a>;
     type Flow = NoFlow;
 }
 
@@ -33,28 +33,17 @@ mod analyzer {
         V6(V6),
     }
 
-    pub struct IpAnalyzer {
+    pub struct IpAnalyzer<'a> {
         pub protocol: u8,
         pub version: Version,
+        pub a: &'a [u8],
     }
 
-    impl Default for IpAnalyzer {
-        fn default() -> Self {
-            Self {
-                protocol: 0,
-                version: Version::V4(V4 {
-                    source: Ipv4Addr::new(0, 0, 0, 0),
-                    dest: Ipv4Addr::new(0, 0, 0, 0),
-                }),
-            }
-        }
-    }
-
-    impl Analyzer<ClassifierId> for IpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for IpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
 
-        fn build(packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(packet: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (packet.data[0] & 0xF0) >> 4;
 
             let (analyzer, header_len) = match ip_version {
@@ -65,6 +54,7 @@ mod analyzer {
                             source: Ipv4Addr::from(*array_ref![packet.data, 12, 4]),
                             dest: Ipv4Addr::from(*array_ref![packet.data, 16, 4]),
                         }),
+                        a: packet.data,
                     },
                     ((packet.data[0] & 0x0F) as usize) << 2,
                 ),
@@ -75,6 +65,7 @@ mod analyzer {
                             source: Ipv6Addr::from(*array_ref![packet.data, 8, 16]),
                             dest: Ipv6Addr::from(*array_ref![packet.data, 24, 16]),
                         }),
+                        a: packet.data,
                     },
                     40,
                 ),

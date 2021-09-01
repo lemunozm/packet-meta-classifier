@@ -3,7 +3,7 @@ use crate::ClassifierId;
 use gpc_core::base::builder::Builder;
 
 pub struct HttpBuilder;
-impl Builder<ClassifierId> for HttpBuilder {
+impl<'a> Builder<'a, ClassifierId> for HttpBuilder {
     type Analyzer = analyzer::HttpAnalyzer;
     type Flow = flow::HttpFlow;
 }
@@ -19,7 +19,7 @@ mod analyzer {
     #[derive(Default)]
     pub struct HttpAnalyzer {}
 
-    impl Analyzer<ClassifierId> for HttpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for HttpAnalyzer {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
 

@@ -2,7 +2,7 @@ use crate::base::builder::Builder;
 use crate::base::id::ClassifierId;
 
 pub trait ExpressionValue<I: ClassifierId>: std::fmt::Debug + 'static {
-    type Builder: Builder<I>;
+    type Builder: for<'a> Builder<'a, I>;
 
     fn description() -> &'static str;
     fn check(

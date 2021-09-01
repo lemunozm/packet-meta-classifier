@@ -1,7 +1,6 @@
 use crate::analyzer_cache::AnalyzerCache;
 use crate::base::analyzer::Analyzer;
 use crate::base::builder::Builder;
-use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::dependency_checker::DependencyChecker;
 use crate::handler::builder::GenericBuilderHandler;
@@ -23,21 +22,20 @@ impl<I: ClassifierId> Default for AnalyzerFactory<I> {
 }
 
 impl<I: ClassifierId> AnalyzerFactory<I> {
-    pub fn builder<B, A, F>(mut self, builder: B) -> Self
+    pub fn builder<B>(mut self, builder: B) -> Self
     where
-        B: Builder<I, Analyzer = A, Flow = F> + 'static,
-        A: Analyzer<I>,
-        F: Flow<A> + 'static,
+        B: for<'a> Builder<'a, I> + 'static,
     {
         assert!(
-            A::ID > self.last_id.into(),
+            B::Analyzer::ID > self.last_id.into(),
             "Expected ID with higher value than {:?}",
-            A::ID
+            B::Analyzer::ID
         );
 
         self.builders[B::Analyzer::ID.inner()] = Some(<dyn GenericBuilderHandler<I>>::new(builder));
 
-        self.ids_relations.push((A::ID, A::PREV_ID));
+        self.ids_relations
+            .push((B::Analyzer::ID, B::Analyzer::PREV_ID));
         self
     }
 

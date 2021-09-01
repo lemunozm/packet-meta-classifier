@@ -3,7 +3,7 @@ use crate::ClassifierId;
 use gpc_core::base::builder::Builder;
 
 pub struct TcpBuilder;
-impl Builder<ClassifierId> for TcpBuilder {
+impl<'a> Builder<'a, ClassifierId> for TcpBuilder {
     type Analyzer = analyzer::TcpAnalyzer;
     type Flow = flow::TcpFlow;
 }
@@ -22,7 +22,7 @@ mod analyzer {
         pub dest_port: u16,
     }
 
-    impl Analyzer<ClassifierId> for TcpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 

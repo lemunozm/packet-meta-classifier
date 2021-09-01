@@ -12,11 +12,10 @@ pub struct AnalyzerInfo<A, I: ClassifierId> {
     pub bytes_parsed: usize,
 }
 
-pub trait Analyzer<I: ClassifierId>: Sized {
-    //TODO: PERF: Use 'a lifetime that be less than the packet data.
+pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
 
-    fn build(packet: &Packet) -> AnalyzerResult<Self, I>;
+    fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
     fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
 }
