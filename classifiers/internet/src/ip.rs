@@ -18,22 +18,6 @@ mod analyzer {
     use std::io::Write;
     use std::net::IpAddr;
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub enum Protocol {
-        Tcp = 6,
-        Udp = 17,
-    }
-
-    impl From<u8> for Protocol {
-        fn from(value: u8) -> Self {
-            match value {
-                6 => Protocol::Tcp,
-                17 => Protocol::Udp,
-                _ => panic!("Unknown protocol"),
-            }
-        }
-    }
-
     #[derive(Debug, Clone, Copy)]
     pub enum Version {
         V4,
@@ -60,10 +44,10 @@ mod analyzer {
             }
         }
 
-        pub fn protocol(&self) -> Protocol {
+        pub fn protocol_code(&self) -> u8 {
             match self.version {
-                Version::V4 => self.header[9].into(),
-                Version::V6 => self.header[6].into(),
+                Version::V4 => self.header[9],
+                Version::V6 => self.header[6],
             }
         }
     }
@@ -187,7 +171,11 @@ pub mod expression {
         }
     }
 
-    pub use super::analyzer::Protocol as IpProto;
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub enum IpProto {
+        Tcp = 6,
+        Udp = 17,
+    }
 
     impl ExpressionValue<ClassifierId> for IpProto {
         type Builder = super::IpBuilder;
@@ -197,7 +185,7 @@ pub mod expression {
         }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
-            *self == analyzer.protocol()
+            *self as u8 == analyzer.protocol_code()
         }
     }
 }

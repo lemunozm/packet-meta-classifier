@@ -19,12 +19,10 @@ pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
 }
 
 impl<I: ClassifierId> dyn GenericExpressionValueHandler<I> {
-    pub fn new<V, B, A, F>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
+    pub fn new<V, B>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
     where
         V: ExpressionValue<I, Builder = B> + 'static,
-        B: for<'a> Builder<'a, I, Analyzer = A, Flow = F>,
-        A: for<'a> Analyzer<'a, I>,
-        F: Flow<A>,
+        B: for<'a> Builder<'a, I>,
     {
         Box::new(ExpressionValueHandler(expression_value))
     }
@@ -38,12 +36,10 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
     }
 }
 
-impl<V, B, A, F, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
+impl<V, B, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
     V: ExpressionValue<I, Builder = B>,
-    B: for<'a> Builder<'a, I, Analyzer = A, Flow = F>,
-    A: for<'a> Analyzer<'a, I>,
-    F: Flow<A>,
+    B: for<'a> Builder<'a, I>,
     I: ClassifierId,
 {
     fn check(
@@ -51,19 +47,19 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler>,
     ) -> bool {
-        let analyzer = analyzer.inner_ref::<A, F>();
+        let analyzer = analyzer.inner_ref::<B::Analyzer, B::Flow>();
 
         match flow {
-            Some(flow) => self.0.check(analyzer, flow.inner_ref::<F>()),
+            Some(flow) => self.0.check(analyzer, flow.inner_ref::<B::Flow>()),
             None => {
                 // The flow created here is always a NoFlow
-                let no_flow = F::create(&analyzer, Direction::Uplink);
+                let no_flow = B::Flow::create(&analyzer, Direction::Uplink);
                 self.0.check(analyzer, &no_flow)
             }
         }
     }
 
     fn classifier_id(&self) -> I {
-        A::ID
+        B::Analyzer::ID
     }
 }
