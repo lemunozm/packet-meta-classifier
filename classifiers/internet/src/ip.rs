@@ -16,94 +16,99 @@ mod analyzer {
     use gpc_core::packet::{Direction, Packet};
 
     use std::io::Write;
-    use std::net::{Ipv4Addr, Ipv6Addr};
+    use std::net::IpAddr;
 
-    pub struct V4 {
-        pub source: Ipv4Addr,
-        pub dest: Ipv4Addr,
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub enum Protocol {
+        Tcp = 6,
+        Udp = 17,
     }
 
-    pub struct V6 {
-        pub source: Ipv6Addr,
-        pub dest: Ipv6Addr,
+    impl From<u8> for Protocol {
+        fn from(value: u8) -> Self {
+            match value {
+                6 => Protocol::Tcp,
+                17 => Protocol::Udp,
+                _ => panic!("Unknown protocol"),
+            }
+        }
     }
 
+    #[derive(Debug, Clone, Copy)]
     pub enum Version {
-        V4(V4),
-        V6(V6),
+        V4,
+        V6,
     }
 
     pub struct IpAnalyzer<'a> {
-        pub protocol: u8,
         pub version: Version,
-        pub a: &'a [u8],
+        pub header: &'a [u8],
+    }
+
+    impl<'a> IpAnalyzer<'a> {
+        pub fn source(&self) -> IpAddr {
+            match self.version {
+                Version::V4 => IpAddr::from(*array_ref![self.header, 12, 4]),
+                Version::V6 => IpAddr::from(*array_ref![self.header, 8, 16]),
+            }
+        }
+
+        pub fn dest(&self) -> IpAddr {
+            match self.version {
+                Version::V4 => IpAddr::from(*array_ref![self.header, 16, 4]),
+                Version::V6 => IpAddr::from(*array_ref![self.header, 24, 16]),
+            }
+        }
+
+        pub fn protocol(&self) -> Protocol {
+            match self.version {
+                Version::V4 => self.header[9].into(),
+                Version::V6 => self.header[6].into(),
+            }
+        }
     }
 
     impl<'a> Analyzer<'a, ClassifierId> for IpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
 
-        fn build(packet: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
-            let ip_version = (packet.data[0] & 0xF0) >> 4;
+        fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+            let ip_version = (data[0] & 0xF0) >> 4;
 
-            let (analyzer, header_len) = match ip_version {
-                4 => (
-                    Self {
-                        protocol: packet.data[9],
-                        version: Version::V4(V4 {
-                            source: Ipv4Addr::from(*array_ref![packet.data, 12, 4]),
-                            dest: Ipv4Addr::from(*array_ref![packet.data, 16, 4]),
-                        }),
-                        a: packet.data,
-                    },
-                    ((packet.data[0] & 0x0F) as usize) << 2,
-                ),
-                6 => (
-                    Self {
-                        protocol: packet.data[6],
-                        version: Version::V6(V6 {
-                            source: Ipv6Addr::from(*array_ref![packet.data, 8, 16]),
-                            dest: Ipv6Addr::from(*array_ref![packet.data, 24, 16]),
-                        }),
-                        a: packet.data,
-                    },
-                    40,
-                ),
+            let (version, protocol, header_len) = match ip_version {
+                4 => (Version::V4, data[9], ((data[0] & 0x0F) as usize) << 2),
+                6 => (Version::V6, data[6], 40),
                 _ => return Err("Ip version not valid"),
             };
 
-            let next_classifier_id = match analyzer.protocol {
+            let next_classifier_id = match protocol {
                 6 => ClassifierId::Tcp,
                 //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
                 _ => ClassifierId::None,
             };
 
             Ok(AnalyzerInfo {
-                analyzer,
+                analyzer: Self {
+                    version,
+                    header: &data[0..header_len],
+                },
                 next_classifier_id,
                 bytes_parsed: header_len,
             })
         }
 
         fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
-            match &self.version {
-                Version::V4(v4) => {
-                    let (first, second) = match direction {
-                        Direction::Uplink => (v4.source.octets(), v4.dest.octets()),
-                        Direction::Downlink => (v4.dest.octets(), v4.source.octets()),
-                    };
-                    signature.write_all(&first).unwrap();
-                    signature.write_all(&second).unwrap();
-                }
-                Version::V6(v6) => {
-                    let (first, second) = match direction {
-                        Direction::Uplink => (v6.source.octets(), v6.dest.octets()),
-                        Direction::Downlink => (v6.dest.octets(), v6.source.octets()),
-                    };
-                    signature.write_all(&first).unwrap();
-                    signature.write_all(&second).unwrap();
-                }
+            let (source, dest) = match &self.version {
+                Version::V4 => (&self.header[12..16], &self.header[16..20]),
+                Version::V6 => (&self.header[8..24], &self.header[24..40]),
             };
+
+            let (first, second) = match direction {
+                Direction::Uplink => (source, dest),
+                Direction::Downlink => (dest, source),
+            };
+            signature.write_all(&first).unwrap();
+            signature.write_all(&second).unwrap();
 
             // For IP, we only add the to signature but we do not want to create an IP flow
             false
@@ -135,11 +140,7 @@ pub mod expression {
         }
     }
 
-    #[derive(Debug)]
-    pub enum IpVersion {
-        V4,
-        V6,
-    }
+    pub use super::analyzer::Version as IpVersion;
 
     impl ExpressionValue<ClassifierId> for IpVersion {
         type Builder = super::IpBuilder;
@@ -150,8 +151,8 @@ pub mod expression {
 
         fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
             match self {
-                Self::V4 => matches!(analyzer.version, Version::V4(_)),
-                Self::V6 => matches!(analyzer.version, Version::V6(_)),
+                Self::V4 => matches!(analyzer.version, Version::V4),
+                Self::V6 => matches!(analyzer.version, Version::V6),
             }
         }
     }
@@ -167,10 +168,7 @@ pub mod expression {
         }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
-            match &analyzer.version {
-                Version::V4(ipv4) => ipv4.source == self.0,
-                Version::V6(ipv6) => ipv6.source == self.0,
-            }
+            self.0 == analyzer.source()
         }
     }
 
@@ -185,10 +183,21 @@ pub mod expression {
         }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
-            match &analyzer.version {
-                Version::V4(ipv4) => ipv4.dest == self.0,
-                Version::V6(ipv6) => ipv6.dest == self.0,
-            }
+            self.0 == analyzer.dest()
+        }
+    }
+
+    pub use super::analyzer::Protocol as IpProto;
+
+    impl ExpressionValue<ClassifierId> for IpProto {
+        type Builder = super::IpBuilder;
+
+        fn description() -> &'static str {
+            "Valid if the destination IP address of the packet matches the given address"
+        }
+
+        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+            *self == analyzer.protocol()
         }
     }
 }
