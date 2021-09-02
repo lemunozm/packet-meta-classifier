@@ -31,7 +31,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         &mut self,
         id: I,
         packet: &Packet<'a>,
-    ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<'a, I>, I> {
+    ) -> AnalyzerResult<&dyn GenericAnalyzerHandler<'a, I>, I> {
         let result = unsafe {
             // SAFETY: Cleaned before packet lifetime ends.
             self.cache.builders[id.inner()]

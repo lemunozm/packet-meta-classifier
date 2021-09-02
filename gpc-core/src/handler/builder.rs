@@ -10,7 +10,7 @@ pub trait GenericBuilderHandler<I: ClassifierId> {
     unsafe fn build_from_packet<'a>(
         &mut self,
         packet: &Packet<'a>,
-    ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<'a, I>, I>;
+    ) -> AnalyzerResult<&dyn GenericAnalyzerHandler<'a, I>, I>;
 
     /// SAFETY: Satisfied by the user. The caller must ensure the lifetime used during
     /// `build_from_packet()` is still valid.
@@ -50,7 +50,7 @@ where
     unsafe fn build_from_packet<'c>(
         &mut self,
         packet: &Packet<'c>,
-    ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<'c, I>, I> {
+    ) -> AnalyzerResult<&dyn GenericAnalyzerHandler<'c, I>, I> {
         if self.cached_analyzer.is_some() {
             panic!("Analyzer already built. A call to clean() is necessary to rebuild an analyzer");
         }
@@ -60,13 +60,13 @@ where
             let handler = unsafe { std::mem::transmute_copy(&handler) };
 
             let generic_analyzer =
-                self.cached_analyzer.insert(handler) as &mut dyn GenericAnalyzerHandler<'a, I>;
+                self.cached_analyzer.insert(handler) as &dyn GenericAnalyzerHandler<'a, I>;
 
             let generic_analyzer = unsafe {
                 // SAFETY: Ok. Restored the 'c lifetime while 'c is still valid.
                 std::mem::transmute::<
-                    &mut dyn GenericAnalyzerHandler<'a, I>,
-                    &mut dyn GenericAnalyzerHandler<'c, I>,
+                    &dyn GenericAnalyzerHandler<'a, I>,
+                    &dyn GenericAnalyzerHandler<'c, I>,
                 >(generic_analyzer)
             };
 
