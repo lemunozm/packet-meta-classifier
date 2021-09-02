@@ -32,6 +32,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         id: I,
         packet: &Packet<'a>,
     ) -> AnalyzerResult<&dyn GenericAnalyzerHandler<'a, I>, I> {
+        /*
         let result = unsafe {
             // SAFETY: Cleaned before packet lifetime ends.
             self.cache.builders[id.inner()]
@@ -45,9 +46,12 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         }
 
         result
+        */
+        todo!()
     }
 
     pub fn get(&self, id: I) -> &dyn GenericAnalyzerHandler<'a, I> {
+        /*
         unsafe {
             // SAFETY: The lifetime of the returned analyzer is the same as the  lifetime.
             self.cache.builders[id.inner()]
@@ -55,11 +59,14 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
                 .get()
         }
+        */
+        todo!()
     }
 }
 
 impl<'a, I: ClassifierId> Drop for CacheFrame<'a, I> {
     fn drop(&mut self) {
+        /*
         // SAFETY: Remove all the pending analyzers before packet lifetime ends.
         for id in &self.cache.current_ids {
             unsafe {
@@ -70,5 +77,7 @@ impl<'a, I: ClassifierId> Drop for CacheFrame<'a, I> {
             }
         }
         self.cache.current_ids.clear();
+        */
+        todo!()
     }
 }
