@@ -6,7 +6,7 @@ use crate::packet::Packet;
 
 pub trait GenericBuilderHandler<I: ClassifierId> {
     /// SAFETY: Satisfied by the caller. The caller must ensure to call clean()
-    /// before 'c lifetime ends.
+    /// before 'a lifetime ends.
     unsafe fn build_from_packet<'a>(
         &mut self,
         packet: &Packet<'a>,

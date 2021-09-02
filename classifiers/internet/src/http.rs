@@ -4,7 +4,7 @@ use gpc_core::base::builder::Builder;
 
 pub struct HttpBuilder;
 impl<'a> Builder<'a, ClassifierId> for HttpBuilder {
-    type Analyzer = analyzer::HttpAnalyzer;
+    type Analyzer = analyzer::HttpAnalyzer<'a>;
     type Flow = flow::HttpFlow;
 }
 
@@ -17,15 +17,19 @@ mod analyzer {
     use std::io::Write;
 
     #[derive(Default)]
-    pub struct HttpAnalyzer {}
+    pub struct HttpAnalyzer<'a> {
+        _header: &'a [u8],
+    }
 
-    impl<'a> Analyzer<'a, ClassifierId> for HttpAnalyzer {
+    impl<'a> Analyzer<'a, ClassifierId> for HttpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
 
-        fn build(_packet: &Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             Ok(AnalyzerInfo {
-                analyzer: HttpAnalyzer {},
+                analyzer: HttpAnalyzer {
+                    _header: &data[0..],
+                },
                 next_classifier_id: ClassifierId::None,
                 bytes_parsed: 0,
             })
@@ -45,7 +49,7 @@ mod flow {
 
     pub struct HttpFlow {}
 
-    impl Flow<HttpAnalyzer> for HttpFlow {
+    impl Flow<HttpAnalyzer<'_>> for HttpFlow {
         fn create(_analyzer: &HttpAnalyzer, _direction: Direction) -> Self {
             HttpFlow {}
         }

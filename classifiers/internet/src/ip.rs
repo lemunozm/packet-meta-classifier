@@ -181,7 +181,7 @@ pub mod expression {
         type Builder = super::IpBuilder;
 
         fn description() -> &'static str {
-            "Valid if the destination IP address of the packet matches the given address"
+            "Valid if the IP protocol of the packet matches the given protocol"
         }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
