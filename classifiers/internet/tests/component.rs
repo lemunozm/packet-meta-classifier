@@ -3,7 +3,7 @@ use util::capture::IpCapture;
 
 use internet::{
     self,
-    http::expression::Http,
+    http::expression::{HttpCode, HttpMethod},
     ip::expression::IpProto,
     tcp::expression::{TcpDestPort, TcpSourcePort},
 };
@@ -36,7 +36,8 @@ fn http_basics() {
         loader: internet::loader(),
         config: (),
         rules: vec![
-            ("Http", Expr::value(Http)),
+            ("Get", Expr::value(HttpMethod::Get)),
+            ("200OK", Expr::value(HttpCode("200"))),
             ("Tcp", Expr::value(IpProto::Tcp)),
         ],
         captures: vec![CaptureData {
@@ -44,7 +45,7 @@ fn http_basics() {
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![
-            "Tcp", "Tcp", "Tcp", "Http", "Tcp", "Http", "Tcp", "Tcp", "Tcp", "Tcp",
+            "Tcp", "Tcp", "Tcp", "Get", "Tcp", "200OK", "Tcp", "Tcp", "Tcp", "Tcp",
         ],
     });
 }

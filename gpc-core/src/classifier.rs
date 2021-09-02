@@ -155,7 +155,10 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
             match status {
                 DependencyStatus::Descendant => {
                     if self.finished_analysis {
-                        return ClassificationStatus::CanClassify;
+                        return match self.next_classifier_id == classifier_id {
+                            true => ClassificationStatus::CanClassify,
+                            false => ClassificationStatus::NotClassify,
+                        };
                     }
 
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);

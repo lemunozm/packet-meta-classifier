@@ -16,7 +16,6 @@ mod analyzer {
 
     use std::io::Write;
 
-    #[derive(Default)]
     pub struct TcpAnalyzer<'a> {
         pub header: &'a [u8],
     }
