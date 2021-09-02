@@ -40,6 +40,12 @@ impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
 
 pub struct AnalyzerHandler<A, F>(pub A, pub PhantomData<F>);
 
+impl<A, F> AnalyzerHandler<A, F> {
+    pub fn new(analyzer: A) -> Self {
+        AnalyzerHandler(analyzer, PhantomData::default())
+    }
+}
+
 impl<'a, A, F, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A, F>
 where
     A: Analyzer<'a, I>,

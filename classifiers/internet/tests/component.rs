@@ -17,8 +17,8 @@ fn tcp_ports() {
         loader: internet::loader(),
         config: (),
         rules: vec![
-            ("DestPort80", Expr::value(TcpDestPort(80))),
-            ("SourcePort80", Expr::value(TcpSourcePort(80))),
+            ("D80", Expr::value(TcpDestPort(80))),
+            ("S80", Expr::value(TcpSourcePort(80))),
         ],
         captures: vec![CaptureData {
             capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),

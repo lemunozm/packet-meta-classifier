@@ -6,14 +6,14 @@ use crate::packet::Packet;
 
 pub struct AnalyzerCache<I: ClassifierId> {
     builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>,
-    life_stamp: usize,
+    current_ids: Vec<I>,
 }
 
 impl<I: ClassifierId> AnalyzerCache<I> {
     pub fn new(builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>) -> Self {
         Self {
             builders: builders,
-            life_stamp: 1, // Must be at least 1 to be safe.
+            current_ids: Vec::with_capacity(I::TOTAL),
         }
     }
 
@@ -32,29 +32,43 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         id: I,
         packet: &Packet<'a>,
     ) -> AnalyzerResult<&mut dyn GenericAnalyzerHandler<'a, I>, I> {
-        self.cache.builders[id.inner()]
-            .as_mut()
-            .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
-            .build_from_packet(packet, self.cache.life_stamp)
+        let result = unsafe {
+            // SAFETY: Cleaned before packet lifetime ends.
+            self.cache.builders[id.inner()]
+                .as_mut()
+                .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+                .build_from_packet(packet)
+        };
+
+        if result.is_ok() {
+            self.cache.current_ids.push(id);
+        }
+
+        result
     }
 
     pub fn get(&self, id: I) -> &dyn GenericAnalyzerHandler<'a, I> {
         unsafe {
-            // SAFETY: The lifetime of the returned reference is the same as the data lifetime.
-            // If the element has not be created, the inner life stamp will not match with this
-            // life stamp.
-            // If both life stamps are the same, getting the analyzer is a safe operation.
+            // SAFETY: The lifetime of the returned analyzer is the same as the  lifetime.
             self.cache.builders[id.inner()]
                 .as_ref()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
-                .get(self.cache.life_stamp)
+                .get()
         }
     }
 }
 
 impl<'a, I: ClassifierId> Drop for CacheFrame<'a, I> {
     fn drop(&mut self) {
-        // Increasing the life stamp will invalidate all the references.
-        self.cache.life_stamp += 1;
+        // SAFETY: Remove all the pending analyzers before packet lifetime ends.
+        for id in &self.cache.current_ids {
+            unsafe {
+                self.cache.builders[id.inner()]
+                    .as_mut()
+                    .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+                    .clean();
+            }
+        }
+        self.cache.current_ids.clear();
     }
 }
