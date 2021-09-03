@@ -1,12 +1,10 @@
 use crate::ClassifierId;
 
 use gpc_core::base::builder::Builder;
-use gpc_core::base::flow::NoFlow;
 
 pub struct IpBuilder;
 impl<'a> Builder<'a, ClassifierId> for IpBuilder {
     type Analyzer = analyzer::IpAnalyzer<'a>;
-    type Flow = NoFlow;
 }
 
 mod analyzer {
@@ -56,6 +54,8 @@ mod analyzer {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
 
+        type Flow = ();
+
         fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (data[0] & 0xF0) >> 4;
 
@@ -103,37 +103,31 @@ mod analyzer {
 pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
 
-    use crate::ClassifierId;
     use gpc_core::base::expression_value::ExpressionValue;
-    use gpc_core::base::flow::NoFlow;
 
     use std::net::IpAddr;
 
     #[derive(Debug)]
     pub struct Ip;
 
-    impl ExpressionValue<ClassifierId> for Ip {
-        type Builder = super::IpBuilder;
-
+    impl ExpressionValue<IpAnalyzer<'_>, ()> for Ip {
         fn description() -> &'static str {
             "Valid if the packet is TCP"
         }
 
-        fn check(&self, _analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+        fn check(&self, _analyzer: &IpAnalyzer, _: &()) -> bool {
             true
         }
     }
 
     pub use super::analyzer::Version as IpVersion;
 
-    impl ExpressionValue<ClassifierId> for IpVersion {
-        type Builder = super::IpBuilder;
-
+    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpVersion {
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             match self {
                 Self::V4 => matches!(analyzer.version, Version::V4),
                 Self::V6 => matches!(analyzer.version, Version::V6),
@@ -144,14 +138,12 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl ExpressionValue<ClassifierId> for IpSource {
-        type Builder = super::IpBuilder;
-
+    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpSource {
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             self.0 == analyzer.source()
         }
     }
@@ -159,14 +151,12 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl ExpressionValue<ClassifierId> for IpDest {
-        type Builder = super::IpBuilder;
-
+    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpDest {
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             self.0 == analyzer.dest()
         }
     }
@@ -177,14 +167,12 @@ pub mod expression {
         Udp = 17,
     }
 
-    impl ExpressionValue<ClassifierId> for IpProto {
-        type Builder = super::IpBuilder;
-
+    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpProto {
         fn description() -> &'static str {
             "Valid if the IP protocol of the packet matches the given protocol"
         }
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &NoFlow) -> bool {
+        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             *self as u8 == analyzer.protocol_code()
         }
     }

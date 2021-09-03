@@ -5,10 +5,11 @@ use gpc_core::base::builder::Builder;
 pub struct TcpBuilder;
 impl<'a> Builder<'a, ClassifierId> for TcpBuilder {
     type Analyzer = analyzer::TcpAnalyzer<'a>;
-    type Flow = flow::TcpFlow;
 }
 
 mod analyzer {
+    use super::flow::{Handshake, TcpFlow};
+
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
@@ -42,6 +43,8 @@ mod analyzer {
     impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
+
+        type Flow = TcpFlow;
 
         fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = (((data[12] & 0xF0) as usize) >> 4) << 2;
@@ -80,15 +83,18 @@ mod analyzer {
             signature.write_all(second).unwrap();
             true
         }
+
+        fn create_flow(&self, direction: Direction) -> TcpFlow {
+            TcpFlow {
+                handshake: Handshake::Send,
+            }
+        }
+
+        fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {}
     }
 }
 
 mod flow {
-    use super::analyzer::TcpAnalyzer;
-
-    use gpc_core::base::flow::Flow;
-    use gpc_core::packet::Direction;
-
     pub enum Handshake {
         Send,
         Recv,
@@ -98,34 +104,18 @@ mod flow {
     pub struct TcpFlow {
         pub handshake: Handshake,
     }
-
-    impl Flow<TcpAnalyzer<'_>> for TcpFlow {
-        fn create(_analyzer: &TcpAnalyzer, _direction: Direction) -> Self {
-            TcpFlow {
-                handshake: Handshake::Send,
-            }
-        }
-
-        fn update(&mut self, _analyzer: &TcpAnalyzer, _direction: Direction) {
-            //TODO Handshake
-        }
-    }
 }
 
 pub mod expression {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
 
-    use crate::ClassifierId;
-
     use gpc_core::base::expression_value::ExpressionValue;
 
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for TcpSourcePort {
-        type Builder = super::TcpBuilder;
-
+    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpSourcePort {
         fn description() -> &'static str {
             "Valid if the source TCP port of the packet matches the given port"
         }
@@ -138,9 +128,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for TcpDestPort {
-        type Builder = super::TcpBuilder;
-
+    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpDestPort {
         fn description() -> &'static str {
             "Valid if the destination TCP port of the packet matches the given port"
         }
@@ -153,9 +141,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpPayload;
 
-    impl ExpressionValue<ClassifierId> for TcpPayload {
-        type Builder = super::TcpBuilder;
-
+    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpPayload {
         fn description() -> &'static str {
             "Valid if the TCP packet contains payload"
         }

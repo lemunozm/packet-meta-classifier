@@ -1,13 +1,4 @@
-use crate::base::builder::Builder;
-use crate::base::id::ClassifierId;
-
-pub trait ExpressionValue<I: ClassifierId>: std::fmt::Debug + 'static {
-    type Builder: for<'a> Builder<'a, I>;
-
+pub trait ExpressionValue<A, F>: std::fmt::Debug + 'static {
     fn description() -> &'static str;
-    fn check(
-        &self,
-        analyzer: &<Self::Builder as Builder<I>>::Analyzer,
-        flow: &<Self::Builder as Builder<I>>::Flow,
-    ) -> bool;
+    fn check(&self, analyzer: &A, flow: &F) -> bool;
 }
