@@ -18,7 +18,7 @@ mod analyzer {
 
     pub struct TcpAnalyzer<'a> {
         pub header: &'a [u8],
-        pub payload_len: usize,
+        pub payload_len: u16,
     }
 
     impl<'a> TcpAnalyzer<'a> {
@@ -48,7 +48,7 @@ mod analyzer {
 
             let analyzer = Self {
                 header: &data[0..header_len],
-                payload_len: data.len() - header_len,
+                payload_len: (data.len() - header_len) as u16,
             };
 
             let next_protocol = match analyzer.payload_len > 0 {
@@ -107,7 +107,7 @@ mod flow {
         }
 
         fn update(&mut self, _analyzer: &TcpAnalyzer, _direction: Direction) {
-            //TODO
+            //TODO Handshake
         }
     }
 }

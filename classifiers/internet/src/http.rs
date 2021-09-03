@@ -159,9 +159,7 @@ mod flow {
             HttpFlow {}
         }
 
-        fn update(&mut self, _analyzer: &HttpAnalyzer, _direction: Direction) {
-            //TODO
-        }
+        fn update(&mut self, _analyzer: &HttpAnalyzer, _direction: Direction) {}
     }
 }
 
@@ -180,7 +178,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the packet is a request"
+            "Valid if the packet is a request"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {
@@ -195,7 +193,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the packet is a response"
+            "Valid if the packet is a response"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {
@@ -209,7 +207,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the http request method of the packet"
+            "Valid if the http request method of the packet"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {
@@ -224,7 +222,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the http response code of the packet"
+            "Valid if the http response code of the packet"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {

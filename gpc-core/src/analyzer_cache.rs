@@ -49,7 +49,8 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
 
     pub fn get(&self, id: I) -> &dyn GenericAnalyzerHandler<'a, I> {
         unsafe {
-            // SAFETY: The lifetime of the returned analyzer is the same as the  lifetime.
+            // SAFETY: The lifetime of the returned analyzer is the same as the lifetime with it is
+            // built.
             self.cache.builders[id.inner()]
                 .as_ref()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))

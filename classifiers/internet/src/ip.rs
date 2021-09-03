@@ -67,7 +67,7 @@ mod analyzer {
 
             let next_classifier_id = match protocol {
                 6 => ClassifierId::Tcp,
-                //17 => ClassifierId::Udp, //TODO: uncomment when exists UDP analyzer.
+                17 => ClassifierId::Udp,
                 _ => ClassifierId::None,
             };
 
