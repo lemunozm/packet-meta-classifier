@@ -100,7 +100,7 @@ mod analyzer {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
 
-        fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let first_line = unsafe {
                 //SAFETY: We only check agains first 128 ascii values
                 std::str::from_utf8_unchecked(data)
@@ -111,21 +111,21 @@ mod analyzer {
             let second = iter.next().unwrap();
             let third_and_more = iter.next().unwrap();
             let (third, _) = third_and_more.split_once("\r\n").unwrap();
-            let header_len = first.len() + second.len() + third.len();
+            let first_line_len = first.len() + second.len() + third.len();
 
-            let (version, start_line) = match &data[0..5] == b"HTTP/" {
-                true => (
-                    first,
-                    StartLine::Response {
-                        code: second,
-                        text: third,
-                    },
-                ),
-                false => (
+            let (version, start_line) = match direction {
+                Direction::Uplink => (
                     third,
                     StartLine::Request {
                         method: first,
                         uri: second,
+                    },
+                ),
+                Direction::Downlink => (
+                    first,
+                    StartLine::Response {
+                        code: second,
+                        text: third,
                     },
                 ),
             };
@@ -136,7 +136,7 @@ mod analyzer {
                     start_line,
                 },
                 next_classifier_id: ClassifierId::None,
-                bytes_parsed: header_len,
+                bytes_parsed: first_line_len,
             })
         }
 
