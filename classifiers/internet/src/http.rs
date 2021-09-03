@@ -195,7 +195,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the packet is a request"
+            "Check if the packet is a response"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {
@@ -209,7 +209,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the packet is a request"
+            "Check if the http request method of the packet"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {
@@ -224,7 +224,7 @@ pub mod expression {
         type Builder = super::HttpBuilder;
 
         fn description() -> &'static str {
-            "Check if the packet is a request"
+            "Check if the http response code of the packet"
         }
 
         fn check(&self, analyzer: &HttpAnalyzer, _flow: &HttpFlow) -> bool {

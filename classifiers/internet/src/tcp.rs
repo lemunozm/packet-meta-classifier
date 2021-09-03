@@ -18,6 +18,7 @@ mod analyzer {
 
     pub struct TcpAnalyzer<'a> {
         pub header: &'a [u8],
+        pub payload_len: usize,
     }
 
     impl<'a> TcpAnalyzer<'a> {
@@ -47,9 +48,10 @@ mod analyzer {
 
             let analyzer = Self {
                 header: &data[0..header_len],
+                payload_len: data.len() - header_len,
             };
 
-            let next_protocol = match data.len() - header_len > 0 {
+            let next_protocol = match analyzer.payload_len > 0 {
                 true => {
                     let server_port = match direction {
                         Direction::Uplink => analyzer.dest_port(),
@@ -145,6 +147,21 @@ pub mod expression {
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.dest_port()
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpPayload;
+
+    impl ExpressionValue<ClassifierId> for TcpPayload {
+        type Builder = super::TcpBuilder;
+
+        fn description() -> &'static str {
+            "Valid if the TCP packet contains payload"
+        }
+
+        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            analyzer.payload_len > 0
         }
     }
 }

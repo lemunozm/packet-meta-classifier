@@ -5,18 +5,23 @@ use internet::{
     self,
     http::expression::{HttpCode, HttpMethod},
     ip::expression::IpProto,
-    tcp::expression::{TcpDestPort, TcpSourcePort},
+    tcp::expression::{TcpDestPort, TcpPayload, TcpSourcePort},
 };
 
 use gpc_core::expression::Expr;
 use gpc_testing::common::{self, CaptureData, TestConfig};
 
 #[test]
-fn tcp_ports() {
+fn tcp_http() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
         config: (),
         rules: vec![
+            (
+                "Http",
+                (Expr::value(TcpDestPort(80)) | Expr::value(TcpSourcePort(80)))
+                    & Expr::value(TcpPayload),
+            ),
             ("D80", Expr::value(TcpDestPort(80))),
             ("S80", Expr::value(TcpSourcePort(80))),
         ],
@@ -25,13 +30,13 @@ fn tcp_ports() {
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![
-            "D80", "S80", "D80", "D80", "S80", "S80", "D80", "D80", "S80", "D80",
+            "D80", "S80", "D80", "Http", "S80", "Http", "D80", "D80", "S80", "D80",
         ],
     });
 }
 
 #[test]
-fn http_basics() {
+fn http_get() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
         config: (),
