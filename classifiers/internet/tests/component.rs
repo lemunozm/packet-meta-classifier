@@ -3,7 +3,7 @@ use util::capture::IpCapture;
 
 use internet::{
     self,
-    http::expression::{HttpCode, HttpHeaderName, HttpMethod},
+    http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
     tcp::expression::{TcpDestPort, TcpPayload, TcpSourcePort},
 };
@@ -43,7 +43,7 @@ fn http_get() {
         rules: vec![
             (
                 "Get",
-                Expr::value(HttpMethod::Get) & Expr::value(HttpHeaderName("Accept")),
+                Expr::value(HttpMethod::Get) & Expr::value(HttpHeader("Host", "example.com")),
             ),
             ("200OK", Expr::value(HttpCode("200"))),
             ("Tcp", Expr::value(IpProto::Tcp)),

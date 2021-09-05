@@ -163,20 +163,20 @@ mod analyzer {
     }
 
     impl<'a> HttpHeaderAnalyzer<'a> {
-        pub fn has_header_key(&self, expected_key: &str) -> bool {
+        pub fn find_header(&self, expected_key: &str) -> Option<&str> {
             let mut content = self.headers;
             loop {
                 match content.split_once("\r\n") {
                     Some((header_line, next)) => match header_line.split_once(": ") {
-                        Some((key, _value)) => {
+                        Some((key, value)) => {
                             if key == expected_key {
-                                break true;
+                                break Some(value);
                             }
                             content = next;
                         }
-                        None => break false,
+                        None => break None,
                     },
-                    None => break false,
+                    None => break None,
                 }
             }
         }
@@ -295,7 +295,22 @@ pub mod expression {
         }
 
         fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
-            analyzer.has_header_key(self.0)
+            analyzer.find_header(self.0).is_some()
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct HttpHeader(pub &'static str, pub &'static str);
+
+    impl ExpressionValue<ClassifierId> for HttpHeader {
+        type Builder = super::HttpHeaderBuilder;
+
+        fn description() -> &'static str {
+            "Valid if the http packet contains the header name"
+        }
+
+        fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
+            Some(self.1) == analyzer.find_header(self.0)
         }
     }
 }
