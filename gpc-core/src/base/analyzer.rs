@@ -8,15 +8,20 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
 
-    type Flow: Sized + 'static;
+    type Flow: Default + Sized + 'static;
 
     fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
-    fn write_flow_signature(&self, signature: impl Write, direction: Direction) -> bool;
-    fn create_flow(&self, direction: Direction) -> Self::Flow {
-        unimplemented!()
+
+    fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
+        false
     }
-    fn update_flow(&self, flow: &mut Self::Flow, direction: Direction) {
-        unimplemented!()
+
+    fn create_flow(&self, _direction: Direction) -> Self::Flow {
+        unimplemented!("Analyzer {:?} do not uses the flow instance", Self::ID)
+    }
+
+    fn update_flow(&self, _flow: &mut Self::Flow, _direction: Direction) {
+        unimplemented!("Analyzer {:?} do not uses the flow instance", Self::ID)
     }
 }
 

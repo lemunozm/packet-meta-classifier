@@ -1,11 +1,9 @@
 use crate::base::analyzer::Analyzer;
 use crate::base::builder::Builder;
 use crate::base::expression_value::ExpressionValue;
-use crate::base::flow::Flow;
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::GenericAnalyzerHandler;
 use crate::handler::flow::GenericFlowHandler;
-use crate::packet::Direction;
 
 use std::fmt;
 
@@ -47,13 +45,16 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler>,
     ) -> bool {
-        let analyzer = analyzer.inner_ref::<B::Analyzer, B::Flow>();
+        let analyzer = analyzer.inner_ref::<B::Analyzer>();
 
         match flow {
-            Some(flow) => self.0.check(analyzer, flow.inner_ref::<B::Flow>()),
+            Some(flow) => {
+                let inner_flow = flow.inner_ref::<<B::Analyzer as Analyzer<I>>::Flow>();
+                self.0.check(analyzer, inner_flow)
+            }
             None => {
-                // The flow created here is always a NoFlow
-                let no_flow = B::Flow::create(&analyzer, Direction::Uplink);
+                // The flow created here should be a () Flow, so there is no cost in the creation
+                let no_flow = <B::Analyzer as Analyzer<I>>::Flow::default();
                 self.0.check(analyzer, &no_flow)
             }
         }

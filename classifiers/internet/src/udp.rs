@@ -5,10 +5,11 @@ use gpc_core::base::builder::Builder;
 pub struct UdpBuilder;
 impl<'a> Builder<'a, ClassifierId> for UdpBuilder {
     type Analyzer = analyzer::UdpAnalyzer<'a>;
-    type Flow = flow::UdpFlow;
 }
 
 mod analyzer {
+    use super::flow::UdpFlow;
+
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
@@ -40,6 +41,8 @@ mod analyzer {
     impl<'a> Analyzer<'a, ClassifierId> for UdpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Udp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
+
+        type Flow = UdpFlow;
 
         fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = 8;
@@ -79,24 +82,18 @@ mod analyzer {
             signature.write_all(second).unwrap();
             true
         }
+
+        fn create_flow(&self, _direction: Direction) -> UdpFlow {
+            UdpFlow {}
+        }
+
+        fn update_flow(&self, _flow: &mut UdpFlow, _direction: Direction) {}
     }
 }
 
 mod flow {
-    use super::analyzer::UdpAnalyzer;
-
-    use gpc_core::base::flow::Flow;
-    use gpc_core::packet::Direction;
-
+    #[derive(Default)]
     pub struct UdpFlow {}
-
-    impl Flow<UdpAnalyzer<'_>> for UdpFlow {
-        fn create(_analyzer: &UdpAnalyzer, _direction: Direction) -> Self {
-            UdpFlow {}
-        }
-
-        fn update(&mut self, _analyzer: &UdpAnalyzer, _direction: Direction) {}
-    }
 }
 
 pub mod expression {

@@ -102,6 +102,9 @@ mod analyzer {
 
 pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
+    use super::IpBuilder;
+
+    use crate::ClassifierId;
 
     use gpc_core::base::expression_value::ExpressionValue;
 
@@ -110,7 +113,9 @@ pub mod expression {
     #[derive(Debug)]
     pub struct Ip;
 
-    impl ExpressionValue<IpAnalyzer<'_>, ()> for Ip {
+    impl ExpressionValue<ClassifierId> for Ip {
+        type Builder = IpBuilder;
+
         fn description() -> &'static str {
             "Valid if the packet is TCP"
         }
@@ -122,7 +127,9 @@ pub mod expression {
 
     pub use super::analyzer::Version as IpVersion;
 
-    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpVersion {
+    impl ExpressionValue<ClassifierId> for IpVersion {
+        type Builder = IpBuilder;
+
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
         }
@@ -138,7 +145,9 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpSource {
+    impl ExpressionValue<ClassifierId> for IpSource {
+        type Builder = IpBuilder;
+
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
         }
@@ -151,7 +160,9 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpDest {
+    impl ExpressionValue<ClassifierId> for IpDest {
+        type Builder = IpBuilder;
+
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"
         }
@@ -167,7 +178,9 @@ pub mod expression {
         Udp = 17,
     }
 
-    impl ExpressionValue<IpAnalyzer<'_>, ()> for IpProto {
+    impl ExpressionValue<ClassifierId> for IpProto {
+        type Builder = IpBuilder;
+
         fn description() -> &'static str {
             "Valid if the IP protocol of the packet matches the given protocol"
         }

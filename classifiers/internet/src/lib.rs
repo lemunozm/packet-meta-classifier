@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate arrayref;
 
-//pub mod http;
+pub mod http;
 pub mod ip;
 pub mod tcp;
-//pub mod udp;
+pub mod udp;
 
 use gpc_core::base::id::ClassifierId as ClassifierIdTrait;
-//use gpc_core::loader::AnalyzerFactory;
+use gpc_core::loader::AnalyzerFactory;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -40,12 +40,10 @@ impl ClassifierIdTrait for ClassifierId {
     const TOTAL: usize = ClassifierId::COUNT;
 }
 
-/*
 pub fn loader() -> AnalyzerFactory<ClassifierId> {
     AnalyzerFactory::default()
         .builder(ip::IpBuilder)
+        .builder(udp::UdpBuilder)
         .builder(tcp::TcpBuilder)
-    //        .builder(tcp::TcpBuilder)
-    //       .builder(http::HttpBuilder)
+        .builder(http::HttpBuilder)
 }
-*/

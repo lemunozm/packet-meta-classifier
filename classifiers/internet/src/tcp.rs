@@ -84,13 +84,13 @@ mod analyzer {
             true
         }
 
-        fn create_flow(&self, direction: Direction) -> TcpFlow {
+        fn create_flow(&self, _direction: Direction) -> TcpFlow {
             TcpFlow {
                 handshake: Handshake::Send,
             }
         }
 
-        fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {}
+        fn update_flow(&self, _flow: &mut TcpFlow, _direction: Direction) {}
     }
 }
 
@@ -104,18 +104,29 @@ mod flow {
     pub struct TcpFlow {
         pub handshake: Handshake,
     }
+
+    impl Default for TcpFlow {
+        fn default() -> Self {
+            unreachable!()
+        }
+    }
 }
 
 pub mod expression {
     use super::analyzer::TcpAnalyzer;
     use super::flow::TcpFlow;
+    use super::TcpBuilder;
+
+    use crate::ClassifierId;
 
     use gpc_core::base::expression_value::ExpressionValue;
 
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
-    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpSourcePort {
+    impl ExpressionValue<ClassifierId> for TcpSourcePort {
+        type Builder = TcpBuilder;
+
         fn description() -> &'static str {
             "Valid if the source TCP port of the packet matches the given port"
         }
@@ -128,7 +139,9 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
 
-    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpDestPort {
+    impl ExpressionValue<ClassifierId> for TcpDestPort {
+        type Builder = TcpBuilder;
+
         fn description() -> &'static str {
             "Valid if the destination TCP port of the packet matches the given port"
         }
@@ -141,7 +154,9 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpPayload;
 
-    impl ExpressionValue<TcpAnalyzer<'_>, TcpFlow> for TcpPayload {
+    impl ExpressionValue<ClassifierId> for TcpPayload {
+        type Builder = TcpBuilder;
+
         fn description() -> &'static str {
             "Valid if the TCP packet contains payload"
         }

@@ -5,10 +5,11 @@ use gpc_core::base::builder::Builder;
 pub struct HttpBuilder;
 impl<'a> Builder<'a, ClassifierId> for HttpBuilder {
     type Analyzer = analyzer::HttpAnalyzer<'a>;
-    type Flow = flow::HttpFlow;
 }
 
 mod analyzer {
+    use super::flow::HttpFlow;
+
     use crate::ClassifierId;
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
@@ -100,6 +101,8 @@ mod analyzer {
         const ID: ClassifierId = ClassifierId::Http;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
 
+        type Flow = HttpFlow;
+
         fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let first_line = unsafe {
                 //SAFETY: We only check agains first 128 ascii values
@@ -143,24 +146,18 @@ mod analyzer {
         fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
             true
         }
+
+        fn create_flow(&self, _direction: Direction) -> HttpFlow {
+            HttpFlow {}
+        }
+
+        fn update_flow(&self, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 }
 
 mod flow {
-    use super::analyzer::HttpAnalyzer;
-
-    use gpc_core::base::flow::Flow;
-    use gpc_core::packet::Direction;
-
+    #[derive(Default)]
     pub struct HttpFlow {}
-
-    impl Flow<HttpAnalyzer<'_>> for HttpFlow {
-        fn create(_analyzer: &HttpAnalyzer, _direction: Direction) -> Self {
-            HttpFlow {}
-        }
-
-        fn update(&mut self, _analyzer: &HttpAnalyzer, _direction: Direction) {}
-    }
 }
 
 pub mod expression {

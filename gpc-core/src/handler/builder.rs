@@ -39,7 +39,7 @@ where
     I: ClassifierId,
 {
     _builder: B,
-    cached_analyzer: Option<AnalyzerHandler<B::Analyzer, B::Flow>>,
+    cached_analyzer: Option<AnalyzerHandler<B::Analyzer>>,
 }
 
 impl<'a, B, I> GenericBuilderHandler<I> for BuilderHandler<'a, B, I>
@@ -56,7 +56,7 @@ where
         }
 
         B::Analyzer::build(packet).map(|info| {
-            let handler = AnalyzerHandler::<B::Analyzer, B::Flow>::new(info.analyzer);
+            let handler = AnalyzerHandler::<B::Analyzer>::new(info.analyzer);
             let handler = unsafe { std::mem::transmute_copy(&handler) };
 
             let generic_analyzer =
@@ -92,8 +92,6 @@ where
     unsafe fn clean(&mut self) {
         let mut generic_analyzer = self.cached_analyzer.take().expect("Analyzer must be built");
 
-        std::ptr::drop_in_place(
-            &mut generic_analyzer as *mut AnalyzerHandler<B::Analyzer, B::Flow>,
-        );
+        std::ptr::drop_in_place(&mut generic_analyzer as *mut AnalyzerHandler<B::Analyzer>);
     }
 }
