@@ -6,6 +6,7 @@ use crate::handler::analyzer::GenericAnalyzerHandler;
 use crate::handler::flow::GenericFlowHandler;
 
 use std::fmt;
+use std::mem::MaybeUninit;
 
 pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
     fn check(
@@ -53,8 +54,14 @@ where
                 self.0.check(analyzer, inner_flow)
             }
             None => {
-                // The flow created here should be a () Flow, so there is no cost in the creation
-                let no_flow = <B::Analyzer as Analyzer<I>>::Flow::default();
+                // The flow created here should be an empty Flow.
+                if std::mem::size_of::<<B::Analyzer as Analyzer<I>>::Flow>() != 0 {
+                    panic!("Unexpected real flow, expected flow with no size")
+                }
+                let no_flow = unsafe {
+                    //SAFETY: 0 sized types are safe to be uninitialized.
+                    MaybeUninit::<<B::Analyzer as Analyzer<I>>::Flow>::uninit().assume_init()
+                };
                 self.0.check(analyzer, &no_flow)
             }
         }

@@ -8,7 +8,7 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
 
-    type Flow: Default + Sized + 'static;
+    type Flow: Sized + 'static;
 
     fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
 

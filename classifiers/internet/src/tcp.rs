@@ -104,12 +104,6 @@ mod flow {
     pub struct TcpFlow {
         pub handshake: Handshake,
     }
-
-    impl Default for TcpFlow {
-        fn default() -> Self {
-            unreachable!()
-        }
-    }
 }
 
 pub mod expression {

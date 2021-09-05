@@ -156,7 +156,6 @@ mod analyzer {
 }
 
 mod flow {
-    #[derive(Default)]
     pub struct HttpFlow {}
 }
 
