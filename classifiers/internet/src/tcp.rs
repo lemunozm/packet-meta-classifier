@@ -33,8 +33,8 @@ mod analyzer {
 
         fn expected_l7_classifier(server_port: u16) -> ClassifierId {
             match server_port {
-                80 => ClassifierId::Http,
-                8080 => ClassifierId::Http,
+                80 => ClassifierId::HttpStartLine,
+                8080 => ClassifierId::HttpStartLine,
                 _ => ClassifierId::None,
             }
         }

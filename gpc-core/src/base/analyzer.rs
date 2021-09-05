@@ -17,11 +17,11 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
     }
 
     fn create_flow(&self, _direction: Direction) -> Self::Flow {
-        unimplemented!("Analyzer {:?} do not uses the flow instance", Self::ID)
+        unimplemented!("Analyzer {:?} do not create the flow instance", Self::ID)
     }
 
     fn update_flow(&self, _flow: &mut Self::Flow, _direction: Direction) {
-        unimplemented!("Analyzer {:?} do not uses the flow instance", Self::ID)
+        unimplemented!("Analyzer {:?} do not update the flow instance", Self::ID)
     }
 }
 

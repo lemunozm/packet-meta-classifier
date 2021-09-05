@@ -19,7 +19,8 @@ pub enum ClassifierId {
     Ip,
     Tcp,
     Udp,
-    Http,
+    HttpStartLine,
+    HttpHeader,
 }
 
 impl From<usize> for ClassifierId {
@@ -45,5 +46,6 @@ pub fn loader() -> AnalyzerFactory<ClassifierId> {
         .builder(ip::IpBuilder)
         .builder(udp::UdpBuilder)
         .builder(tcp::TcpBuilder)
-        .builder(http::HttpBuilder)
+        .builder(http::HttpStartLineBuilder)
+        .builder(http::HttpHeaderBuilder)
 }
