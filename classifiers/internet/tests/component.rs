@@ -5,7 +5,7 @@ use internet::{
     self,
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
-    tcp::expression::{TcpDestPort, TcpPayloadLen, TcpSourcePort},
+    tcp::expression::{TcpDestPort, TcpPayloadLen, TcpServerPort, TcpSourcePort},
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
 
@@ -38,8 +38,7 @@ fn tcp_http() {
         rules: vec![
             (
                 "Http",
-                (Expr::value(TcpDestPort(80)) | Expr::value(TcpSourcePort(80)))
-                    & Expr::value(TcpPayloadLen(|len| len > 0)),
+                Expr::value(TcpServerPort(80)) & Expr::value(TcpPayloadLen(|len| len > 0)),
             ),
             ("D80", Expr::value(TcpDestPort(80))),
             ("S80", Expr::value(TcpSourcePort(80))),

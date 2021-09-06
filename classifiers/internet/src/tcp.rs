@@ -18,6 +18,7 @@ mod analyzer {
     pub struct TcpAnalyzer<'a> {
         pub header: &'a [u8],
         pub payload_len: u16,
+        pub direction: Direction,
     }
 
     impl<'a> TcpAnalyzer<'a> {
@@ -27,6 +28,13 @@ mod analyzer {
 
         pub fn dest_port(&self) -> u16 {
             u16::from_be_bytes(*array_ref![self.header, 2, 2])
+        }
+
+        pub fn server_port(&self) -> u16 {
+            match self.direction {
+                Direction::Uplink => self.dest_port(),
+                Direction::Downlink => self.source_port(),
+            }
         }
 
         pub fn payload_len(&self) -> u16 {
@@ -54,16 +62,11 @@ mod analyzer {
             let analyzer = Self {
                 header: &data[0..header_len],
                 payload_len: (data.len() - header_len) as u16,
+                direction,
             };
 
             let next_protocol = match analyzer.payload_len > 0 {
-                true => {
-                    let server_port = match direction {
-                        Direction::Uplink => analyzer.dest_port(),
-                        Direction::Downlink => analyzer.source_port(),
-                    };
-                    Self::expected_l7_classifier(server_port)
-                }
+                true => Self::expected_l7_classifier(analyzer.server_port()),
                 false => ClassifierId::None,
             };
 
@@ -147,6 +150,21 @@ pub mod expression {
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.dest_port()
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpServerPort(pub u16);
+
+    impl ExpressionValue<ClassifierId> for TcpServerPort {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the server TCP port of the packet matches the given port"
+        }
+
+        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            self.0 == analyzer.server_port()
         }
     }
 
