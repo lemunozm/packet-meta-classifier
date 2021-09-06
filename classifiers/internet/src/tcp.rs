@@ -29,6 +29,10 @@ mod analyzer {
             u16::from_be_bytes(*array_ref![self.header, 2, 2])
         }
 
+        pub fn payload_len(&self) -> u16 {
+            self.payload_len
+        }
+
         fn expected_l7_classifier(server_port: u16) -> ClassifierId {
             match server_port {
                 80 => ClassifierId::HttpStartLine,
@@ -114,6 +118,8 @@ pub mod expression {
 
     use pmc_core::base::expression_value::ExpressionValue;
 
+    use std::fmt;
+
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
@@ -144,18 +150,26 @@ pub mod expression {
         }
     }
 
-    #[derive(Debug)]
-    pub struct TcpPayload;
+    pub struct TcpPayloadLen<F>(pub F);
 
-    impl ExpressionValue<ClassifierId> for TcpPayload {
-        type Classifier = TcpClassifier;
+    impl<F> fmt::Debug for TcpPayloadLen<F> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "TcpPayloadLen(USER_FN)")
+        }
+    }
+
+    impl<F> ExpressionValue<ClassifierId> for TcpPayloadLen<F>
+    where
+        F: Fn(u16) -> bool + 'static,
+    {
+        type Classifier = super::TcpClassifier;
 
         fn description() -> &'static str {
-            "Valid if the TCP packet contains payload"
+            "Valid if the payload len meets the user assert"
         }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            analyzer.payload_len > 0
+            self.0(analyzer.payload_len())
         }
     }
 }

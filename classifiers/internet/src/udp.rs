@@ -29,6 +29,10 @@ mod analyzer {
             u16::from_be_bytes(*array_ref![self.header, 2, 2])
         }
 
+        pub fn payload_len(&self) -> u16 {
+            self.payload_len
+        }
+
         fn expected_l7_classifier(_server_port: u16) -> ClassifierId {
             ClassifierId::None
         }
@@ -42,7 +46,7 @@ mod analyzer {
 
         fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = 8;
-            let payload_len = u16::from_be_bytes(*array_ref![data, 4, 2]);
+            let payload_len = u16::from_be_bytes(*array_ref![data, 4, 2]) - header_len as u16;
 
             let analyzer = Self {
                 header: &data[0..header_len],
@@ -100,6 +104,8 @@ pub mod expression {
 
     use pmc_core::base::expression_value::ExpressionValue;
 
+    use std::fmt;
+
     #[derive(Debug)]
     pub struct UdpSourcePort(pub u16);
 
@@ -127,6 +133,29 @@ pub mod expression {
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0 == analyzer.dest_port()
+        }
+    }
+
+    pub struct UdpPayloadLen<F>(pub F);
+
+    impl<F> fmt::Debug for UdpPayloadLen<F> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+            write!(f, "UdpPayloadLen(USER_FN)")
+        }
+    }
+
+    impl<F> ExpressionValue<ClassifierId> for UdpPayloadLen<F>
+    where
+        F: Fn(u16) -> bool + 'static,
+    {
+        type Classifier = super::UdpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the payload len meets the user assert"
+        }
+
+        fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
+            self.0(analyzer.payload_len())
         }
     }
 }

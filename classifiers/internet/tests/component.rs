@@ -5,11 +5,30 @@ use internet::{
     self,
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
-    tcp::expression::{TcpDestPort, TcpPayload, TcpSourcePort},
+    tcp::expression::{TcpDestPort, TcpPayloadLen, TcpSourcePort},
+    udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
 
 use pmc_core::expression::Expr;
 use pmc_testing::common::{self, CaptureData, TestConfig};
+
+#[test]
+fn udp_echo() {
+    common::run_classification_test(TestConfig {
+        loader: internet::loader(),
+        config: (),
+        rules: vec![
+            ("MoreThan10B", Expr::value(UdpPayloadLen(|len| len > 10))),
+            ("ToServer", Expr::value(UdpDestPort(12345))),
+            ("ToClient", Expr::value(UdpSourcePort(12345))),
+        ],
+        captures: vec![CaptureData {
+            capture: IpCapture::open("tests/captures/ipv4-udp-echo.pcap"),
+            sections: vec![(1, 4)],
+        }],
+        expected_classification: vec!["ToServer", "ToClient", "MoreThan10B", "MoreThan10B"],
+    });
+}
 
 #[test]
 fn tcp_http() {
@@ -20,7 +39,7 @@ fn tcp_http() {
             (
                 "Http",
                 (Expr::value(TcpDestPort(80)) | Expr::value(TcpSourcePort(80)))
-                    & Expr::value(TcpPayload),
+                    & Expr::value(TcpPayloadLen(|len| len > 0)),
             ),
             ("D80", Expr::value(TcpDestPort(80))),
             ("S80", Expr::value(TcpSourcePort(80))),
