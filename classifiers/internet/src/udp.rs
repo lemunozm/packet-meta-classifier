@@ -10,12 +10,10 @@ impl<'a> Builder<'a, ClassifierId> for UdpBuilder {
 mod analyzer {
     use super::flow::UdpFlow;
 
-    use crate::ClassifierId;
+    use crate::{ClassifierId, FlowSignature};
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
-
-    use std::io::Write;
 
     pub struct UdpAnalyzer<'a> {
         pub header: &'a [u8],
@@ -71,15 +69,16 @@ mod analyzer {
             })
         }
 
-        fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
-            let (source, dest) = (&self.header[0..2], &self.header[2..4]);
+        fn update_flow_id(&self, signature: &mut FlowSignature, direction: Direction) -> bool {
+            let (source, dest) = (self.source_port(), self.dest_port());
             let (first, second) = match direction {
                 Direction::Uplink => (source, dest),
                 Direction::Downlink => (dest, source),
             };
 
-            signature.write_all(first).unwrap();
-            signature.write_all(second).unwrap();
+            signature.source_port = first;
+            signature.dest_port = second;
+
             true
         }
 

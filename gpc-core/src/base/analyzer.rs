@@ -2,8 +2,6 @@ use crate::base::id::ClassifierId;
 
 use crate::packet::{Direction, Packet};
 
-use std::io::Write;
-
 pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
@@ -12,7 +10,7 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
 
     fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
 
-    fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
+    fn update_flow_id(&self, _flow_id: &mut I::FlowId, _direction: Direction) -> bool {
         false
     }
 

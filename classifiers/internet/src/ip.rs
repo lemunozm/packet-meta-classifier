@@ -8,13 +8,12 @@ impl<'a> Builder<'a, ClassifierId> for IpBuilder {
 }
 
 mod analyzer {
-    use crate::ClassifierId;
+    use crate::{ClassifierId, FlowSignature};
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
 
-    use std::io::Write;
-    use std::net::IpAddr;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     #[derive(Debug, Clone, Copy)]
     pub enum Version {
@@ -81,18 +80,25 @@ mod analyzer {
             })
         }
 
-        fn write_flow_signature(&self, mut signature: impl Write, direction: Direction) -> bool {
+        fn update_flow_id(&self, signature: &mut FlowSignature, direction: Direction) -> bool {
             let (source, dest) = match &self.version {
-                Version::V4 => (&self.header[12..16], &self.header[16..20]),
-                Version::V6 => (&self.header[8..24], &self.header[24..40]),
+                Version::V4 => (
+                    Ipv4Addr::from(*array_ref![self.header, 12, 4]).to_ipv6_mapped(),
+                    Ipv4Addr::from(*array_ref![self.header, 16, 4]).to_ipv6_mapped(),
+                ),
+                Version::V6 => (
+                    Ipv6Addr::from(*array_ref![self.header, 8, 16]),
+                    Ipv6Addr::from(*array_ref![self.header, 24, 16]),
+                ),
             };
 
             let (first, second) = match direction {
                 Direction::Uplink => (source, dest),
                 Direction::Downlink => (dest, source),
             };
-            signature.write_all(&first).unwrap();
-            signature.write_all(&second).unwrap();
+
+            signature.source_ip = first;
+            signature.dest_ip = second;
 
             // For IP, we only add the to signature but we do not want to create an IP flow
             false

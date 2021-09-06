@@ -15,17 +15,16 @@ pub struct CaptureData<R: Capture> {
     pub sections: Vec<(usize, usize)>,
 }
 
-pub struct TestConfig<C, T, I: ClassifierId, R: Capture, const MFS: usize> {
-    pub loader: AnalyzerFactory<I, MFS>,
+pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
+    pub loader: AnalyzerFactory<I>,
     pub config: C,
     pub rules: Vec<(T, Expr<I>)>,
     pub captures: Vec<CaptureData<R>>,
     pub expected_classification: Vec<T>,
 }
 
-pub fn run_classification_test<C, T, I, R, const MFS: usize>(
-    test_config: TestConfig<C, T, I, R, MFS>,
-) where
+pub fn run_classification_test<C, T, I, R>(test_config: TestConfig<C, T, I, R>)
+where
     T: fmt::Debug + fmt::Display + Default + Copy + Eq,
     I: ClassifierId,
     R: Capture,
@@ -46,7 +45,7 @@ pub fn run_classification_test<C, T, I, R, const MFS: usize>(
     }
 
     let mut classifier =
-        Classifier::<C, T, I, MFS>::new(test_config.config, test_config.rules, test_config.loader);
+        Classifier::<C, T, I>::new(test_config.config, test_config.rules, test_config.loader);
     let mut injector = Injector::new(&test_config.expected_classification);
 
     for capture_data in test_config.captures {

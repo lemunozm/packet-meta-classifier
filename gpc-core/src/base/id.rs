@@ -1,9 +1,14 @@
+use std::fmt::Debug;
+use std::hash::Hash;
+
 pub trait ClassifierId:
-    From<usize> + Into<usize> + std::hash::Hash + std::fmt::Debug + Copy + Eq + Ord + 'static
+    From<usize> + Into<usize> + Hash + Debug + Copy + Eq + Ord + 'static
 {
     const NONE: Self;
     const INITIAL: Self;
     const TOTAL: usize;
+
+    type FlowId: Default + Clone + Hash + Eq + Debug;
 
     fn inner(self) -> usize {
         self.into()

@@ -15,13 +15,12 @@ impl<'a> Builder<'a, ClassifierId> for HttpHeaderBuilder {
 mod analyzer {
     use super::flow::HttpFlow;
 
-    use crate::ClassifierId;
+    use crate::{ClassifierId, FlowSignature};
 
     use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use gpc_core::packet::{Direction, Packet};
 
     use std::convert::TryFrom;
-    use std::io::Write;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Method {
@@ -147,7 +146,7 @@ mod analyzer {
             })
         }
 
-        fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
+        fn update_flow_id(&self, _signature: &mut FlowSignature, _direction: Direction) -> bool {
             true
         }
 
@@ -201,7 +200,7 @@ mod analyzer {
             })
         }
 
-        fn write_flow_signature(&self, _signature: impl Write, _direction: Direction) -> bool {
+        fn update_flow_id(&self, _signature: &mut FlowSignature, _direction: Direction) -> bool {
             true
         }
 

@@ -7,45 +7,32 @@ use std::cell::Ref;
 use std::collections::{hash_map::Entry, HashMap};
 use std::marker::PhantomData;
 
-pub struct FlowPool<I, const MFS: usize> {
-    flows: Vec<HashMap<[u8; MFS], SharedGenericFlowHandler>>,
+pub struct FlowPool<I: ClassifierId> {
+    flows: Vec<HashMap<I::FlowId, SharedGenericFlowHandler>>,
     flow_cache: Vec<Option<SharedGenericFlowHandler>>,
-    current_flow_signature: Vec<u8>,
+    current_flow_id: I::FlowId,
     _id: PhantomData<I>,
 }
 
-impl<I: ClassifierId, const MFS: usize> Default for FlowPool<I, MFS> {
+impl<I: ClassifierId> Default for FlowPool<I> {
     fn default() -> Self {
         Self {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
             flow_cache: (0..I::TOTAL).map(|_| None).collect(),
-            current_flow_signature: Vec::with_capacity(MFS),
+            current_flow_id: I::FlowId::default(),
             _id: PhantomData::default(),
         }
     }
 }
 
-impl<I: ClassifierId, const MFS: usize> FlowPool<I, MFS> {
+impl<I: ClassifierId> FlowPool<I> {
     pub fn prepare_for_packet(&mut self) {
-        self.current_flow_signature.clear();
+        self.current_flow_id = I::FlowId::default();
     }
 
     pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
-        if analyzer.update_flow_signature(&mut self.current_flow_signature, direction) {
-            if self.current_flow_signature.len() > MFS {
-                panic!(
-                    "Signature of the current flow is hight than {}, the MAX_FLOW_SIGNATURE value",
-                    MFS,
-                );
-            }
-
-            let array = unsafe {
-                //SAFETY: The slice is at least MFS size
-                let slice = &self.current_flow_signature[..];
-                &*(slice.as_ptr() as *const [u8; MFS])
-            };
-
-            let entry = self.flows[analyzer.id().inner()].entry(*array);
+        if analyzer.update_flow_id(&mut self.current_flow_id, direction) {
+            let entry = self.flows[analyzer.id().inner()].entry(self.current_flow_id.clone());
 
             log::trace!(
                 "{} {:?} flow. Sig: {:?}",
@@ -55,7 +42,7 @@ impl<I: ClassifierId, const MFS: usize> FlowPool<I, MFS> {
                     "Update"
                 },
                 analyzer.id(),
-                self.current_flow_signature,
+                self.current_flow_id,
             );
 
             match entry {

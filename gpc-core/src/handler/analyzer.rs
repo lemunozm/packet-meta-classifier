@@ -6,7 +6,7 @@ use crate::packet::Direction;
 pub trait GenericAnalyzerHandler<'a, I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
-    fn update_flow_signature(&self, current_signature: &mut Vec<u8>, direction: Direction) -> bool;
+    fn update_flow_id(&self, flow_id: &mut I::FlowId, direction: Direction) -> bool;
     fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler;
     fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction);
 }
@@ -55,8 +55,8 @@ where
         A::PREV_ID
     }
 
-    fn update_flow_signature(&self, mut signature: &mut Vec<u8>, direction: Direction) -> bool {
-        self.0.write_flow_signature(&mut signature, direction)
+    fn update_flow_id(&self, mut signature: &mut I::FlowId, direction: Direction) -> bool {
+        self.0.update_flow_id(&mut signature, direction)
     }
 
     fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler {

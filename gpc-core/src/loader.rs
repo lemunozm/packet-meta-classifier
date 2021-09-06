@@ -5,13 +5,13 @@ use crate::base::id::ClassifierId;
 use crate::dependency_checker::DependencyChecker;
 use crate::handler::builder::GenericBuilderHandler;
 
-pub struct AnalyzerFactory<I: ClassifierId, const MFS: usize> {
+pub struct AnalyzerFactory<I: ClassifierId> {
     builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>,
     ids_relations: Vec<(I, I)>,
     last_id: usize,
 }
 
-impl<I: ClassifierId, const MFS: usize> Default for AnalyzerFactory<I, MFS> {
+impl<I: ClassifierId> Default for AnalyzerFactory<I> {
     fn default() -> Self {
         Self {
             builders: (0..I::TOTAL).map(|_| None).collect(),
@@ -21,7 +21,7 @@ impl<I: ClassifierId, const MFS: usize> Default for AnalyzerFactory<I, MFS> {
     }
 }
 
-impl<I: ClassifierId, const MFS: usize> AnalyzerFactory<I, MFS> {
+impl<I: ClassifierId> AnalyzerFactory<I> {
     pub fn builder<B>(mut self, builder: B) -> Self
     where
         B: for<'a> Builder<'a, I> + 'static,

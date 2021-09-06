@@ -13,6 +13,8 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use strum::EnumCount;
 
+use std::net::Ipv6Addr;
+
 #[derive(EnumCount, FromPrimitive, Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub enum ClassifierId {
     None,
@@ -35,15 +37,34 @@ impl From<ClassifierId> for usize {
     }
 }
 
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub struct FlowSignature {
+    source_ip: Ipv6Addr,
+    dest_ip: Ipv6Addr,
+    source_port: u16,
+    dest_port: u16,
+}
+
+impl Default for FlowSignature {
+    fn default() -> Self {
+        Self {
+            source_ip: Ipv6Addr::UNSPECIFIED,
+            dest_ip: Ipv6Addr::UNSPECIFIED,
+            source_port: 0,
+            dest_port: 0,
+        }
+    }
+}
+
 impl ClassifierIdTrait for ClassifierId {
     const NONE: ClassifierId = ClassifierId::None;
     const INITIAL: ClassifierId = ClassifierId::Ip;
     const TOTAL: usize = ClassifierId::COUNT;
+
+    type FlowId = FlowSignature;
 }
 
-const MAX_FLOW_SIGNATURE: usize = 16 + 16 + 2 + 2; // Ipv6 (origin + source) + port (origin + source)
-
-pub fn loader() -> AnalyzerFactory<ClassifierId, MAX_FLOW_SIGNATURE> {
+pub fn loader() -> AnalyzerFactory<ClassifierId> {
     AnalyzerFactory::default()
         .builder(ip::IpBuilder)
         .builder(udp::UdpBuilder)
