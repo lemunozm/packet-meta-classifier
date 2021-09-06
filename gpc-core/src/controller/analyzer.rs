@@ -1,17 +1,17 @@
 use crate::base::analyzer::Analyzer;
 use crate::base::id::ClassifierId;
-use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
+use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Direction;
 
-pub trait GenericAnalyzerHandler<'a, I: ClassifierId> {
+pub trait AnalyzerController<'a, I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
     fn update_flow_id(&self, flow_id: &mut I::FlowId, direction: Direction) -> bool;
-    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler;
-    fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction);
+    fn create_flow(&self, direction: Direction) -> SharedFlowController;
+    fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction);
 }
 
-impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
+impl<'a, I: ClassifierId> dyn AnalyzerController<'a, I> + '_ {
     pub fn inner_ref<A>(&self) -> &A
     where
         A: Analyzer<'a, I>,
@@ -24,25 +24,25 @@ impl<'a, I: ClassifierId> dyn GenericAnalyzerHandler<'a, I> + '_ {
             );
         }
 
-        let handler = unsafe {
+        let controller = unsafe {
             // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
             // they are the same object.
-            &*(self as *const dyn GenericAnalyzerHandler<I> as *const AnalyzerHandler<A>)
+            &*(self as *const dyn AnalyzerController<I> as *const AnalyzerControllerImpl<A>)
         };
 
-        &handler.0
+        &controller.0
     }
 }
 
-pub struct AnalyzerHandler<A>(pub A);
+pub struct AnalyzerControllerImpl<A>(A);
 
-impl<A> AnalyzerHandler<A> {
+impl<A> AnalyzerControllerImpl<A> {
     pub fn new(analyzer: A) -> Self {
-        AnalyzerHandler(analyzer)
+        AnalyzerControllerImpl(analyzer)
     }
 }
 
-impl<'a, A, I> GenericAnalyzerHandler<'a, I> for AnalyzerHandler<A>
+impl<'a, A, I> AnalyzerController<'a, I> for AnalyzerControllerImpl<A>
 where
     A: Analyzer<'a, I>,
     I: ClassifierId,
@@ -59,12 +59,12 @@ where
         self.0.update_flow_id(&mut signature, direction)
     }
 
-    fn create_flow(&self, direction: Direction) -> SharedGenericFlowHandler {
+    fn create_flow(&self, direction: Direction) -> SharedFlowController {
         let flow = A::create_flow(&self.0, direction);
-        <dyn GenericFlowHandler>::new_shared(flow)
+        <dyn FlowController>::new_shared(flow)
     }
 
-    fn update_flow(&self, flow: &mut dyn GenericFlowHandler, direction: Direction) {
+    fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction) {
         let flow = &mut flow.inner_mut::<A::Flow>();
         &self.0.update_flow(flow, direction);
     }

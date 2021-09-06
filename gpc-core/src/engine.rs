@@ -164,7 +164,7 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                     log::trace!("Analyze for: {:?}", self.next_classifier_id);
                     let analyzer_result = self
                         .cache
-                        .build_from_packet(self.next_classifier_id, &self.packet);
+                        .build_analyzer(self.next_classifier_id, &self.packet);
 
                     match analyzer_result {
                         Ok(info) => {

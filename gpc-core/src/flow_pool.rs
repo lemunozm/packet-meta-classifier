@@ -1,6 +1,6 @@
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::GenericAnalyzerHandler;
-use crate::handler::flow::{GenericFlowHandler, SharedGenericFlowHandler};
+use crate::controller::analyzer::AnalyzerController;
+use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Direction;
 
 use std::cell::Ref;
@@ -8,8 +8,8 @@ use std::collections::{hash_map::Entry, HashMap};
 use std::marker::PhantomData;
 
 pub struct FlowPool<I: ClassifierId> {
-    flows: Vec<HashMap<I::FlowId, SharedGenericFlowHandler>>,
-    flow_cache: Vec<Option<SharedGenericFlowHandler>>,
+    flows: Vec<HashMap<I::FlowId, SharedFlowController>>,
+    flow_cache: Vec<Option<SharedFlowController>>,
     current_flow_id: I::FlowId,
     _id: PhantomData<I>,
 }
@@ -30,7 +30,7 @@ impl<I: ClassifierId> FlowPool<I> {
         self.current_flow_id = I::FlowId::default();
     }
 
-    pub fn update(&mut self, analyzer: &dyn GenericAnalyzerHandler<I>, direction: Direction) {
+    pub fn update(&mut self, analyzer: &dyn AnalyzerController<I>, direction: Direction) {
         if analyzer.update_flow_id(&mut self.current_flow_id, direction) {
             let entry = self.flows[analyzer.id().inner()].entry(self.current_flow_id.clone());
 
@@ -60,7 +60,7 @@ impl<I: ClassifierId> FlowPool<I> {
         }
     }
 
-    pub fn get_cached(&self, classifier_id: I) -> Option<Ref<dyn GenericFlowHandler>> {
+    pub fn get_cached(&self, classifier_id: I) -> Option<Ref<dyn FlowController>> {
         self.flow_cache[classifier_id.inner()]
             .as_ref()
             .map(|shared_flow| shared_flow.borrow())

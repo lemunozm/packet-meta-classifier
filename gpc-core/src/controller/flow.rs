@@ -2,34 +2,34 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub type SharedGenericFlowHandler = Rc<RefCell<dyn GenericFlowHandler>>;
+pub type SharedFlowController = Rc<RefCell<dyn FlowController>>;
 
-pub trait GenericFlowHandler: 'static {
+pub trait FlowController: 'static {
     fn as_any(&self) -> &dyn Any;
     fn as_mut_any(&mut self) -> &mut dyn Any;
 }
 
-impl dyn GenericFlowHandler {
+impl dyn FlowController {
     pub fn inner_ref<F: 'static>(&self) -> &F {
-        &self.as_any().downcast_ref::<FlowHandler<F>>().unwrap().0
+        &self.as_any().downcast_ref::<ControllerImpl<F>>().unwrap().0
     }
 
     pub fn inner_mut<F: 'static>(&mut self) -> &mut F {
         &mut self
             .as_mut_any()
-            .downcast_mut::<FlowHandler<F>>()
+            .downcast_mut::<ControllerImpl<F>>()
             .unwrap()
             .0
     }
 
-    pub fn new_shared<F: 'static>(flow: F) -> SharedGenericFlowHandler {
-        Rc::new(RefCell::new(FlowHandler(flow)))
+    pub fn new_shared<F: 'static>(flow: F) -> SharedFlowController {
+        Rc::new(RefCell::new(ControllerImpl(flow)))
     }
 }
 
-struct FlowHandler<F>(F);
+struct ControllerImpl<F>(F);
 
-impl<F: 'static> GenericFlowHandler for FlowHandler<F> {
+impl<F: 'static> FlowController for ControllerImpl<F> {
     fn as_any(&self) -> &dyn Any {
         self
     }

@@ -1,18 +1,18 @@
 use crate::base::analyzer::AnalyzerResult;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::GenericAnalyzerHandler;
-use crate::handler::builder::GenericBuilderHandler;
+use crate::controller::analyzer::AnalyzerController;
+use crate::controller::classifier::ClassifierController;
 use crate::packet::Packet;
 
 pub struct AnalyzerCache<I: ClassifierId> {
-    builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>,
+    classifiers: Vec<Option<Box<dyn ClassifierController<I>>>>,
     current_ids: Vec<I>,
 }
 
 impl<I: ClassifierId> AnalyzerCache<I> {
-    pub fn new(builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>) -> Self {
+    pub fn new(classifiers: Vec<Option<Box<dyn ClassifierController<I>>>>) -> Self {
         Self {
-            builders: builders,
+            classifiers,
             current_ids: Vec::with_capacity(I::TOTAL),
         }
     }
@@ -27,17 +27,17 @@ pub struct CacheFrame<'a, I: ClassifierId> {
 }
 
 impl<'a, I: ClassifierId> CacheFrame<'a, I> {
-    pub fn build_from_packet(
+    pub fn build_analyzer(
         &mut self,
         id: I,
         packet: &Packet<'a>,
-    ) -> AnalyzerResult<&dyn GenericAnalyzerHandler<'a, I>, I> {
+    ) -> AnalyzerResult<&dyn AnalyzerController<'a, I>, I> {
         let result = unsafe {
             // SAFETY: Cleaned before packet lifetime ends.
-            self.cache.builders[id.inner()]
+            self.cache.classifiers[id.inner()]
                 .as_mut()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
-                .build_from_packet(packet)
+                .build_analyzer(packet)
         };
 
         if result.is_ok() {
@@ -47,11 +47,11 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         result
     }
 
-    pub fn get(&self, id: I) -> &dyn GenericAnalyzerHandler<'a, I> {
+    pub fn get(&self, id: I) -> &dyn AnalyzerController<'a, I> {
         unsafe {
             // SAFETY: The lifetime of the returned analyzer is the same as the lifetime with it is
             // built.
-            self.cache.builders[id.inner()]
+            self.cache.classifiers[id.inner()]
                 .as_ref()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
                 .get()
@@ -64,7 +64,7 @@ impl<'a, I: ClassifierId> Drop for CacheFrame<'a, I> {
         // SAFETY: Remove all the pending analyzers before packet lifetime ends.
         for id in &self.cache.current_ids {
             unsafe {
-                self.cache.builders[id.inner()]
+                self.cache.classifiers[id.inner()]
                     .as_mut()
                     .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
                     .clean();

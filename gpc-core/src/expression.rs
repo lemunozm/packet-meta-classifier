@@ -1,7 +1,7 @@
 use crate::base::classifier::Classifier;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::id::ClassifierId;
-use crate::handler::expression_value::GenericExpressionValueHandler;
+use crate::controller::expression_value::ExpressionValueController;
 
 use std::ops::{BitAnd, BitOr, Not};
 
@@ -22,7 +22,7 @@ impl ValidatedExpr {
 
 pub enum Expr<I: ClassifierId> {
     #[non_exhaustive]
-    Value(Box<dyn GenericExpressionValueHandler<I>>),
+    Value(Box<dyn ExpressionValueController<I>>),
     #[non_exhaustive]
     Not(Box<Expr<I>>),
     #[non_exhaustive]
@@ -41,7 +41,7 @@ impl<I: ClassifierId> Expr<I> {
         V: ExpressionValue<I, Classifier = C> + 'static,
         C: for<'a> Classifier<'a, I>,
     {
-        Expr::Value(<dyn GenericExpressionValueHandler<I>>::new(value))
+        Expr::Value(<dyn ExpressionValueController<I>>::new(value))
     }
 
     pub fn all(expressions: Vec<Expr<I>>) -> Expr<I> {
@@ -54,9 +54,7 @@ impl<I: ClassifierId> Expr<I> {
 
     pub(crate) fn check(
         &self,
-        value_validator: &mut dyn FnMut(
-            &Box<dyn GenericExpressionValueHandler<I>>,
-        ) -> ValidatedExpr,
+        value_validator: &mut dyn FnMut(&Box<dyn ExpressionValueController<I>>) -> ValidatedExpr,
     ) -> ValidatedExpr {
         match self {
             Expr::Value(value) => value_validator(value),

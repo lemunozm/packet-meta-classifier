@@ -2,40 +2,40 @@ use crate::base::analyzer::Analyzer;
 use crate::base::classifier::Classifier;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::id::ClassifierId;
-use crate::handler::analyzer::GenericAnalyzerHandler;
-use crate::handler::flow::GenericFlowHandler;
+use crate::controller::analyzer::AnalyzerController;
+use crate::controller::flow::FlowController;
 
 use std::fmt;
 use std::mem::MaybeUninit;
 
-pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
+pub trait ExpressionValueController<I: ClassifierId>: fmt::Debug {
     fn check(
         &self,
-        analyzer: &dyn GenericAnalyzerHandler<I>,
-        flow: Option<&dyn GenericFlowHandler>,
+        analyzer: &dyn AnalyzerController<I>,
+        flow: Option<&dyn FlowController>,
     ) -> bool;
     fn classifier_id(&self) -> I;
 }
 
-impl<I: ClassifierId> dyn GenericExpressionValueHandler<I> {
-    pub fn new<V, C>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
+impl<I: ClassifierId> dyn ExpressionValueController<I> {
+    pub fn new<V, C>(expression_value: V) -> Box<dyn ExpressionValueController<I>>
     where
         V: ExpressionValue<I, Classifier = C> + 'static,
         C: for<'a> Classifier<'a, I>,
     {
-        Box::new(ExpressionValueHandler(expression_value))
+        Box::new(ControllerImpl(expression_value))
     }
 }
 
-struct ExpressionValueHandler<V>(V);
+struct ControllerImpl<V>(V);
 
-impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
+impl<V: fmt::Debug> fmt::Debug for ControllerImpl<V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }
 
-impl<V, C, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
+impl<V, C, I> ExpressionValueController<I> for ControllerImpl<V>
 where
     V: ExpressionValue<I, Classifier = C>,
     C: for<'a> Classifier<'a, I>,
@@ -43,8 +43,8 @@ where
 {
     fn check(
         &self,
-        analyzer: &dyn GenericAnalyzerHandler<I>,
-        flow: Option<&dyn GenericFlowHandler>,
+        analyzer: &dyn AnalyzerController<I>,
+        flow: Option<&dyn FlowController>,
     ) -> bool {
         let analyzer = analyzer.inner_ref::<C::Analyzer>();
 
