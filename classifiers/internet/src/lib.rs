@@ -41,7 +41,9 @@ impl ClassifierIdTrait for ClassifierId {
     const TOTAL: usize = ClassifierId::COUNT;
 }
 
-pub fn loader() -> AnalyzerFactory<ClassifierId> {
+const MAX_FLOW_SIGNATURE: usize = 16 + 16 + 2 + 2; // Ipv6 (origin + source) + port (origin + source)
+
+pub fn loader() -> AnalyzerFactory<ClassifierId, MAX_FLOW_SIGNATURE> {
     AnalyzerFactory::default()
         .builder(ip::IpBuilder)
         .builder(udp::UdpBuilder)

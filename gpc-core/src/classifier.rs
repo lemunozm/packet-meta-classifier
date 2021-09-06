@@ -19,20 +19,24 @@ pub struct ClassificationResult<T> {
     pub bytes: usize,
 }
 
-pub struct Classifier<C, T, I: ClassifierId> {
+pub struct Classifier<C, T, I: ClassifierId, const MFS: usize> {
     _config: C,
     rules: Vec<Rule<I, T>>,
     analyzer_cache: AnalyzerCache<I>,
     dependency_checker: DependencyChecker<I>,
-    flow_pool: FlowPool<I>,
+    flow_pool: FlowPool<I, MFS>,
 }
 
-impl<C, T, I> Classifier<C, T, I>
+impl<C, T, I, const MFS: usize> Classifier<C, T, I, MFS>
 where
     T: fmt::Display + Default + Eq + Copy,
     I: ClassifierId,
 {
-    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, factory: AnalyzerFactory<I>) -> Self {
+    pub fn new(
+        _config: C,
+        rule_exprs: Vec<(T, Expr<I>)>,
+        factory: AnalyzerFactory<I, MFS>,
+    ) -> Self {
         let (analyzer_cache, dependency_checker) = factory.split();
 
         Classifier {
@@ -127,16 +131,16 @@ enum ClassificationStatus {
     Abort,
 }
 
-struct ClassificationState<'a, I: ClassifierId> {
+struct ClassificationState<'a, I: ClassifierId, const MAX_FLOW_SIGNATURE: usize> {
     packet: Packet<'a>,
     next_classifier_id: I,
     cache: CacheFrame<'a, I>,
     dependency_checker: &'a DependencyChecker<I>,
-    flow_pool: &'a mut FlowPool<I>,
+    flow_pool: &'a mut FlowPool<I, MAX_FLOW_SIGNATURE>,
     finished_analysis: bool,
 }
 
-impl<'a, I: ClassifierId> ClassificationState<'a, I> {
+impl<'a, I: ClassifierId, const MFS: usize> ClassificationState<'a, I, MFS> {
     fn prepare(&mut self) {
         log::trace!(
             "Start {} bytes of {} packet classification",
