@@ -29,10 +29,8 @@ mod analyzer {
             u16::from_be_bytes(*array_ref![self.header, 2, 2])
         }
 
-        fn expected_l7_classifier(server_port: u16) -> ClassifierId {
-            match server_port {
-                _ => ClassifierId::None,
-            }
+        fn expected_l7_classifier(_server_port: u16) -> ClassifierId {
+            ClassifierId::None
         }
     }
 

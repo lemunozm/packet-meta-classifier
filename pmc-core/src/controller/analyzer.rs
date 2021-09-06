@@ -66,6 +66,6 @@ where
 
     fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction) {
         let flow = &mut flow.inner_mut::<A::Flow>();
-        &self.0.update_flow(flow, direction);
+        self.0.update_flow(flow, direction);
     }
 }
