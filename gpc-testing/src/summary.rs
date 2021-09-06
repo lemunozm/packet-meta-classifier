@@ -1,4 +1,4 @@
-use gpc_core::classifier::ClassificationResult;
+use gpc_core::engine::ClassificationResult;
 
 use colored::Colorize;
 

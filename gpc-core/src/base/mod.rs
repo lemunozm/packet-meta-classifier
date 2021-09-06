@@ -1,4 +1,4 @@
 pub mod analyzer;
-pub mod builder;
+pub mod classifier;
 pub mod expression_value;
 pub mod id;

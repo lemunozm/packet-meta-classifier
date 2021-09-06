@@ -1,14 +1,14 @@
 use crate::ClassifierId;
 
-use gpc_core::base::builder::Builder;
+use gpc_core::base::classifier::Classifier;
 
-pub struct HttpStartLineBuilder;
-impl<'a> Builder<'a, ClassifierId> for HttpStartLineBuilder {
+pub struct HttpStartLineClassifier;
+impl<'a> Classifier<'a, ClassifierId> for HttpStartLineClassifier {
     type Analyzer = analyzer::HttpStartLineAnalyzer<'a>;
 }
 
-pub struct HttpHeaderBuilder;
-impl<'a> Builder<'a, ClassifierId> for HttpHeaderBuilder {
+pub struct HttpHeaderClassifier;
+impl<'a> Classifier<'a, ClassifierId> for HttpHeaderClassifier {
     type Analyzer = analyzer::HttpHeaderAnalyzer<'a>;
 }
 
@@ -228,7 +228,7 @@ pub mod expression {
     pub struct HttpRequest;
 
     impl ExpressionValue<ClassifierId> for HttpRequest {
-        type Builder = super::HttpStartLineBuilder;
+        type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
             "Valid if the packet is a request"
@@ -243,7 +243,7 @@ pub mod expression {
     pub struct HttpResponse;
 
     impl ExpressionValue<ClassifierId> for HttpResponse {
-        type Builder = super::HttpStartLineBuilder;
+        type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
             "Valid if the packet is a response"
@@ -257,7 +257,7 @@ pub mod expression {
     pub use super::analyzer::Method as HttpMethod;
 
     impl ExpressionValue<ClassifierId> for HttpMethod {
-        type Builder = super::HttpStartLineBuilder;
+        type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
             "Valid if the http request method of the packet"
@@ -272,7 +272,7 @@ pub mod expression {
     pub struct HttpCode(pub &'static str);
 
     impl ExpressionValue<ClassifierId> for HttpCode {
-        type Builder = super::HttpStartLineBuilder;
+        type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
             "Valid if the http response code of the packet"
@@ -287,7 +287,7 @@ pub mod expression {
     pub struct HttpHeaderName(pub &'static str);
 
     impl ExpressionValue<ClassifierId> for HttpHeaderName {
-        type Builder = super::HttpHeaderBuilder;
+        type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {
             "Valid if the http packet contains the header name"
@@ -302,7 +302,7 @@ pub mod expression {
     pub struct HttpHeader(pub &'static str, pub &'static str);
 
     impl ExpressionValue<ClassifierId> for HttpHeader {
-        type Builder = super::HttpHeaderBuilder;
+        type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {
             "Valid if the http packet contains the header name"

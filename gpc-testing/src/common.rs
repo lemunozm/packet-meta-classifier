@@ -1,7 +1,7 @@
 use gpc_core::base::id::ClassifierId;
-use gpc_core::classifier::Classifier;
+use gpc_core::engine::ClassifierEngine;
 use gpc_core::expression::Expr;
-use gpc_core::loader::AnalyzerFactory;
+use gpc_core::loader::ClassifierLoader;
 
 use crate::capture::Capture;
 use crate::injector::Injector;
@@ -16,7 +16,7 @@ pub struct CaptureData<R: Capture> {
 }
 
 pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
-    pub loader: AnalyzerFactory<I>,
+    pub loader: ClassifierLoader<I>,
     pub config: C,
     pub rules: Vec<(T, Expr<I>)>,
     pub captures: Vec<CaptureData<R>>,
@@ -45,7 +45,7 @@ where
     }
 
     let mut classifier =
-        Classifier::<C, T, I>::new(test_config.config, test_config.rules, test_config.loader);
+        ClassifierEngine::<C, T, I>::new(test_config.config, test_config.rules, test_config.loader);
     let mut injector = Injector::new(&test_config.expected_classification);
 
     for capture_data in test_config.captures {

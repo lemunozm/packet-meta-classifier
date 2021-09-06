@@ -1,5 +1,5 @@
 use crate::base::analyzer::Analyzer;
-use crate::base::builder::Builder;
+use crate::base::classifier::Classifier;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::GenericAnalyzerHandler;
@@ -18,10 +18,10 @@ pub trait GenericExpressionValueHandler<I: ClassifierId>: fmt::Debug {
 }
 
 impl<I: ClassifierId> dyn GenericExpressionValueHandler<I> {
-    pub fn new<V, B>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
+    pub fn new<V, C>(expression_value: V) -> Box<dyn GenericExpressionValueHandler<I>>
     where
-        V: ExpressionValue<I, Builder = B> + 'static,
-        B: for<'a> Builder<'a, I>,
+        V: ExpressionValue<I, Classifier = C> + 'static,
+        C: for<'a> Classifier<'a, I>,
     {
         Box::new(ExpressionValueHandler(expression_value))
     }
@@ -35,10 +35,10 @@ impl<V: fmt::Debug> fmt::Debug for ExpressionValueHandler<V> {
     }
 }
 
-impl<V, B, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
+impl<V, C, I> GenericExpressionValueHandler<I> for ExpressionValueHandler<V>
 where
-    V: ExpressionValue<I, Builder = B>,
-    B: for<'a> Builder<'a, I>,
+    V: ExpressionValue<I, Classifier = C>,
+    C: for<'a> Classifier<'a, I>,
     I: ClassifierId,
 {
     fn check(
@@ -46,21 +46,21 @@ where
         analyzer: &dyn GenericAnalyzerHandler<I>,
         flow: Option<&dyn GenericFlowHandler>,
     ) -> bool {
-        let analyzer = analyzer.inner_ref::<B::Analyzer>();
+        let analyzer = analyzer.inner_ref::<C::Analyzer>();
 
         match flow {
             Some(flow) => {
-                let inner_flow = flow.inner_ref::<<B::Analyzer as Analyzer<I>>::Flow>();
+                let inner_flow = flow.inner_ref::<<C::Analyzer as Analyzer<I>>::Flow>();
                 self.0.check(analyzer, inner_flow)
             }
             None => {
                 // The flow created here should be an empty Flow.
-                if std::mem::size_of::<<B::Analyzer as Analyzer<I>>::Flow>() != 0 {
+                if std::mem::size_of::<<C::Analyzer as Analyzer<I>>::Flow>() != 0 {
                     panic!("Unexpected real flow, expected flow with no size")
                 }
                 let no_flow = unsafe {
                     //SAFETY: 0 sized types are safe to be uninitialized.
-                    MaybeUninit::<<B::Analyzer as Analyzer<I>>::Flow>::uninit().assume_init()
+                    MaybeUninit::<<C::Analyzer as Analyzer<I>>::Flow>::uninit().assume_init()
                 };
                 self.0.check(analyzer, &no_flow)
             }
@@ -68,6 +68,6 @@ where
     }
 
     fn classifier_id(&self) -> I {
-        B::Analyzer::ID
+        C::Analyzer::ID
     }
 }

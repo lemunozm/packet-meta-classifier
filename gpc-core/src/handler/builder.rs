@@ -1,5 +1,5 @@
 use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
-use crate::base::builder::Builder;
+use crate::base::classifier::Classifier;
 use crate::base::id::ClassifierId;
 use crate::handler::analyzer::{AnalyzerHandler, GenericAnalyzerHandler};
 use crate::packet::Packet;
@@ -22,29 +22,29 @@ pub trait GenericBuilderHandler<I: ClassifierId> {
 }
 
 impl<I: ClassifierId> dyn GenericBuilderHandler<I> {
-    pub fn new<B>(builder: B) -> Box<dyn GenericBuilderHandler<I>>
+    pub fn new<C>(classifier: C) -> Box<dyn GenericBuilderHandler<I>>
     where
-        B: for<'a> Builder<'a, I> + 'static,
+        C: for<'a> Classifier<'a, I> + 'static,
     {
         Box::new(BuilderHandler {
-            _builder: builder,
+            _classifier: classifier,
             cached_analyzer: None,
         })
     }
 }
 
-struct BuilderHandler<'a, B, I>
+struct BuilderHandler<'a, C, I>
 where
-    B: Builder<'a, I> + 'static,
+    C: Classifier<'a, I> + 'static,
     I: ClassifierId,
 {
-    _builder: B,
-    cached_analyzer: Option<AnalyzerHandler<B::Analyzer>>,
+    _classifier: C,
+    cached_analyzer: Option<AnalyzerHandler<C::Analyzer>>,
 }
 
-impl<'a, B, I> GenericBuilderHandler<I> for BuilderHandler<'a, B, I>
+impl<'a, C, I> GenericBuilderHandler<I> for BuilderHandler<'a, C, I>
 where
-    B: for<'b> Builder<'b, I> + 'static,
+    C: for<'b> Classifier<'b, I> + 'static,
     I: ClassifierId,
 {
     unsafe fn build_from_packet<'c>(
@@ -55,8 +55,8 @@ where
             panic!("Analyzer already built. A call to clean() is necessary to rebuild an analyzer");
         }
 
-        B::Analyzer::build(packet).map(|info| {
-            let handler = AnalyzerHandler::<B::Analyzer>::new(info.analyzer);
+        C::Analyzer::build(packet).map(|info| {
+            let handler = AnalyzerHandler::<C::Analyzer>::new(info.analyzer);
             let handler = unsafe { std::mem::transmute_copy(&handler) };
 
             let generic_analyzer =
@@ -90,8 +90,6 @@ where
     }
 
     unsafe fn clean(&mut self) {
-        let mut generic_analyzer = self.cached_analyzer.take().expect("Analyzer must be built");
-
-        std::ptr::drop_in_place(&mut generic_analyzer as *mut AnalyzerHandler<B::Analyzer>);
+        self.cached_analyzer.take().expect("Analyzer must be built");
     }
 }

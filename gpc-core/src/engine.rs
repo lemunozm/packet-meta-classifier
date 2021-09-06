@@ -3,7 +3,7 @@ use crate::base::id::ClassifierId;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
 use crate::expression::{Expr, ValidatedExpr};
 use crate::flow_pool::FlowPool;
-use crate::loader::AnalyzerFactory;
+use crate::loader::ClassifierLoader;
 use crate::packet::Packet;
 
 use std::fmt;
@@ -19,7 +19,7 @@ pub struct ClassificationResult<T> {
     pub bytes: usize,
 }
 
-pub struct Classifier<C, T, I: ClassifierId> {
+pub struct ClassifierEngine<C, T, I: ClassifierId> {
     _config: C,
     rules: Vec<Rule<I, T>>,
     analyzer_cache: AnalyzerCache<I>,
@@ -27,15 +27,15 @@ pub struct Classifier<C, T, I: ClassifierId> {
     flow_pool: FlowPool<I>,
 }
 
-impl<C, T, I> Classifier<C, T, I>
+impl<C, T, I> ClassifierEngine<C, T, I>
 where
     T: fmt::Display + Default + Eq + Copy,
     I: ClassifierId,
 {
-    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, factory: AnalyzerFactory<I>) -> Self {
+    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, factory: ClassifierLoader<I>) -> Self {
         let (analyzer_cache, dependency_checker) = factory.split();
 
-        Classifier {
+        ClassifierEngine {
             _config,
             rules: rule_exprs
                 .into_iter()

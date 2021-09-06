@@ -1,9 +1,9 @@
 use crate::ClassifierId;
 
-use gpc_core::base::builder::Builder;
+use gpc_core::base::classifier::Classifier;
 
-pub struct UdpBuilder;
-impl<'a> Builder<'a, ClassifierId> for UdpBuilder {
+pub struct UdpClassifier;
+impl<'a> Classifier<'a, ClassifierId> for UdpClassifier {
     type Analyzer = analyzer::UdpAnalyzer<'a>;
 }
 
@@ -106,7 +106,7 @@ pub mod expression {
     pub struct UdpSourcePort(pub u16);
 
     impl ExpressionValue<ClassifierId> for UdpSourcePort {
-        type Builder = super::UdpBuilder;
+        type Classifier = super::UdpClassifier;
 
         fn description() -> &'static str {
             "Valid if the source UDP port of the packet matches the given port"
@@ -121,7 +121,7 @@ pub mod expression {
     pub struct UdpDestPort(pub u16);
 
     impl ExpressionValue<ClassifierId> for UdpDestPort {
-        type Builder = super::UdpBuilder;
+        type Classifier = super::UdpClassifier;
 
         fn description() -> &'static str {
             "Valid if the destination UDP port of the packet matches the given port"

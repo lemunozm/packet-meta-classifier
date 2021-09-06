@@ -2,7 +2,7 @@ use crate::capture::CaptureIterator;
 use crate::logger::{self, PacketProps};
 
 use gpc_core::base::id::ClassifierId;
-use gpc_core::classifier::{ClassificationResult, Classifier};
+use gpc_core::engine::{ClassificationResult, ClassifierEngine};
 use gpc_core::packet::{Direction, Packet};
 
 use colored::Colorize;
@@ -22,7 +22,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
 
     pub fn inject_packets<C, I: ClassifierId>(
         &mut self,
-        classifier: &mut Classifier<C, T, I>,
+        classifier: &mut ClassifierEngine<C, T, I>,
         capture_section: CaptureIterator,
     ) -> InjectionResult<T> {
         let mut current_injection_result = InjectionResult::default();

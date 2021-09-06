@@ -1,17 +1,17 @@
 use crate::analyzer_cache::AnalyzerCache;
 use crate::base::analyzer::Analyzer;
-use crate::base::builder::Builder;
+use crate::base::classifier::Classifier;
 use crate::base::id::ClassifierId;
 use crate::dependency_checker::DependencyChecker;
 use crate::handler::builder::GenericBuilderHandler;
 
-pub struct AnalyzerFactory<I: ClassifierId> {
+pub struct ClassifierLoader<I: ClassifierId> {
     builders: Vec<Option<Box<dyn GenericBuilderHandler<I>>>>,
     ids_relations: Vec<(I, I)>,
     last_id: usize,
 }
 
-impl<I: ClassifierId> Default for AnalyzerFactory<I> {
+impl<I: ClassifierId> Default for ClassifierLoader<I> {
     fn default() -> Self {
         Self {
             builders: (0..I::TOTAL).map(|_| None).collect(),
@@ -21,21 +21,22 @@ impl<I: ClassifierId> Default for AnalyzerFactory<I> {
     }
 }
 
-impl<I: ClassifierId> AnalyzerFactory<I> {
-    pub fn builder<B>(mut self, builder: B) -> Self
+impl<I: ClassifierId> ClassifierLoader<I> {
+    pub fn with<C>(mut self, classifier: C) -> Self
     where
-        B: for<'a> Builder<'a, I> + 'static,
+        C: for<'a> Classifier<'a, I> + 'static,
     {
         assert!(
-            B::Analyzer::ID > self.last_id.into(),
+            C::Analyzer::ID > self.last_id.into(),
             "Expected ID with higher value than {:?}",
-            B::Analyzer::ID
+            C::Analyzer::ID
         );
 
-        self.builders[B::Analyzer::ID.inner()] = Some(<dyn GenericBuilderHandler<I>>::new(builder));
+        self.builders[C::Analyzer::ID.inner()] =
+            Some(<dyn GenericBuilderHandler<I>>::new(classifier));
 
         self.ids_relations
-            .push((B::Analyzer::ID, B::Analyzer::PREV_ID));
+            .push((C::Analyzer::ID, C::Analyzer::PREV_ID));
         self
     }
 

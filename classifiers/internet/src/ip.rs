@@ -1,9 +1,9 @@
 use crate::ClassifierId;
 
-use gpc_core::base::builder::Builder;
+use gpc_core::base::classifier::Classifier;
 
-pub struct IpBuilder;
-impl<'a> Builder<'a, ClassifierId> for IpBuilder {
+pub struct IpClassifier;
+impl<'a> Classifier<'a, ClassifierId> for IpClassifier {
     type Analyzer = analyzer::IpAnalyzer<'a>;
 }
 
@@ -108,7 +108,7 @@ mod analyzer {
 
 pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
-    use super::IpBuilder;
+    use super::IpClassifier;
 
     use crate::ClassifierId;
 
@@ -120,7 +120,7 @@ pub mod expression {
     pub struct Ip;
 
     impl ExpressionValue<ClassifierId> for Ip {
-        type Builder = IpBuilder;
+        type Classifier = IpClassifier;
 
         fn description() -> &'static str {
             "Valid if the packet is TCP"
@@ -134,7 +134,7 @@ pub mod expression {
     pub use super::analyzer::Version as IpVersion;
 
     impl ExpressionValue<ClassifierId> for IpVersion {
-        type Builder = IpBuilder;
+        type Classifier = IpClassifier;
 
         fn description() -> &'static str {
             "Valid if the IP version of the packet matches the given version"
@@ -152,7 +152,7 @@ pub mod expression {
     pub struct IpSource(pub IpAddr);
 
     impl ExpressionValue<ClassifierId> for IpSource {
-        type Builder = IpBuilder;
+        type Classifier = IpClassifier;
 
         fn description() -> &'static str {
             "Valid if the source IP address of the packet matches the given address"
@@ -167,7 +167,7 @@ pub mod expression {
     pub struct IpDest(pub IpAddr);
 
     impl ExpressionValue<ClassifierId> for IpDest {
-        type Builder = IpBuilder;
+        type Classifier = IpClassifier;
 
         fn description() -> &'static str {
             "Valid if the destination IP address of the packet matches the given address"
@@ -185,7 +185,7 @@ pub mod expression {
     }
 
     impl ExpressionValue<ClassifierId> for IpProto {
-        type Builder = IpBuilder;
+        type Classifier = IpClassifier;
 
         fn description() -> &'static str {
             "Valid if the IP protocol of the packet matches the given protocol"

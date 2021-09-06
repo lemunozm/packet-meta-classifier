@@ -1,4 +1,4 @@
-use crate::base::builder::Builder;
+use crate::base::classifier::Classifier;
 use crate::base::expression_value::ExpressionValue;
 use crate::base::id::ClassifierId;
 use crate::handler::expression_value::GenericExpressionValueHandler;
@@ -36,10 +36,10 @@ pub enum Expr<I: ClassifierId> {
 }
 
 impl<I: ClassifierId> Expr<I> {
-    pub fn value<V, B>(value: V) -> Expr<I>
+    pub fn value<V, C>(value: V) -> Expr<I>
     where
-        V: ExpressionValue<I, Builder = B> + 'static,
-        B: for<'a> Builder<'a, I>,
+        V: ExpressionValue<I, Classifier = C> + 'static,
+        C: for<'a> Classifier<'a, I>,
     {
         Expr::Value(<dyn GenericExpressionValueHandler<I>>::new(value))
     }

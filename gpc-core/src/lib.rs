@@ -1,8 +1,9 @@
 pub mod base;
-pub mod classifier;
+pub mod packet;
+
+pub mod engine;
 pub mod expression;
 pub mod loader;
-pub mod packet;
 
 mod analyzer_cache;
 mod dependency_checker;

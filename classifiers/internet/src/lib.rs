@@ -7,7 +7,7 @@ pub mod tcp;
 pub mod udp;
 
 use gpc_core::base::id::ClassifierId as ClassifierIdTrait;
-use gpc_core::loader::AnalyzerFactory;
+use gpc_core::loader::ClassifierLoader;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -64,11 +64,11 @@ impl ClassifierIdTrait for ClassifierId {
     type FlowId = FlowSignature;
 }
 
-pub fn loader() -> AnalyzerFactory<ClassifierId> {
-    AnalyzerFactory::default()
-        .builder(ip::IpBuilder)
-        .builder(udp::UdpBuilder)
-        .builder(tcp::TcpBuilder)
-        .builder(http::HttpStartLineBuilder)
-        .builder(http::HttpHeaderBuilder)
+pub fn loader() -> ClassifierLoader<ClassifierId> {
+    ClassifierLoader::default()
+        .with(ip::IpClassifier)
+        .with(udp::UdpClassifier)
+        .with(tcp::TcpClassifier)
+        .with(http::HttpStartLineClassifier)
+        .with(http::HttpHeaderClassifier)
 }
