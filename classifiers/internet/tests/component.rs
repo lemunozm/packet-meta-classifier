@@ -8,8 +8,8 @@ use internet::{
     tcp::expression::{TcpDestPort, TcpPayload, TcpSourcePort},
 };
 
-use gpc_core::expression::Expr;
-use gpc_testing::common::{self, CaptureData, TestConfig};
+use pmc_core::expression::Expr;
+use pmc_testing::common::{self, CaptureData, TestConfig};
 
 #[test]
 fn tcp_http() {

@@ -35,23 +35,27 @@ pub fn set_log_packet_number(packet_number: Option<PacketProps>) {
 }
 
 fn configure_logger() -> Result<(), fern::InitError> {
+    let crate_name = env!("CARGO_PKG_NAME").replace("-", "_");
     fern::Dispatch::new()
-        .filter(|_metadata| {
-            let classifier = if ENABLED_CLASSIFIER_LOGS {
-                !_metadata.target().contains("gpc_testing")
-            } else {
-                false
-            };
+        .filter({
+            let crate_name = crate_name.clone();
+            move |_metadata| {
+                let classifier = if ENABLED_CLASSIFIER_LOGS {
+                    !_metadata.target().contains(&crate_name)
+                } else {
+                    false
+                };
 
-            let testing = if ENABLED_TESTING_LOGS {
-                _metadata.target().starts_with("gpc_testing")
-            } else {
-                false
-            };
+                let testing = if ENABLED_TESTING_LOGS {
+                    _metadata.target().starts_with(&crate_name)
+                } else {
+                    false
+                };
 
-            classifier || testing
+                classifier || testing
+            }
         })
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             let packet_number = format!(
                 "{:<w$}",
                 PACKET_PROPS
@@ -75,7 +79,7 @@ fn configure_logger() -> Result<(), fern::InitError> {
                 }
             );
 
-            let from_classifier = !record.target().contains("gpc_testing");
+            let from_classifier = !record.target().contains(&crate_name);
 
             let target = record
                 .target()

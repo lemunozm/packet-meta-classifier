@@ -1,7 +1,7 @@
 use arrayref::array_ref;
 
-use gpc_testing::capture::{Capture, CaptureIterator, CapturedPacket};
 use pcap_file::{pcap::PcapReader, DataLink};
+use pmc_testing::capture::{Capture, CaptureIterator, CapturedPacket};
 
 use std::fs::File;
 

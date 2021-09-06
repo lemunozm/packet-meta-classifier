@@ -93,25 +93,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpc-core"
-version = "0.1.0"
-dependencies = [
- "log",
-]
-
-[[package]]
-name = "gpc-testing"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "colored 2.0.0",
- "fern",
- "gpc-core",
- "lazy_static",
- "log",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,12 +115,12 @@ name = "internet"
 version = "0.1.0"
 dependencies = [
  "arrayref",
- "gpc-core",
- "gpc-testing",
  "log",
  "num-derive",
  "num-traits",
  "pcap-file",
+ "pmc-core",
+ "pmc-testing",
  "strum",
 ]
 
@@ -203,6 +184,25 @@ dependencies = [
  "byteorder",
  "derive-into-owned",
  "thiserror",
+]
+
+[[package]]
+name = "pmc-core"
+version = "0.1.0"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "pmc-testing"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colored 2.0.0",
+ "fern",
+ "lazy_static",
+ "log",
+ "pmc-core",
 ]
 
 [[package]]

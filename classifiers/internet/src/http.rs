@@ -1,6 +1,6 @@
 use crate::ClassifierId;
 
-use gpc_core::base::classifier::Classifier;
+use pmc_core::base::classifier::Classifier;
 
 pub struct HttpStartLineClassifier;
 impl<'a> Classifier<'a, ClassifierId> for HttpStartLineClassifier {
@@ -17,8 +17,8 @@ mod analyzer {
 
     use crate::{ClassifierId, FlowSignature};
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
-    use gpc_core::packet::{Direction, Packet};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+    use pmc_core::packet::{Direction, Packet};
 
     use std::convert::TryFrom;
 
@@ -222,7 +222,7 @@ pub mod expression {
 
     use crate::ClassifierId;
 
-    use gpc_core::base::expression_value::ExpressionValue;
+    use pmc_core::base::expression_value::ExpressionValue;
 
     #[derive(Debug)]
     pub struct HttpRequest;

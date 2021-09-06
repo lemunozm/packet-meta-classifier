@@ -1,9 +1,9 @@
 use crate::capture::CaptureIterator;
 use crate::logger::{self, PacketProps};
 
-use gpc_core::base::id::ClassifierId;
-use gpc_core::engine::{ClassificationResult, ClassifierEngine};
-use gpc_core::packet::{Direction, Packet};
+use pmc_core::base::id::ClassifierId;
+use pmc_core::engine::{ClassificationResult, ClassifierEngine};
+use pmc_core::packet::{Direction, Packet};
 
 use colored::Colorize;
 

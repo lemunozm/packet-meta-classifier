@@ -1,6 +1,6 @@
 use crate::ClassifierId;
 
-use gpc_core::base::classifier::Classifier;
+use pmc_core::base::classifier::Classifier;
 
 pub struct IpClassifier;
 impl<'a> Classifier<'a, ClassifierId> for IpClassifier {
@@ -10,8 +10,8 @@ impl<'a> Classifier<'a, ClassifierId> for IpClassifier {
 mod analyzer {
     use crate::{ClassifierId, FlowSignature};
 
-    use gpc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
-    use gpc_core::packet::{Direction, Packet};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+    use pmc_core::packet::{Direction, Packet};
 
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -112,7 +112,7 @@ pub mod expression {
 
     use crate::ClassifierId;
 
-    use gpc_core::base::expression_value::ExpressionValue;
+    use pmc_core::base::expression_value::ExpressionValue;
 
     use std::net::IpAddr;
 

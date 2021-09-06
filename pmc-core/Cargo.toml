@@ -1,5 +1,5 @@
 [package]
-name = "gpc-core"
+name = "pmc-core"
 version = "0.1.0"
 authors = ["lemunozm <lemunozm@gmail.com>"]
 edition = "2018"

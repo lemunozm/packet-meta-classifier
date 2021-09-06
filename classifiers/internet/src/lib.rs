@@ -6,8 +6,8 @@ pub mod ip;
 pub mod tcp;
 pub mod udp;
 
-use gpc_core::base::id::ClassifierId as ClassifierIdTrait;
-use gpc_core::loader::ClassifierLoader;
+use pmc_core::base::id::ClassifierId as ClassifierIdTrait;
+use pmc_core::loader::ClassifierLoader;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
