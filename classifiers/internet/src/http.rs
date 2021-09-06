@@ -64,6 +64,8 @@ mod analyzer {
     }
 
     impl<'a> HttpStartLineAnalyzer<'a> {
+        const START_LINE_MALFORMED: &'static str = "Http start line malformed";
+
         pub fn method(&self) -> Option<Method> {
             match self.start_line {
                 StartLine::Request { method, .. } => Method::try_from(method).ok(),
@@ -114,10 +116,12 @@ mod analyzer {
             };
 
             let mut iter = first_line.splitn(3, ' ');
-            let first = iter.next().unwrap();
-            let second = iter.next().unwrap();
-            let third_and_more = iter.next().unwrap();
-            let (third, next_data) = third_and_more.split_once("\r\n").unwrap();
+            let first = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
+            let second = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
+            let third_and_more = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
+            let (third, next_data) = third_and_more
+                .split_once("\r\n")
+                .ok_or(Self::START_LINE_MALFORMED)?;
 
             let (version, start_line) = match direction {
                 Direction::Uplink => (
