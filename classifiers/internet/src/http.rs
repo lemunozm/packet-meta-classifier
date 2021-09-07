@@ -309,7 +309,7 @@ pub mod expression {
         type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {
-            "Valid if the http packet contains the header name"
+            "Valid if the http packet contains the pair (key, value) of the header"
         }
 
         fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
