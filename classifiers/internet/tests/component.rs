@@ -6,8 +6,8 @@ use internet::{
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
     tcp::expression::{
-        TcpDestPort, TcpEstablished, TcpHandshake, TcpPayloadLen, TcpServerPort, TcpSourcePort,
-        TcpTeardown,
+        TcpDestPort, TcpEstablished, TcpFlag, TcpHandshake, TcpPayloadLen, TcpServerPort,
+        TcpSourcePort, TcpTeardown,
     },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
@@ -67,10 +67,8 @@ fn tcp_established() {
         config: (),
         rules: vec![
             Rule::new("Handshake", Expr::value(TcpHandshake)),
-            Rule::new(
-                "Established",
-                Expr::value(TcpEstablished), /*, CacheFlow::Until(Expr::value(TcpFlag::FIN))*/
-            ),
+            Rule::new("Established", Expr::value(TcpEstablished))
+                .cache_flow_until(Expr::value(TcpFlag::FIN)),
             Rule::new("Teardown", Expr::value(TcpTeardown)),
         ],
         captures: vec![CaptureData {

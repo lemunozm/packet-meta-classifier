@@ -8,14 +8,36 @@ use crate::packet::Packet;
 
 use std::fmt;
 
+enum CacheFlow<I: ClassifierId> {
+    Forever,
+    Until(Expr<I>),
+    Never,
+}
+
 pub struct Rule<T, I: ClassifierId> {
     tag: T,
     expr: Expr<I>,
+    #[allow(dead_code)]
+    cache_flow: CacheFlow<I>,
 }
 
 impl<T: Copy, I: ClassifierId> Rule<T, I> {
     pub fn new(tag: T, expr: Expr<I>) -> Self {
-        Self { tag, expr }
+        Self {
+            tag,
+            expr,
+            cache_flow: CacheFlow::Never,
+        }
+    }
+
+    pub fn cache_flow_forever(mut self) -> Self {
+        self.cache_flow = CacheFlow::Forever;
+        self
+    }
+
+    pub fn cache_flow_until(mut self, expr: Expr<I>) -> Self {
+        self.cache_flow = CacheFlow::Until(expr);
+        self
     }
 
     pub fn expr(&self) -> &Expr<I> {
