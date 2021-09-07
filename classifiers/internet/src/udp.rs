@@ -148,7 +148,7 @@ pub mod expression {
         type Classifier = super::UdpClassifier;
 
         fn description() -> &'static str {
-            "Valid if the payload len meets the user assert"
+            "Valid if the packet payload length meets the user assert"
         }
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {

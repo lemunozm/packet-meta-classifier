@@ -5,7 +5,10 @@ use internet::{
     self,
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
-    tcp::expression::{TcpDestPort, TcpEstablished, TcpPayloadLen, TcpServerPort, TcpSourcePort},
+    tcp::expression::{
+        TcpDestPort, TcpEstablished, TcpHandshake, TcpPayloadLen, TcpServerPort, TcpSourcePort,
+        TcpTeardown,
+    },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
 
@@ -58,13 +61,26 @@ fn tcp_established() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
         config: (),
-        rules: vec![("Est", Expr::value(TcpEstablished))],
+        rules: vec![
+            ("Handshake", Expr::value(TcpHandshake)),
+            ("Established", Expr::value(TcpEstablished)),
+            ("Teardown", Expr::value(TcpTeardown)),
+        ],
         captures: vec![CaptureData {
             capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![
-            "", "", "Est", "Est", "Est", "Est", "Est", "Est", "Est", "Est",
+            "Handshake",
+            "Handshake",
+            "Handshake",
+            "Established",
+            "Established",
+            "Established",
+            "Established",
+            "Teardown",
+            "Teardown",
+            "Teardown",
         ],
     });
 }

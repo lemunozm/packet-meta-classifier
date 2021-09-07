@@ -108,7 +108,7 @@ mod analyzer {
         }
 
         fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {
-            flow.update_handshake_state(direction, self.flags());
+            flow.update_state_transition(direction, self.flags());
         }
     }
 }
@@ -119,45 +119,75 @@ mod flow {
     use pmc_core::packet::Direction;
 
     #[derive(Clone, Copy, PartialEq)]
-    pub enum Handshake {
-        None,
-        Send,
-        Recv,
+    pub enum StateTransition {
+        Listen,
+        SynSend,
+        SynRecv,
         Established,
+        FinWait1,
+        FinWait2,
+        Closing,
+        TimeWait,
     }
+    use StateTransition::*;
 
     pub struct TcpFlow {
-        handshake: Handshake,
+        prev_state_transition: StateTransition,
+        state_transition: StateTransition,
     }
 
     impl Default for TcpFlow {
         fn default() -> Self {
             TcpFlow {
-                handshake: Handshake::None,
+                prev_state_transition: StateTransition::Listen,
+                state_transition: StateTransition::Listen,
             }
         }
     }
 
     impl TcpFlow {
-        pub fn update_handshake_state(&mut self, direction: Direction, flags: Flag) {
+        pub fn update_state_transition(&mut self, direction: Direction, flags: Flag) {
             let uplink = direction == Direction::Uplink;
-            self.handshake = match self.handshake {
-                Handshake::None if uplink && flags == Flag::SYN => Handshake::Send,
-                Handshake::Send if !uplink && flags == Flag::SYN | Flag::ACK => Handshake::Recv,
-                Handshake::Recv if uplink && flags == Flag::ACK => Handshake::Established,
-                _ => self.handshake,
+            self.prev_state_transition = self.state_transition;
+            self.state_transition = match self.state_transition {
+                // Handshake:
+                Listen if uplink && flags == Flag::SYN => SynSend,
+                SynSend if !uplink && flags == Flag::SYN | Flag::ACK => SynRecv,
+                SynRecv if uplink && flags == Flag::ACK => Established,
+                // Teardown:
+                Established if flags == Flag::FIN | Flag::ACK => FinWait1,
+                FinWait1 if flags == Flag::ACK => FinWait2,
+                FinWait1 if flags == Flag::FIN | Flag::ACK => Closing,
+                FinWait2 if flags == Flag::FIN | Flag::ACK => TimeWait,
+                Closing if flags == Flag::ACK => TimeWait,
+                _ => self.state_transition,
             }
         }
 
-        pub fn handshake(&self) -> Handshake {
-            self.handshake
+        pub fn state_transition(&self) -> StateTransition {
+            self.state_transition
+        }
+
+        pub fn is_handshake(&self) -> bool {
+            match self.state_transition {
+                SynSend | SynRecv => true,
+                Established if self.prev_state_transition == SynRecv => true,
+                _ => false,
+            }
+        }
+
+        pub fn is_teardown(&self) -> bool {
+            match self.state_transition {
+                FinWait1 | FinWait2 | Closing | TimeWait => true,
+                _ => false,
+            }
         }
     }
 }
 
 pub mod expression {
     use super::analyzer::TcpAnalyzer;
-    use super::flow::{Handshake, TcpFlow};
+    use super::flow::{StateTransition, TcpFlow};
     use super::TcpClassifier;
 
     use crate::ClassifierId;
@@ -226,7 +256,7 @@ pub mod expression {
         type Classifier = super::TcpClassifier;
 
         fn description() -> &'static str {
-            "Valid if the payload len meets the user assert"
+            "Valid if the packet payload length meets the user assert"
         }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
@@ -241,11 +271,41 @@ pub mod expression {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
-            "Valid if the server TCP port of the packet matches the given port"
+            "Valid if the TCP flow is established"
         }
 
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
-            Handshake::Established == flow.handshake()
+            StateTransition::Established == flow.state_transition()
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpHandshake;
+
+    impl ExpressionValue<ClassifierId> for TcpHandshake {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the TCP flow is performing the handshake"
+        }
+
+        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+            flow.is_handshake()
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpTeardown;
+
+    impl ExpressionValue<ClassifierId> for TcpTeardown {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the TCP flow is performing the teardown"
+        }
+
+        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+            flow.is_teardown()
         }
     }
 }
