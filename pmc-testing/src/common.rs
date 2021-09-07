@@ -1,6 +1,5 @@
 use pmc_core::base::id::ClassifierId;
-use pmc_core::engine::ClassifierEngine;
-use pmc_core::expression::Expr;
+use pmc_core::engine::{ClassifierEngine, Rule};
 use pmc_core::loader::ClassifierLoader;
 
 use crate::capture::Capture;
@@ -18,7 +17,7 @@ pub struct CaptureData<R: Capture> {
 pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
     pub loader: ClassifierLoader<I>,
     pub config: C,
-    pub rules: Vec<(T, Expr<I>)>,
+    pub rules: Vec<Rule<T, I>>,
     pub captures: Vec<CaptureData<R>>,
     pub expected_classification: Vec<T>,
 }
@@ -36,7 +35,7 @@ where
             test_config
                 .rules
                 .iter()
-                .find(|(tag, _)| tag == rule_tag)
+                .find(|rule| rule.tag() == *rule_tag)
                 .unwrap_or_else(|| {
                     panic!(
                         "The expected classification rule '{}' must be a defined rule",

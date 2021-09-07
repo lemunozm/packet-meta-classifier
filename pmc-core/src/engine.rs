@@ -8,9 +8,23 @@ use crate::packet::Packet;
 
 use std::fmt;
 
-pub struct Rule<I: ClassifierId, T> {
-    pub exp: Expr<I>,
-    pub tag: T,
+pub struct Rule<T, I: ClassifierId> {
+    tag: T,
+    expr: Expr<I>,
+}
+
+impl<T: Copy, I: ClassifierId> Rule<T, I> {
+    pub fn new(tag: T, expr: Expr<I>) -> Self {
+        Self { tag, expr }
+    }
+
+    pub fn expr(&self) -> &Expr<I> {
+        &self.expr
+    }
+
+    pub fn tag(&self) -> T {
+        self.tag
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -22,7 +36,7 @@ pub struct ClassificationResult<T> {
 
 pub struct ClassifierEngine<C, T, I: ClassifierId> {
     _config: C,
-    rules: Vec<Rule<I, T>>,
+    rules: Vec<Rule<T, I>>,
     analyzer_cache: AnalyzerCache<I>,
     dependency_checker: DependencyChecker<I>,
     flow_pool: FlowPool<I, T>,
@@ -33,21 +47,19 @@ where
     T: fmt::Display + Default + Eq + Copy,
     I: ClassifierId,
 {
-    pub fn new(_config: C, rule_exprs: Vec<(T, Expr<I>)>, factory: ClassifierLoader<I>) -> Self {
+    pub fn new(_config: C, rules: Vec<Rule<T, I>>, factory: ClassifierLoader<I>) -> Self {
+        rules.iter().for_each(|rule| {
+            assert!(
+                rule.tag != T::default(),
+                "The default tag value is reserved for not maching packets"
+            );
+        });
+
         let (analyzer_cache, dependency_checker) = factory.split();
 
         ClassifierEngine {
             _config,
-            rules: rule_exprs
-                .into_iter()
-                .map(|(tag, exp)| {
-                    assert!(
-                        tag != T::default(),
-                        "The default tag value is reserved for not maching packets"
-                    );
-                    Rule { exp, tag }
-                })
-                .collect(),
+            rules,
             analyzer_cache,
             dependency_checker,
             flow_pool: FlowPool::default(),
@@ -81,7 +93,7 @@ where
 
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
-            let validated_expression = rule.exp.check(&mut |expr_value| {
+            let validated_expression = rule.expr.check(&mut |expr_value| {
                 log::trace!(
                     "Check expresion value of {:?}: [{:?}]",
                     expr_value.classifier_id(),

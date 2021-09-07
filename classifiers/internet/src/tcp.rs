@@ -308,4 +308,18 @@ pub mod expression {
             flow.is_teardown()
         }
     }
+
+    pub use super::analyzer::Flag as TcpFlag;
+
+    impl ExpressionValue<ClassifierId> for TcpFlag {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the TCP flow is performing the teardown"
+        }
+
+        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            analyzer.flags().contains(*self)
+        }
+    }
 }
