@@ -5,13 +5,11 @@ use crate::packet::Direction;
 
 use std::cell::Ref;
 use std::collections::{hash_map::Entry, HashMap};
-use std::marker::PhantomData;
 
 pub struct FlowPool<I: ClassifierId> {
     flows: Vec<HashMap<I::FlowId, SharedFlowController>>,
     flow_cache: Vec<Option<SharedFlowController>>,
     current_flow_id: I::FlowId,
-    _id: PhantomData<I>,
 }
 
 impl<I: ClassifierId> Default for FlowPool<I> {
@@ -20,7 +18,6 @@ impl<I: ClassifierId> Default for FlowPool<I> {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
             flow_cache: (0..I::TOTAL).map(|_| None).collect(),
             current_flow_id: I::FlowId::default(),
-            _id: PhantomData::default(),
         }
     }
 }
