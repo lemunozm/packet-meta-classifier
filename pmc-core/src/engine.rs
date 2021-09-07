@@ -16,6 +16,7 @@ pub struct Rule<I: ClassifierId, T> {
 #[derive(Debug, Clone, Default)]
 pub struct ClassificationResult<T> {
     pub rule_tag: T,
+    pub rule_cached: bool,
     pub bytes: usize,
 }
 
@@ -24,7 +25,7 @@ pub struct ClassifierEngine<C, T, I: ClassifierId> {
     rules: Vec<Rule<I, T>>,
     analyzer_cache: AnalyzerCache<I>,
     dependency_checker: DependencyChecker<I>,
-    flow_pool: FlowPool<I>,
+    flow_pool: FlowPool<I, T>,
 }
 
 impl<C, T, I> ClassifierEngine<C, T, I>
@@ -76,6 +77,7 @@ where
         };
 
         state.prepare();
+        let mut cached_tag: Option<T> = None;
 
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
@@ -95,6 +97,10 @@ where
                         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
                         ValidatedExpr::from_bool(answer)
                     }
+                    ClassificationStatus::Cached(tag) => {
+                        cached_tag.insert(tag);
+                        ValidatedExpr::Abort
+                    }
                     ClassificationStatus::NotClassify => ValidatedExpr::NotClassified,
                     ClassificationStatus::Abort => ValidatedExpr::Abort,
                 }
@@ -102,41 +108,59 @@ where
 
             match validated_expression {
                 ValidatedExpr::Classified => {
+                    state.flow_pool.associate_tag_to_last_flow(rule.tag);
+
                     log::trace!("Classified: rule {}", rule.tag);
                     return ClassificationResult {
                         rule_tag: rule.tag,
+                        rule_cached: false,
                         bytes: state.packet.data.len(),
                     };
                 }
                 ValidatedExpr::NotClassified => continue,
-                ValidatedExpr::Abort => break,
+                ValidatedExpr::Abort => match cached_tag {
+                    Some(tag) => {
+                        log::trace!("Classified: rule {} (cached by flow)", rule.tag);
+                        return ClassificationResult {
+                            rule_tag: tag,
+                            rule_cached: true,
+                            bytes: state.packet.data.len(),
+                        };
+                    }
+                    None => break,
+                },
             }
         }
 
         log::trace!("Not classified: not rule matched");
         ClassificationResult {
             rule_tag: T::default(),
+            rule_cached: false,
             bytes: state.packet.data.len(),
         }
     }
 }
 
-enum ClassificationStatus {
+enum ClassificationStatus<T> {
     CanClassify,
     NotClassify,
+    Cached(T),
     Abort,
 }
 
-struct ClassificationState<'a, I: ClassifierId> {
+struct ClassificationState<'a, I, T>
+where
+    I: ClassifierId,
+{
     packet: Packet<'a>,
     next_classifier_id: I,
     cache: CacheFrame<'a, I>,
     dependency_checker: &'a DependencyChecker<I>,
-    flow_pool: &'a mut FlowPool<I>,
+    flow_pool: &'a mut FlowPool<I, T>,
     finished_analysis: bool,
 }
 
-impl<'a, I: ClassifierId> ClassificationState<'a, I> {
+impl<'a, I: ClassifierId, T: Copy> ClassificationState<'a, I, T> {
     fn prepare(&mut self) {
         log::trace!(
             "Start {} bytes of {} packet classification",
@@ -146,7 +170,7 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
         self.flow_pool.prepare_for_packet();
     }
 
-    fn analyze_classification_for(&mut self, classifier_id: I) -> ClassificationStatus {
+    fn analyze_classification_for(&mut self, classifier_id: I) -> ClassificationStatus<T> {
         loop {
             let status = self
                 .dependency_checker
@@ -168,18 +192,22 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
 
                     match analyzer_result {
                         Ok(info) => {
-                            self.flow_pool.update(info.analyzer, self.packet.direction);
-                            if info.next_classifier_id == ClassifierId::NONE {
-                                log::trace!("Analysis finished");
-                                self.finished_analysis = true;
-                                break match self.next_classifier_id == classifier_id {
-                                    true => ClassificationStatus::CanClassify,
-                                    false => ClassificationStatus::NotClassify,
-                                };
-                            } else {
-                                self.packet.data = &self.packet.data[info.bytes_parsed..];
-                                self.next_classifier_id = info.next_classifier_id;
-                                continue;
+                            match self.flow_pool.update(info.analyzer, self.packet.direction) {
+                                Some(tag) => break ClassificationStatus::Cached(tag),
+                                None => {
+                                    if info.next_classifier_id == ClassifierId::NONE {
+                                        log::trace!("Analysis finished");
+                                        self.finished_analysis = true;
+                                        break match self.next_classifier_id == classifier_id {
+                                            true => ClassificationStatus::CanClassify,
+                                            false => ClassificationStatus::NotClassify,
+                                        };
+                                    } else {
+                                        self.packet.data = &self.packet.data[info.bytes_parsed..];
+                                        self.next_classifier_id = info.next_classifier_id;
+                                        continue;
+                                    }
+                                }
                             }
                         }
                         Err(reason) => {
