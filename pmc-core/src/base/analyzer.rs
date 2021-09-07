@@ -6,16 +6,12 @@ pub trait Analyzer<'a, I: ClassifierId>: Sized {
     const ID: I;
     const PREV_ID: I;
 
-    type Flow: Sized + 'static;
+    type Flow: Default + 'static;
 
     fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
 
     fn update_flow_id(&self, _flow_id: &mut I::FlowId, _direction: Direction) -> bool {
         false
-    }
-
-    fn create_flow(&self, _direction: Direction) -> Self::Flow {
-        unimplemented!("Analyzer {:?} do not create the flow instance", Self::ID)
     }
 
     fn update_flow(&self, _flow: &mut Self::Flow, _direction: Direction) {

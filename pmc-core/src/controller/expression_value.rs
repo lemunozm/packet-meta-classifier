@@ -6,7 +6,6 @@ use crate::controller::analyzer::AnalyzerController;
 use crate::controller::flow::FlowController;
 
 use std::fmt;
-use std::mem::MaybeUninit;
 
 pub trait ExpressionValueController<I: ClassifierId>: fmt::Debug {
     fn check(
@@ -54,15 +53,7 @@ where
                 self.0.check(analyzer, inner_flow)
             }
             None => {
-                // The flow created here should be an empty Flow.
-                if std::mem::size_of::<<C::Analyzer as Analyzer<I>>::Flow>() != 0 {
-                    panic!("Used a type with size, expected flow with no size")
-                }
-                let no_flow = unsafe {
-                    //SAFETY: 0 sized types are safe to be uninitialized.
-                    #[allow(clippy::uninit_assumed_init)]
-                    MaybeUninit::<<C::Analyzer as Analyzer<I>>::Flow>::uninit().assume_init()
-                };
+                let no_flow = <<C::Analyzer as Analyzer<I>>::Flow>::default();
                 self.0.check(analyzer, &no_flow)
             }
         }

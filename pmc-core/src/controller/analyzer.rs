@@ -7,7 +7,7 @@ pub trait AnalyzerController<'a, I: ClassifierId> {
     fn id(&self) -> I;
     fn prev_id(&self) -> I;
     fn update_flow_id(&self, flow_id: &mut I::FlowId, direction: Direction) -> bool;
-    fn create_flow(&self, direction: Direction) -> SharedFlowController;
+    fn create_flow(&self) -> SharedFlowController;
     fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction);
 }
 
@@ -59,8 +59,8 @@ where
         self.0.update_flow_id(&mut signature, direction)
     }
 
-    fn create_flow(&self, direction: Direction) -> SharedFlowController {
-        let flow = A::create_flow(&self.0, direction);
+    fn create_flow(&self) -> SharedFlowController {
+        let flow = A::Flow::default();
         <dyn FlowController>::new_shared(flow)
     }
 

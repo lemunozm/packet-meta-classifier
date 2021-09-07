@@ -154,10 +154,6 @@ mod analyzer {
             true
         }
 
-        fn create_flow(&self, _direction: Direction) -> HttpFlow {
-            HttpFlow {}
-        }
-
         fn update_flow(&self, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 
@@ -208,15 +204,12 @@ mod analyzer {
             true
         }
 
-        fn create_flow(&self, _direction: Direction) -> HttpFlow {
-            HttpFlow {}
-        }
-
         fn update_flow(&self, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 }
 
 mod flow {
+    #[derive(Default)]
     pub struct HttpFlow {}
 }
 

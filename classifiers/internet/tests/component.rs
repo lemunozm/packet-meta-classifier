@@ -5,7 +5,7 @@ use internet::{
     self,
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
-    tcp::expression::{TcpDestPort, TcpPayloadLen, TcpServerPort, TcpSourcePort},
+    tcp::expression::{TcpDestPort, TcpEstablished, TcpPayloadLen, TcpServerPort, TcpSourcePort},
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
 
@@ -50,6 +50,36 @@ fn tcp_http() {
         expected_classification: vec![
             "D80", "S80", "D80", "Http", "S80", "Http", "D80", "D80", "S80", "D80",
         ],
+    });
+}
+
+#[test]
+fn tcp_established() {
+    common::run_classification_test(TestConfig {
+        loader: internet::loader(),
+        config: (),
+        rules: vec![("Est", Expr::value(TcpEstablished))],
+        captures: vec![CaptureData {
+            capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
+            sections: vec![(1, 10)],
+        }],
+        expected_classification: vec![
+            "", "", "Est", "Est", "Est", "Est", "Est", "Est", "Est", "Est",
+        ],
+    });
+}
+
+#[test]
+fn tcp_midflow() {
+    common::run_classification_test(TestConfig {
+        loader: internet::loader(),
+        config: (),
+        rules: vec![("MidFlow", !Expr::value(TcpEstablished))],
+        captures: vec![CaptureData {
+            capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
+            sections: vec![(2, 5)],
+        }],
+        expected_classification: vec!["MidFlow", "MidFlow", "MidFlow", "MidFlow"],
     });
 }
 

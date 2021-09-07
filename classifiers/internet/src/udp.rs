@@ -84,15 +84,12 @@ mod analyzer {
             true
         }
 
-        fn create_flow(&self, _direction: Direction) -> UdpFlow {
-            UdpFlow {}
-        }
-
         fn update_flow(&self, _flow: &mut UdpFlow, _direction: Direction) {}
     }
 }
 
 mod flow {
+    #[derive(Default)]
     pub struct UdpFlow {}
 }
 

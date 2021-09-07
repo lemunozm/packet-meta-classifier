@@ -32,16 +32,18 @@ where
     logger::init();
 
     for rule_tag in &test_config.expected_classification {
-        test_config
-            .rules
-            .iter()
-            .find(|(tag, _)| tag == rule_tag)
-            .unwrap_or_else(|| {
-                panic!(
-                    "The expected classification rule '{}' must be a defined rule",
-                    rule_tag,
-                )
-            });
+        if *rule_tag != T::default() {
+            test_config
+                .rules
+                .iter()
+                .find(|(tag, _)| tag == rule_tag)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "The expected classification rule '{}' must be a defined rule",
+                        rule_tag,
+                    )
+                });
+        }
     }
 
     let mut classifier =

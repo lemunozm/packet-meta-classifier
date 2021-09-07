@@ -47,7 +47,8 @@ impl<I: ClassifierId> FlowPool<I> {
 
             match entry {
                 Entry::Vacant(entry) => {
-                    let shared_flow = analyzer.create_flow(direction);
+                    let shared_flow = analyzer.create_flow();
+                    analyzer.update_flow(&mut *shared_flow.borrow_mut(), direction);
                     entry.insert(shared_flow.clone());
                     self.flow_cache[analyzer.id().inner()] = Some(shared_flow);
                 }

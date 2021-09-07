@@ -8,12 +8,25 @@ impl<'a> Classifier<'a, ClassifierId> for TcpClassifier {
 }
 
 mod analyzer {
-    use super::flow::{Handshake, TcpFlow};
+    use super::flow::TcpFlow;
 
     use crate::{ClassifierId, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use pmc_core::packet::{Direction, Packet};
+
+    bitflags::bitflags! {
+        pub struct Flag: u8 {
+            const FIN = 1 << 0;
+            const SYN = 1 << 1;
+            const RST = 1 << 2;
+            const PSH = 1 << 3;
+            const ACK = 1 << 4;
+            const URG = 1 << 5;
+            const ECE = 1 << 6;
+            const CWR = 1 << 7;
+        }
+    }
 
     pub struct TcpAnalyzer<'a> {
         pub header: &'a [u8],
@@ -39,6 +52,10 @@ mod analyzer {
 
         pub fn payload_len(&self) -> u16 {
             self.payload_len
+        }
+
+        pub fn flags(&self) -> Flag {
+            Flag::from_bits(self.header[13]).unwrap()
         }
 
         fn expected_l7_classifier(server_port: u16) -> ClassifierId {
@@ -90,31 +107,57 @@ mod analyzer {
             true
         }
 
-        fn create_flow(&self, _direction: Direction) -> TcpFlow {
-            TcpFlow {
-                handshake: Handshake::Send,
-            }
+        fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {
+            flow.update_handshake_state(direction, self.flags());
         }
-
-        fn update_flow(&self, _flow: &mut TcpFlow, _direction: Direction) {}
     }
 }
 
 mod flow {
+    use super::analyzer::Flag;
+
+    use pmc_core::packet::Direction;
+
+    #[derive(Clone, Copy, PartialEq)]
     pub enum Handshake {
+        None,
         Send,
         Recv,
         Established,
     }
 
     pub struct TcpFlow {
-        pub handshake: Handshake,
+        handshake: Handshake,
+    }
+
+    impl Default for TcpFlow {
+        fn default() -> Self {
+            TcpFlow {
+                handshake: Handshake::None,
+            }
+        }
+    }
+
+    impl TcpFlow {
+        pub fn update_handshake_state(&mut self, direction: Direction, flags: Flag) {
+            let uplink = direction == Direction::Uplink;
+            self.handshake = match self.handshake {
+                Handshake::None if uplink && flags == Flag::SYN => Handshake::Send,
+                Handshake::Send if !uplink && flags == Flag::SYN | Flag::ACK => Handshake::Recv,
+                Handshake::Recv if uplink && flags == Flag::ACK => Handshake::Established,
+                _ => self.handshake,
+            }
+        }
+
+        pub fn handshake(&self) -> Handshake {
+            self.handshake
+        }
     }
 }
 
 pub mod expression {
     use super::analyzer::TcpAnalyzer;
-    use super::flow::TcpFlow;
+    use super::flow::{Handshake, TcpFlow};
     use super::TcpClassifier;
 
     use crate::ClassifierId;
@@ -188,6 +231,21 @@ pub mod expression {
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0(analyzer.payload_len())
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpEstablished;
+
+    impl ExpressionValue<ClassifierId> for TcpEstablished {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the server TCP port of the packet matches the given port"
+        }
+
+        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+            Handshake::Established == flow.handshake()
         }
     }
 }
