@@ -222,13 +222,28 @@ pub mod expression {
     use pmc_core::base::expression_value::ExpressionValue;
 
     #[derive(Debug)]
+    pub struct Http;
+
+    impl ExpressionValue<ClassifierId> for Http {
+        type Classifier = super::HttpStartLineClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the packet is HTTP"
+        }
+
+        fn check(&self, _analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+            true
+        }
+    }
+
+    #[derive(Debug)]
     pub struct HttpRequest;
 
     impl ExpressionValue<ClassifierId> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
-            "Valid if the packet is a request"
+            "Valid if the packet is a HTTP request"
         }
 
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
@@ -243,7 +258,7 @@ pub mod expression {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
-            "Valid if the packet is a response"
+            "Valid if the packet is a HTTP response"
         }
 
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
