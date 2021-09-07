@@ -111,7 +111,7 @@ mod analyzer {
 
         fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let first_line = unsafe {
-                //SAFETY: We only check agains first 128 ascii values
+                //SAFETY: We only check againts first 128 ascii values
                 std::str::from_utf8_unchecked(data)
             };
 
@@ -189,14 +189,19 @@ mod analyzer {
 
         fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
             let headers = unsafe {
-                //SAFETY: We only check agains first 128 ascii values
+                //SAFETY: We only check againts first 128 ascii values
                 std::str::from_utf8_unchecked(data)
             };
+
+            let header_len = headers
+                .find("\r\n\r\n")
+                .ok_or("Malformed HTTP header in headers section")?
+                + 4; //becouse of "\r\n\r\n"
 
             Ok(AnalyzerInfo {
                 analyzer: Self { headers },
                 next_classifier_id: ClassifierId::None,
-                bytes_parsed: 0,
+                bytes_parsed: header_len,
             })
         }
 

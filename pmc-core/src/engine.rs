@@ -195,6 +195,7 @@ impl<'a, I: ClassifierId, T: Copy> ClassificationState<'a, I, T> {
                             match self.flow_pool.update(info.analyzer, self.packet.direction) {
                                 Some(tag) => break ClassificationStatus::Cached(tag),
                                 None => {
+                                    self.packet.data = &self.packet.data[info.bytes_parsed..];
                                     if info.next_classifier_id == ClassifierId::NONE {
                                         log::trace!("Analysis finished");
                                         self.finished_analysis = true;
@@ -203,7 +204,6 @@ impl<'a, I: ClassifierId, T: Copy> ClassificationState<'a, I, T> {
                                             false => ClassificationStatus::NotClassify,
                                         };
                                     } else {
-                                        self.packet.data = &self.packet.data[info.bytes_parsed..];
                                         self.next_classifier_id = info.next_classifier_id;
                                         continue;
                                     }
