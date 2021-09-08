@@ -43,6 +43,14 @@ mod analyzer {
             u16::from_be_bytes(*array_ref![self.header, 2, 2])
         }
 
+        pub fn seq_num(&self) -> u32 {
+            u32::from_be_bytes(*array_ref![self.header, 4, 4])
+        }
+
+        pub fn ack_num(&self) -> u32 {
+            u32::from_be_bytes(*array_ref![self.header, 8, 4])
+        }
+
         pub fn server_port(&self) -> u16 {
             match self.direction {
                 Direction::Uplink => self.dest_port(),
@@ -108,7 +116,17 @@ mod analyzer {
         }
 
         fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {
-            flow.update_state_transition(direction, self.flags());
+            flow.update_seq_nums(
+                direction,
+                self.seq_num(),
+                self.ack_num(),
+                self.payload_len,
+                self.flags(),
+            );
+
+            if flow.is_last_packet_expected() {
+                flow.update_state_transition(direction, self.flags());
+            }
         }
     }
 }
@@ -131,9 +149,17 @@ mod flow {
     }
     use StateTransition::*;
 
+    pub enum PacketStatus {
+        Expected,
+        Retransmission,
+    }
+
     pub struct TcpFlow {
         prev_state_transition: StateTransition,
         state_transition: StateTransition,
+        ul_seq_num: u32,
+        dl_seq_num: u32,
+        last_packet_status: PacketStatus,
     }
 
     impl Default for TcpFlow {
@@ -141,6 +167,9 @@ mod flow {
             TcpFlow {
                 prev_state_transition: StateTransition::Listen,
                 state_transition: StateTransition::Listen,
+                ul_seq_num: 0,
+                dl_seq_num: 0,
+                last_packet_status: PacketStatus::Expected,
             }
         }
     }
@@ -164,6 +193,46 @@ mod flow {
             }
         }
 
+        pub fn update_seq_nums(
+            &mut self,
+            direction: Direction,
+            seq_num: u32,
+            ack_num: u32,
+            payload_len: u16,
+            flags: Flag,
+        ) {
+            let syn = flags.contains(Flag::SYN);
+            let len = match syn || flags.contains(Flag::FIN) {
+                true => 1,
+                false => payload_len as u32,
+            };
+
+            match direction {
+                Direction::Uplink => {
+                    if self.ul_seq_num == seq_num && self.dl_seq_num == ack_num || syn {
+                        if len > 0 {
+                            self.ul_seq_num = seq_num + len;
+                            self.dl_seq_num = ack_num;
+                        }
+                        self.last_packet_status = PacketStatus::Expected;
+                        return;
+                    }
+                }
+                Direction::Downlink => {
+                    if self.ul_seq_num == ack_num && (self.dl_seq_num == seq_num || syn) {
+                        if len > 0 {
+                            self.ul_seq_num = ack_num;
+                            self.dl_seq_num = seq_num + len;
+                        }
+                        self.last_packet_status = PacketStatus::Expected;
+                        return;
+                    }
+                }
+            }
+
+            self.last_packet_status = PacketStatus::Retransmission;
+        }
+
         pub fn state_transition(&self) -> StateTransition {
             self.state_transition
         }
@@ -181,6 +250,10 @@ mod flow {
                 FinWait1 | FinWait2 | Closing | TimeWait => true,
                 _ => false,
             }
+        }
+
+        pub fn is_last_packet_expected(&self) -> bool {
+            matches!(self.last_packet_status, PacketStatus::Expected)
         }
     }
 }
@@ -315,11 +388,26 @@ pub mod expression {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
-            "Valid if the TCP flow is performing the teardown"
+            "Valid if the TCP packet contains the flag"
         }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             analyzer.flags().contains(*self)
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TcpRetransmission;
+
+    impl ExpressionValue<ClassifierId> for TcpRetransmission {
+        type Classifier = TcpClassifier;
+
+        fn description() -> &'static str {
+            "Valid if the TCP packet is a retransmission"
+        }
+
+        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+            !flow.is_last_packet_expected()
         }
     }
 }

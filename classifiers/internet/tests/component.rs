@@ -6,8 +6,8 @@ use internet::{
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
     tcp::expression::{
-        TcpDestPort, TcpEstablished, TcpFlag, TcpHandshake, TcpPayloadLen, TcpServerPort,
-        TcpSourcePort, TcpTeardown,
+        TcpDestPort, TcpEstablished, TcpFlag, TcpHandshake, TcpPayloadLen, TcpRetransmission,
+        TcpServerPort, TcpSourcePort, TcpTeardown,
     },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
@@ -66,6 +66,7 @@ fn tcp_established() {
         loader: internet::loader(),
         config: (),
         rules: vec![
+            Rule::new("Retransmision", Expr::value(TcpRetransmission)),
             Rule::new("Handshake", Expr::value(TcpHandshake)),
             Rule::new("Established", Expr::value(TcpEstablished))
                 .cache_flow_until(Expr::value(TcpFlag::FIN)),
@@ -82,6 +83,38 @@ fn tcp_established() {
             "Established",
             "Established",
             "Established",
+            "Established",
+            "Teardown",
+            "Teardown",
+            "Teardown",
+        ],
+    });
+}
+
+#[test]
+fn tcp_retransmission() {
+    common::run_classification_test(TestConfig {
+        loader: internet::loader(),
+        config: (),
+        rules: vec![
+            Rule::new("Retransmision", Expr::value(TcpRetransmission)),
+            Rule::new("Handshake", Expr::value(TcpHandshake)),
+            Rule::new("Established", Expr::value(TcpEstablished))
+                .cache_flow_until(Expr::value(TcpFlag::FIN)),
+            Rule::new("Teardown", Expr::value(TcpTeardown)),
+        ],
+        captures: vec![CaptureData {
+            capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
+            sections: vec![(1, 6), (6, 10)],
+        }],
+        expected_classification: vec![
+            "Handshake",
+            "Handshake",
+            "Handshake",
+            "Established",
+            "Established",
+            "Established",
+            "Retransmision",
             "Established",
             "Teardown",
             "Teardown",
