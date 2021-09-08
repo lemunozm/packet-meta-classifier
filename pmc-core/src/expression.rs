@@ -54,10 +54,10 @@ impl<I: ClassifierId> Expr<I> {
 
     pub(crate) fn check(
         &self,
-        value_validator: &mut dyn FnMut(&Box<dyn ExpressionValueController<I>>) -> ValidatedExpr,
+        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<I>) -> ValidatedExpr,
     ) -> ValidatedExpr {
         match self {
-            Expr::Value(value) => value_validator(value),
+            Expr::Value(value) => value_validator(value.as_ref()),
             Expr::Not(rule) => match rule.check(value_validator) {
                 ValidatedExpr::Classified => ValidatedExpr::NotClassified,
                 ValidatedExpr::NotClassified => ValidatedExpr::Classified,

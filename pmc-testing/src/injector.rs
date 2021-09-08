@@ -72,7 +72,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
 
         log::info!(
             "{} bytes classified as {} -> {}",
-            format!("{:>4}", classification_result.bytes).bright_magenta(),
+            format!("{:>4}", classification_result.payload_bytes).bright_magenta(),
             format!(
                 "{:<tag_width$}",
                 classification_result.rule_tag,

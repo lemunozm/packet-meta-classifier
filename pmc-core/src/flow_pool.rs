@@ -6,16 +6,30 @@ use crate::packet::Direction;
 use std::cell::Ref;
 use std::collections::{hash_map::Entry, HashMap};
 
-pub struct FlowPool<I, T>
+struct FlowInfo<V> {
+    flow: SharedFlowController,
+    associated_value: Option<V>,
+}
+
+impl<V> FlowInfo<V> {
+    fn new(flow: SharedFlowController) -> FlowInfo<V> {
+        Self {
+            flow,
+            associated_value: None,
+        }
+    }
+}
+
+pub struct FlowPool<I, V>
 where
     I: ClassifierId,
 {
-    flows: Vec<HashMap<I::FlowId, (SharedFlowController, Option<T>)>>,
+    flows: Vec<HashMap<I::FlowId, FlowInfo<V>>>,
     flow_cache: Vec<Option<SharedFlowController>>,
     current_flow_id: I::FlowId,
 }
 
-impl<I: ClassifierId, T> Default for FlowPool<I, T> {
+impl<I: ClassifierId, V> Default for FlowPool<I, V> {
     fn default() -> Self {
         Self {
             flows: (0..I::TOTAL).map(|_| HashMap::default()).collect(),
@@ -25,7 +39,7 @@ impl<I: ClassifierId, T> Default for FlowPool<I, T> {
     }
 }
 
-impl<I: ClassifierId, T: Copy> FlowPool<I, T> {
+impl<I: ClassifierId, V: Copy> FlowPool<I, V> {
     pub fn prepare_for_packet(&mut self) {
         self.current_flow_id = I::FlowId::default();
     }
@@ -34,7 +48,7 @@ impl<I: ClassifierId, T: Copy> FlowPool<I, T> {
         &mut self,
         analyzer: &dyn AnalyzerController<I>,
         direction: Direction,
-    ) -> Option<T> {
+    ) -> Option<V> {
         if analyzer.update_flow_id(&mut self.current_flow_id, direction) {
             let entry = self.flows[analyzer.id().inner()].entry(self.current_flow_id.clone());
 
@@ -48,14 +62,14 @@ impl<I: ClassifierId, T: Copy> FlowPool<I, T> {
                 Entry::Vacant(entry) => {
                     let shared_flow = analyzer.create_flow();
                     analyzer.update_flow(&mut *shared_flow.borrow_mut(), direction);
-                    entry.insert((shared_flow.clone(), None));
+                    entry.insert(FlowInfo::new(shared_flow.clone()));
                     self.flow_cache[analyzer.id().inner()] = Some(shared_flow);
                 }
                 Entry::Occupied(mut entry) => {
-                    if let Some(tag) = &entry.get_mut().1 {
-                        return Some(*tag);
+                    if let Some(value) = &entry.get_mut().associated_value {
+                        return Some(*value);
                     }
-                    analyzer.update_flow(&mut *entry.get_mut().0.borrow_mut(), direction);
+                    analyzer.update_flow(&mut *entry.get_mut().flow.borrow_mut(), direction);
                 }
             }
         } else {
@@ -70,7 +84,15 @@ impl<I: ClassifierId, T: Copy> FlowPool<I, T> {
             .map(|shared_flow| shared_flow.borrow())
     }
 
-    pub fn associate_tag_to_last_flow(&mut self, _tag: T) {
+    pub fn associate_value_to_last_flow(&mut self, _value: V) {
+        //TODO
+    }
+
+    pub fn delete_value_to_last_flow(&mut self) {
+        //TODO
+    }
+
+    pub fn update_last_flow(&mut self) {
         //TODO
     }
 }

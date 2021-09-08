@@ -40,7 +40,7 @@ impl<T: fmt::Display + Eq + Copy + Default> Summary<T> {
                 let mut rule_result = RuleResult::default();
                 for classification in classifications {
                     if classification.rule_tag == *rule_tag {
-                        rule_result += RuleResult::from_packet(classification.bytes);
+                        rule_result += RuleResult::from_packet(classification.payload_bytes);
                     }
                 }
                 (*rule_tag, rule_result)
