@@ -112,9 +112,11 @@ where
             flow_pool,
         } = self;
 
+        let packet_len = packet.data.len();
         let mut state = ClassificationState {
             config,
             packet,
+            skipped_bytes: 0,
             next_id: C::ClassifierId::INITIAL,
             cache: analyzer_cache.prepare_for_packet(),
             dependency_checker,
@@ -191,7 +193,7 @@ where
                     return ClassificationResult {
                         rule_tag: rule.tag,
                         rule_cached: false,
-                        payload_bytes: state.packet.data.len(),
+                        payload_bytes: packet_len - state.skipped_bytes,
                     };
                 }
                 ValidatedExpr::NotClassified => continue,
@@ -201,7 +203,7 @@ where
                         return ClassificationResult {
                             rule_tag: tag,
                             rule_cached: true,
-                            payload_bytes: state.packet.data.len(),
+                            payload_bytes: packet_len - state.skipped_bytes,
                         };
                     }
                     None => break,
@@ -213,7 +215,7 @@ where
         ClassificationResult {
             rule_tag: T::default(),
             rule_cached: false,
-            payload_bytes: state.packet.data.len(),
+            payload_bytes: packet_len - state.skipped_bytes,
         }
     }
 }
@@ -235,6 +237,7 @@ enum ClassificationStatus {
 struct ClassificationState<'a, C: Config> {
     config: &'a C,
     packet: Packet<'a>,
+    skipped_bytes: usize,
     next_id: C::ClassifierId,
     cache: CacheFrame<'a, C>,
     dependency_checker: &'a DependencyChecker<C::ClassifierId>,
@@ -271,6 +274,8 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                     };
                 }
 
+                let skip_bytes = self.cache.used() < self.config.base().skip_analyzer_bytes;
+
                 log::trace!("Analyze for: {:?}", self.next_id);
                 let analyzer_result =
                     self.cache
@@ -279,6 +284,10 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                 match analyzer_result {
                     Ok(info) => {
                         self.packet.data = &self.packet.data[info.bytes_parsed..];
+                        if skip_bytes {
+                            self.skipped_bytes += info.bytes_parsed;
+                        }
+
                         let should_classify = if info.next_classifier_id == ClassifierId::NONE {
                             log::trace!("Analysis finished");
                             self.finished_analysis = true;

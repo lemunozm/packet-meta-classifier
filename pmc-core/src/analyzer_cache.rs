@@ -58,6 +58,10 @@ impl<'a, C: Config> CacheFrame<'a, C> {
                 .get()
         }
     }
+
+    pub fn used(&self) -> usize {
+        self.cache.current_ids.len()
+    }
 }
 
 impl<'a, C: Config> Drop for CacheFrame<'a, C> {

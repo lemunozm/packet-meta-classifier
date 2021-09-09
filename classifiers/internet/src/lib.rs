@@ -7,7 +7,7 @@ pub mod tcp;
 pub mod udp;
 
 use pmc_core::base::config::{
-    BaseConfig, ByteAnalysisRule, ClassifierId as ClassifierIdTrait, Config as ConfigTrait,
+    BaseConfig, ClassifierId as ClassifierIdTrait, Config as ConfigTrait,
 };
 use pmc_core::loader::ClassifierLoader;
 
@@ -72,7 +72,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             base: BaseConfig {
-                byte_analysis_rule: ByteAnalysisRule::SkipAnalyzer(1), // Skip IP analyzer
+                skip_analyzer_bytes: 1, // Skip bytes from IP analyzer
                 flow_pool_initial_size: 100,
             },
         }

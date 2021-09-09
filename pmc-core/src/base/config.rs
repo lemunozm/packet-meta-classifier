@@ -1,12 +1,6 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub enum ByteAnalysisRule {
-    Nothing,
-    SkipAnalyzer(usize),
-    NoAnalyzed,
-}
-
 pub trait ClassifierId:
     From<usize> + Into<usize> + Hash + Debug + Copy + Eq + Ord + 'static
 {
@@ -20,7 +14,7 @@ pub trait ClassifierId:
 }
 
 pub struct BaseConfig {
-    pub byte_analysis_rule: ByteAnalysisRule,
+    pub skip_analyzer_bytes: usize,
     pub flow_pool_initial_size: usize,
 }
 
