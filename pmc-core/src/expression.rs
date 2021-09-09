@@ -1,6 +1,6 @@
 use crate::base::classifier::Classifier;
+use crate::base::config::Config;
 use crate::base::expression_value::ExpressionValue;
-use crate::base::id::ClassifierId;
 use crate::controller::expression_value::ExpressionValueController;
 
 use std::ops::{BitAnd, BitOr, Not};
@@ -20,41 +20,41 @@ impl ValidatedExpr {
     }
 }
 
-pub enum Expr<I: ClassifierId> {
+pub enum Expr<C: Config> {
     #[non_exhaustive]
-    Value(Box<dyn ExpressionValueController<I>>),
+    Value(Box<dyn ExpressionValueController<C>>),
     #[non_exhaustive]
-    Not(Box<Expr<I>>),
+    Not(Box<Expr<C>>),
     #[non_exhaustive]
-    All(Vec<Expr<I>>),
+    All(Vec<Expr<C>>),
     #[non_exhaustive]
-    Any(Vec<Expr<I>>),
+    Any(Vec<Expr<C>>),
     #[non_exhaustive]
-    And(Box<(Expr<I>, Expr<I>)>),
+    And(Box<(Expr<C>, Expr<C>)>),
     #[non_exhaustive]
-    Or(Box<(Expr<I>, Expr<I>)>),
+    Or(Box<(Expr<C>, Expr<C>)>),
 }
 
-impl<I: ClassifierId> Expr<I> {
-    pub fn value<V, C>(value: V) -> Expr<I>
+impl<C: Config> Expr<C> {
+    pub fn value<V, B>(value: V) -> Expr<C>
     where
-        V: ExpressionValue<I, Classifier = C> + 'static,
-        C: for<'a> Classifier<'a, I>,
+        V: ExpressionValue<C, Classifier = B> + 'static,
+        B: for<'a> Classifier<'a, C>,
     {
-        Expr::Value(<dyn ExpressionValueController<I>>::new(value))
+        Expr::Value(<dyn ExpressionValueController<C>>::new(value))
     }
 
-    pub fn all(expressions: Vec<Expr<I>>) -> Expr<I> {
+    pub fn all(expressions: Vec<Expr<C>>) -> Expr<C> {
         Expr::All(expressions)
     }
 
-    pub fn any(expressions: Vec<Expr<I>>) -> Expr<I> {
+    pub fn any(expressions: Vec<Expr<C>>) -> Expr<C> {
         Expr::Any(expressions)
     }
 
     pub(crate) fn check(
         &self,
-        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<I>) -> ValidatedExpr,
+        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<C>) -> ValidatedExpr,
     ) -> ValidatedExpr {
         match self {
             Expr::Value(value) => value_validator(value.as_ref()),
@@ -97,23 +97,23 @@ impl<I: ClassifierId> Expr<I> {
     }
 }
 
-impl<I: ClassifierId> Not for Expr<I> {
-    type Output = Expr<I>;
-    fn not(self) -> Expr<I> {
+impl<C: Config> Not for Expr<C> {
+    type Output = Expr<C>;
+    fn not(self) -> Expr<C> {
         Expr::Not(Box::new(self))
     }
 }
 
-impl<I: ClassifierId> BitAnd for Expr<I> {
-    type Output = Expr<I>;
-    fn bitand(self, expression: Expr<I>) -> Expr<I> {
+impl<C: Config> BitAnd for Expr<C> {
+    type Output = Expr<C>;
+    fn bitand(self, expression: Expr<C>) -> Expr<C> {
         Expr::And(Box::new((self, expression)))
     }
 }
 
-impl<I: ClassifierId> BitOr for Expr<I> {
-    type Output = Expr<I>;
-    fn bitor(self, expression: Expr<I>) -> Expr<I> {
+impl<C: Config> BitOr for Expr<C> {
+    type Output = Expr<C>;
+    fn bitor(self, expression: Expr<C>) -> Expr<C> {
         Expr::Or(Box::new((self, expression)))
     }
 }

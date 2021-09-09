@@ -1,14 +1,14 @@
-use crate::ClassifierId;
+use crate::Config;
 
 use pmc_core::base::classifier::Classifier;
 
 pub struct IpClassifier;
-impl<'a> Classifier<'a, ClassifierId> for IpClassifier {
+impl<'a> Classifier<'a, Config> for IpClassifier {
     type Analyzer = analyzer::IpAnalyzer<'a>;
 }
 
 mod analyzer {
-    use crate::{ClassifierId, FlowSignature};
+    use crate::{ClassifierId, Config, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use pmc_core::packet::{Direction, Packet};
@@ -49,13 +49,16 @@ mod analyzer {
         }
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for IpAnalyzer<'a> {
+    impl<'a> Analyzer<'a, Config> for IpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Ip;
         const PREV_ID: ClassifierId = ClassifierId::None;
 
         type Flow = ();
 
-        fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(
+            _config: &Config,
+            &Packet { data, .. }: &'a Packet,
+        ) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (data[0] & 0xF0) >> 4;
 
             let (version, protocol, header_len) = match ip_version {
@@ -110,7 +113,7 @@ pub mod expression {
     use super::analyzer::{IpAnalyzer, Version};
     use super::IpClassifier;
 
-    use crate::ClassifierId;
+    use crate::Config;
 
     use pmc_core::base::expression_value::ExpressionValue;
 
@@ -119,7 +122,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct Ip;
 
-    impl ExpressionValue<ClassifierId> for Ip {
+    impl ExpressionValue<Config> for Ip {
         type Classifier = IpClassifier;
 
         fn description() -> &'static str {
@@ -133,7 +136,7 @@ pub mod expression {
 
     pub use super::analyzer::Version as IpVersion;
 
-    impl ExpressionValue<ClassifierId> for IpVersion {
+    impl ExpressionValue<Config> for IpVersion {
         type Classifier = IpClassifier;
 
         fn description() -> &'static str {
@@ -151,7 +154,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
 
-    impl ExpressionValue<ClassifierId> for IpSource {
+    impl ExpressionValue<Config> for IpSource {
         type Classifier = IpClassifier;
 
         fn description() -> &'static str {
@@ -166,7 +169,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
 
-    impl ExpressionValue<ClassifierId> for IpDest {
+    impl ExpressionValue<Config> for IpDest {
         type Classifier = IpClassifier;
 
         fn description() -> &'static str {
@@ -184,7 +187,7 @@ pub mod expression {
         Udp = 17,
     }
 
-    impl ExpressionValue<ClassifierId> for IpProto {
+    impl ExpressionValue<Config> for IpProto {
         type Classifier = IpClassifier;
 
         fn description() -> &'static str {

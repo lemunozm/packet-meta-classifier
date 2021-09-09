@@ -1,43 +1,44 @@
 use crate::base::analyzer::AnalyzerResult;
-use crate::base::id::ClassifierId;
+use crate::base::config::{ClassifierId, Config};
 use crate::controller::analyzer::AnalyzerController;
 use crate::controller::classifier::ClassifierController;
 use crate::packet::Packet;
 
-pub struct AnalyzerCache<I: ClassifierId> {
-    classifiers: Vec<Option<Box<dyn ClassifierController<I>>>>,
-    current_ids: Vec<I>,
+pub struct AnalyzerCache<C: Config> {
+    classifiers: Vec<Option<Box<dyn ClassifierController<C>>>>,
+    current_ids: Vec<C::ClassifierId>,
 }
 
-impl<I: ClassifierId> AnalyzerCache<I> {
-    pub fn new(classifiers: Vec<Option<Box<dyn ClassifierController<I>>>>) -> Self {
+impl<C: Config> AnalyzerCache<C> {
+    pub fn new(classifiers: Vec<Option<Box<dyn ClassifierController<C>>>>) -> Self {
         Self {
             classifiers,
-            current_ids: Vec::with_capacity(I::TOTAL),
+            current_ids: Vec::with_capacity(C::ClassifierId::TOTAL),
         }
     }
 
-    pub fn prepare_for_packet(&mut self) -> CacheFrame<I> {
+    pub fn prepare_for_packet(&mut self) -> CacheFrame<C> {
         CacheFrame { cache: self }
     }
 }
 
-pub struct CacheFrame<'a, I: ClassifierId> {
-    cache: &'a mut AnalyzerCache<I>,
+pub struct CacheFrame<'a, C: Config> {
+    cache: &'a mut AnalyzerCache<C>,
 }
 
-impl<'a, I: ClassifierId> CacheFrame<'a, I> {
+impl<'a, C: Config> CacheFrame<'a, C> {
     pub fn build_analyzer(
         &mut self,
-        id: I,
+        id: C::ClassifierId,
+        config: &C,
         packet: &Packet<'a>,
-    ) -> AnalyzerResult<&dyn AnalyzerController<'a, I>, I> {
+    ) -> AnalyzerResult<&dyn AnalyzerController<'a, C>, C::ClassifierId> {
         let result = unsafe {
             // SAFETY: Cleaned before packet lifetime ends.
             self.cache.classifiers[id.inner()]
                 .as_mut()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
-                .build_analyzer(packet)
+                .build_analyzer(config, packet)
         };
 
         if result.is_ok() {
@@ -47,7 +48,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
         result
     }
 
-    pub fn get(&self, id: I) -> &dyn AnalyzerController<'a, I> {
+    pub fn get(&self, id: C::ClassifierId) -> &dyn AnalyzerController<'a, C> {
         unsafe {
             // SAFETY: The lifetime of the returned analyzer is the same as the lifetime with it is
             // built.
@@ -59,7 +60,7 @@ impl<'a, I: ClassifierId> CacheFrame<'a, I> {
     }
 }
 
-impl<'a, I: ClassifierId> Drop for CacheFrame<'a, I> {
+impl<'a, C: Config> Drop for CacheFrame<'a, C> {
     fn drop(&mut self) {
         // SAFETY: Remove all the pending analyzers before packet lifetime ends.
         for id in &self.cache.current_ids {

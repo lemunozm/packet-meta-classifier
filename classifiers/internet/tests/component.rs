@@ -10,6 +10,7 @@ use internet::{
         TcpSourcePort, TcpTeardown,
     },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
+    Config,
 };
 
 use pmc_core::engine::Rule;
@@ -21,7 +22,7 @@ use pmc_testing::common::{self, CaptureData, TestConfig};
 fn udp_echo() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![
             Rule::new(
                 "MoreThan10Bytes",
@@ -42,7 +43,7 @@ fn udp_echo() {
 fn tcp_http() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![
             Rule::new(
                 "Http",
@@ -65,7 +66,7 @@ fn tcp_http() {
 fn tcp_established() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![
             Rule::new("Retransmision", Expr::value(TcpRetransmission)),
             Rule::new("Handshake", Expr::value(TcpHandshake)),
@@ -95,7 +96,7 @@ fn tcp_established() {
 fn tcp_retransmission() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![
             Rule::new("Retransmision", Expr::value(TcpRetransmission)),
             Rule::new("Handshake", Expr::value(TcpHandshake)),
@@ -126,7 +127,7 @@ fn tcp_retransmission() {
 fn tcp_midflow() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![Rule::new("MidFlow", !Expr::value(TcpEstablished))],
         captures: vec![CaptureData {
             capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
@@ -140,7 +141,7 @@ fn tcp_midflow() {
 fn http_get() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
-        config: (),
+        config: Config::default(),
         rules: vec![
             Rule::new(
                 "GET",

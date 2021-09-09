@@ -1,20 +1,20 @@
 use crate::base::analyzer::Analyzer;
-use crate::base::id::ClassifierId;
+use crate::base::config::Config;
 use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Direction;
 
-pub trait AnalyzerController<'a, I: ClassifierId> {
-    fn id(&self) -> I;
-    fn prev_id(&self) -> I;
-    fn update_flow_id(&self, flow_id: &mut I::FlowId, direction: Direction) -> bool;
+pub trait AnalyzerController<'a, C: Config> {
+    fn id(&self) -> C::ClassifierId;
+    fn prev_id(&self) -> C::ClassifierId;
+    fn update_flow_id(&self, flow_id: &mut C::FlowId, direction: Direction) -> bool;
     fn create_flow(&self) -> SharedFlowController;
-    fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction);
+    fn update_flow(&self, config: &C, flow: &mut dyn FlowController, direction: Direction);
 }
 
-impl<'a, I: ClassifierId> dyn AnalyzerController<'a, I> + '_ {
+impl<'a, C: Config> dyn AnalyzerController<'a, C> + '_ {
     pub fn inner_ref<A>(&self) -> &A
     where
-        A: Analyzer<'a, I>,
+        A: Analyzer<'a, C>,
     {
         if self.id() != A::ID {
             panic!(
@@ -27,7 +27,7 @@ impl<'a, I: ClassifierId> dyn AnalyzerController<'a, I> + '_ {
         let controller = unsafe {
             // SAFETY: Only one analyzer per ID can be registered, so if the IDs are equals
             // they are the same object.
-            &*(self as *const dyn AnalyzerController<I> as *const AnalyzerControllerImpl<A>)
+            &*(self as *const dyn AnalyzerController<C> as *const AnalyzerControllerImpl<A>)
         };
 
         &controller.0
@@ -42,20 +42,20 @@ impl<A> AnalyzerControllerImpl<A> {
     }
 }
 
-impl<'a, A, I> AnalyzerController<'a, I> for AnalyzerControllerImpl<A>
+impl<'a, A, C> AnalyzerController<'a, C> for AnalyzerControllerImpl<A>
 where
-    A: Analyzer<'a, I>,
-    I: ClassifierId,
+    A: Analyzer<'a, C>,
+    C: Config,
 {
-    fn id(&self) -> I {
+    fn id(&self) -> C::ClassifierId {
         A::ID
     }
 
-    fn prev_id(&self) -> I {
+    fn prev_id(&self) -> C::ClassifierId {
         A::PREV_ID
     }
 
-    fn update_flow_id(&self, mut signature: &mut I::FlowId, direction: Direction) -> bool {
+    fn update_flow_id(&self, mut signature: &mut C::FlowId, direction: Direction) -> bool {
         self.0.update_flow_id(&mut signature, direction)
     }
 
@@ -64,8 +64,8 @@ where
         <dyn FlowController>::new_shared(flow)
     }
 
-    fn update_flow(&self, flow: &mut dyn FlowController, direction: Direction) {
+    fn update_flow(&self, config: &C, flow: &mut dyn FlowController, direction: Direction) {
         let flow = &mut flow.inner_mut::<A::Flow>();
-        self.0.update_flow(flow, direction);
+        self.0.update_flow(config, flow, direction);
     }
 }

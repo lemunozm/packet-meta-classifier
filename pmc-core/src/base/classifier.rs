@@ -1,6 +1,6 @@
 use crate::base::analyzer::Analyzer;
-use crate::base::id::ClassifierId;
+use crate::base::config::Config;
 
-pub trait Classifier<'a, I: ClassifierId>: Sized {
-    type Analyzer: Analyzer<'a, I>;
+pub trait Classifier<'a, C: Config>: Sized {
+    type Analyzer: Analyzer<'a, C>;
 }

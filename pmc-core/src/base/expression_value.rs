@@ -1,13 +1,13 @@
 use crate::base::analyzer::Analyzer;
 use crate::base::classifier::Classifier;
-use crate::base::id::ClassifierId;
+use crate::base::config::Config;
 
-pub trait ExpressionValue<I: ClassifierId>: Sized + std::fmt::Debug + 'static {
-    type Classifier: for<'a> Classifier<'a, I>;
+pub trait ExpressionValue<C: Config>: Sized + std::fmt::Debug + 'static {
+    type Classifier: for<'a> Classifier<'a, C>;
     fn description() -> &'static str;
     fn check<'a>(
         &self,
-        analyzer: &<Self::Classifier as Classifier<I>>::Analyzer,
-        flow: &<<Self::Classifier as Classifier<'a, I>>::Analyzer as Analyzer<'a, I>>::Flow,
+        analyzer: &<Self::Classifier as Classifier<C>>::Analyzer,
+        flow: &<<Self::Classifier as Classifier<'a, C>>::Analyzer as Analyzer<'a, C>>::Flow,
     ) -> bool;
 }

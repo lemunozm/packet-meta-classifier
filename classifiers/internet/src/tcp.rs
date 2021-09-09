@@ -1,16 +1,16 @@
-use crate::ClassifierId;
+use crate::Config;
 
 use pmc_core::base::classifier::Classifier;
 
 pub struct TcpClassifier;
-impl<'a> Classifier<'a, ClassifierId> for TcpClassifier {
+impl<'a> Classifier<'a, Config> for TcpClassifier {
     type Analyzer = analyzer::TcpAnalyzer<'a>;
 }
 
 mod analyzer {
     use super::flow::TcpFlow;
 
-    use crate::{ClassifierId, FlowSignature};
+    use crate::{ClassifierId, Config, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use pmc_core::packet::{Direction, Packet};
@@ -75,13 +75,16 @@ mod analyzer {
         }
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for TcpAnalyzer<'a> {
+    impl<'a> Analyzer<'a, Config> for TcpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Tcp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 
         type Flow = TcpFlow;
 
-        fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(
+            _config: &Config,
+            &Packet { data, direction }: &'a Packet,
+        ) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = (((data[12] & 0xF0) as usize) >> 4) << 2;
 
             let analyzer = Self {
@@ -115,7 +118,7 @@ mod analyzer {
             true
         }
 
-        fn update_flow(&self, flow: &mut TcpFlow, direction: Direction) {
+        fn update_flow(&self, _config: &Config, flow: &mut TcpFlow, direction: Direction) {
             flow.update_seq_nums(
                 direction,
                 self.seq_num(),
@@ -263,7 +266,7 @@ pub mod expression {
     use super::flow::{StateTransition, TcpFlow};
     use super::TcpClassifier;
 
-    use crate::ClassifierId;
+    use crate::Config;
 
     use pmc_core::base::expression_value::ExpressionValue;
 
@@ -272,7 +275,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for TcpSourcePort {
+    impl ExpressionValue<Config> for TcpSourcePort {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -287,7 +290,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for TcpDestPort {
+    impl ExpressionValue<Config> for TcpDestPort {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -302,7 +305,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpServerPort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for TcpServerPort {
+    impl ExpressionValue<Config> for TcpServerPort {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -322,7 +325,7 @@ pub mod expression {
         }
     }
 
-    impl<F> ExpressionValue<ClassifierId> for TcpPayloadLen<F>
+    impl<F> ExpressionValue<Config> for TcpPayloadLen<F>
     where
         F: Fn(u16) -> bool + 'static,
     {
@@ -340,7 +343,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpEstablished;
 
-    impl ExpressionValue<ClassifierId> for TcpEstablished {
+    impl ExpressionValue<Config> for TcpEstablished {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -355,7 +358,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpHandshake;
 
-    impl ExpressionValue<ClassifierId> for TcpHandshake {
+    impl ExpressionValue<Config> for TcpHandshake {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -370,7 +373,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpTeardown;
 
-    impl ExpressionValue<ClassifierId> for TcpTeardown {
+    impl ExpressionValue<Config> for TcpTeardown {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -384,7 +387,7 @@ pub mod expression {
 
     pub use super::analyzer::Flag as TcpFlag;
 
-    impl ExpressionValue<ClassifierId> for TcpFlag {
+    impl ExpressionValue<Config> for TcpFlag {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {
@@ -399,7 +402,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct TcpRetransmission;
 
-    impl ExpressionValue<ClassifierId> for TcpRetransmission {
+    impl ExpressionValue<Config> for TcpRetransmission {
         type Classifier = TcpClassifier;
 
         fn description() -> &'static str {

@@ -6,7 +6,9 @@ pub mod ip;
 pub mod tcp;
 pub mod udp;
 
-use pmc_core::base::id::ClassifierId as ClassifierIdTrait;
+use pmc_core::base::config::{
+    BaseConfig, ByteAnalysisRule, ClassifierId as ClassifierIdTrait, Config as ConfigTrait,
+};
 use pmc_core::loader::ClassifierLoader;
 
 use num_derive::FromPrimitive;
@@ -37,6 +39,12 @@ impl From<ClassifierId> for usize {
     }
 }
 
+impl ClassifierIdTrait for ClassifierId {
+    const NONE: ClassifierId = ClassifierId::None;
+    const INITIAL: ClassifierId = ClassifierId::Ip;
+    const TOTAL: usize = ClassifierId::COUNT;
+}
+
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct FlowSignature {
     source_ip: Ipv6Addr,
@@ -56,15 +64,32 @@ impl Default for FlowSignature {
     }
 }
 
-impl ClassifierIdTrait for ClassifierId {
-    const NONE: ClassifierId = ClassifierId::None;
-    const INITIAL: ClassifierId = ClassifierId::Ip;
-    const TOTAL: usize = ClassifierId::COUNT;
-
-    type FlowId = FlowSignature;
+pub struct Config {
+    pub base: BaseConfig,
 }
 
-pub fn loader() -> ClassifierLoader<ClassifierId> {
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            base: BaseConfig {
+                flow_pool_initial_size: 100,
+            },
+        }
+    }
+}
+
+impl ConfigTrait for Config {
+    const BYTE_ANALYSIS_RULE: ByteAnalysisRule = ByteAnalysisRule::Nothing;
+
+    type FlowId = FlowSignature;
+    type ClassifierId = ClassifierId;
+
+    fn base(&self) -> &BaseConfig {
+        &self.base
+    }
+}
+
+pub fn loader() -> ClassifierLoader<Config> {
     ClassifierLoader::default()
         .with(ip::IpClassifier)
         .with(udp::UdpClassifier)

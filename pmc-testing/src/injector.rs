@@ -1,7 +1,7 @@
 use crate::capture::CaptureIterator;
 use crate::logger::{self, PacketProps};
 
-use pmc_core::base::id::ClassifierId;
+use pmc_core::base::config::Config;
 use pmc_core::engine::{ClassificationResult, ClassifierEngine};
 use pmc_core::packet::{Direction, Packet};
 
@@ -20,9 +20,9 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         }
     }
 
-    pub fn inject_packets<C, I: ClassifierId>(
+    pub fn inject_packets<C: Config>(
         &mut self,
-        classifier: &mut ClassifierEngine<C, T, I>,
+        classifier: &mut ClassifierEngine<C, T>,
         capture_section: CaptureIterator,
     ) -> InjectionResult<T> {
         let mut current_injection_result = InjectionResult::default();

@@ -1,21 +1,21 @@
-use crate::ClassifierId;
+use crate::Config;
 
 use pmc_core::base::classifier::Classifier;
 
 pub struct HttpStartLineClassifier;
-impl<'a> Classifier<'a, ClassifierId> for HttpStartLineClassifier {
+impl<'a> Classifier<'a, Config> for HttpStartLineClassifier {
     type Analyzer = analyzer::HttpStartLineAnalyzer<'a>;
 }
 
 pub struct HttpHeaderClassifier;
-impl<'a> Classifier<'a, ClassifierId> for HttpHeaderClassifier {
+impl<'a> Classifier<'a, Config> for HttpHeaderClassifier {
     type Analyzer = analyzer::HttpHeaderAnalyzer<'a>;
 }
 
 mod analyzer {
     use super::flow::HttpFlow;
 
-    use crate::{ClassifierId, FlowSignature};
+    use crate::{ClassifierId, Config, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use pmc_core::packet::{Direction, Packet};
@@ -103,13 +103,16 @@ mod analyzer {
         }
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for HttpStartLineAnalyzer<'a> {
+    impl<'a> Analyzer<'a, Config> for HttpStartLineAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::HttpStartLine;
         const PREV_ID: ClassifierId = ClassifierId::Tcp;
 
         type Flow = HttpFlow;
 
-        fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(
+            _config: &Config,
+            &Packet { data, direction }: &'a Packet,
+        ) -> AnalyzerResult<Self, ClassifierId> {
             let first_line = unsafe {
                 //SAFETY: We only check againts first 128 ascii values
                 std::str::from_utf8_unchecked(data)
@@ -154,7 +157,7 @@ mod analyzer {
             true
         }
 
-        fn update_flow(&self, _flow: &mut HttpFlow, _direction: Direction) {}
+        fn update_flow(&self, _config: &Config, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 
     pub struct HttpHeaderAnalyzer<'a> {
@@ -181,13 +184,16 @@ mod analyzer {
         }
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for HttpHeaderAnalyzer<'a> {
+    impl<'a> Analyzer<'a, Config> for HttpHeaderAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::HttpHeader;
         const PREV_ID: ClassifierId = ClassifierId::HttpStartLine;
 
         type Flow = HttpFlow;
 
-        fn build(&Packet { data, .. }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(
+            _config: &Config,
+            &Packet { data, .. }: &'a Packet,
+        ) -> AnalyzerResult<Self, ClassifierId> {
             let headers = unsafe {
                 //SAFETY: We only check againts first 128 ascii values
                 std::str::from_utf8_unchecked(data)
@@ -209,7 +215,7 @@ mod analyzer {
             true
         }
 
-        fn update_flow(&self, _flow: &mut HttpFlow, _direction: Direction) {}
+        fn update_flow(&self, _config: &Config, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 }
 
@@ -222,14 +228,14 @@ pub mod expression {
     use super::analyzer::{HttpHeaderAnalyzer, HttpStartLineAnalyzer};
     use super::flow::HttpFlow;
 
-    use crate::ClassifierId;
+    use crate::Config;
 
     use pmc_core::base::expression_value::ExpressionValue;
 
     #[derive(Debug)]
     pub struct Http;
 
-    impl ExpressionValue<ClassifierId> for Http {
+    impl ExpressionValue<Config> for Http {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
@@ -244,7 +250,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct HttpRequest;
 
-    impl ExpressionValue<ClassifierId> for HttpRequest {
+    impl ExpressionValue<Config> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
@@ -259,7 +265,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct HttpResponse;
 
-    impl ExpressionValue<ClassifierId> for HttpResponse {
+    impl ExpressionValue<Config> for HttpResponse {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
@@ -273,7 +279,7 @@ pub mod expression {
 
     pub use super::analyzer::Method as HttpMethod;
 
-    impl ExpressionValue<ClassifierId> for HttpMethod {
+    impl ExpressionValue<Config> for HttpMethod {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
@@ -288,7 +294,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct HttpCode(pub &'static str);
 
-    impl ExpressionValue<ClassifierId> for HttpCode {
+    impl ExpressionValue<Config> for HttpCode {
         type Classifier = super::HttpStartLineClassifier;
 
         fn description() -> &'static str {
@@ -303,7 +309,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct HttpHeaderName(pub &'static str);
 
-    impl ExpressionValue<ClassifierId> for HttpHeaderName {
+    impl ExpressionValue<Config> for HttpHeaderName {
         type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {
@@ -318,7 +324,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct HttpHeader(pub &'static str, pub &'static str);
 
-    impl ExpressionValue<ClassifierId> for HttpHeader {
+    impl ExpressionValue<Config> for HttpHeader {
         type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {

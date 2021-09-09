@@ -1,20 +1,20 @@
-use crate::base::id::ClassifierId;
+use crate::base::config::{ClassifierId, Config};
 
 use crate::packet::{Direction, Packet};
 
-pub trait Analyzer<'a, I: ClassifierId>: Sized {
-    const ID: I;
-    const PREV_ID: I;
+pub trait Analyzer<'a, C: Config>: Sized {
+    const ID: C::ClassifierId;
+    const PREV_ID: C::ClassifierId;
 
     type Flow: Default + 'static;
 
-    fn build(packet: &'a Packet) -> AnalyzerResult<Self, I>;
+    fn build(config: &C, packet: &'a Packet) -> AnalyzerResult<Self, C::ClassifierId>;
 
-    fn update_flow_id(&self, _flow_id: &mut I::FlowId, _direction: Direction) -> bool {
+    fn update_flow_id(&self, _flow_id: &mut C::FlowId, _direction: Direction) -> bool {
         false
     }
 
-    fn update_flow(&self, _flow: &mut Self::Flow, _direction: Direction) {
+    fn update_flow(&self, _config: &C, _flow: &mut Self::Flow, _direction: Direction) {
         unimplemented!("Analyzer {:?} do not update the flow instance", Self::ID)
     }
 }

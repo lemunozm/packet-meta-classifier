@@ -1,4 +1,4 @@
-use crate::base::id::ClassifierId;
+use crate::base::config::ClassifierId;
 
 pub enum DependencyStatus {
     Predecessor,

@@ -1,46 +1,46 @@
 use crate::analyzer_cache::AnalyzerCache;
 use crate::base::analyzer::Analyzer;
 use crate::base::classifier::Classifier;
-use crate::base::id::ClassifierId;
+use crate::base::config::{ClassifierId, Config};
 use crate::controller::classifier::ClassifierController;
 use crate::dependency_checker::DependencyChecker;
 
-pub struct ClassifierLoader<I: ClassifierId> {
-    classifiers: Vec<Option<Box<dyn ClassifierController<I>>>>,
-    ids_relations: Vec<(I, I)>,
+pub struct ClassifierLoader<C: Config> {
+    classifiers: Vec<Option<Box<dyn ClassifierController<C>>>>,
+    ids_relations: Vec<(C::ClassifierId, C::ClassifierId)>,
     last_id: usize,
 }
 
-impl<I: ClassifierId> Default for ClassifierLoader<I> {
+impl<C: Config> Default for ClassifierLoader<C> {
     fn default() -> Self {
         Self {
-            classifiers: (0..I::TOTAL).map(|_| None).collect(),
+            classifiers: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
             ids_relations: Vec::default(),
             last_id: 0,
         }
     }
 }
 
-impl<I: ClassifierId> ClassifierLoader<I> {
-    pub fn with<C>(mut self, classifier: C) -> Self
+impl<C: Config> ClassifierLoader<C> {
+    pub fn with<B>(mut self, classifier: B) -> Self
     where
-        C: for<'a> Classifier<'a, I> + 'static,
+        B: for<'a> Classifier<'a, C> + 'static,
     {
         assert!(
-            C::Analyzer::ID > self.last_id.into(),
+            B::Analyzer::ID > self.last_id.into(),
             "Expected ID with higher value than {:?}",
-            C::Analyzer::ID
+            B::Analyzer::ID
         );
 
-        self.classifiers[C::Analyzer::ID.inner()] =
-            Some(<dyn ClassifierController<I>>::new(classifier));
+        self.classifiers[B::Analyzer::ID.inner()] =
+            Some(<dyn ClassifierController<C>>::new(classifier));
 
         self.ids_relations
-            .push((C::Analyzer::ID, C::Analyzer::PREV_ID));
+            .push((B::Analyzer::ID, B::Analyzer::PREV_ID));
         self
     }
 
-    pub(crate) fn split(self) -> (AnalyzerCache<I>, DependencyChecker<I>) {
+    pub(crate) fn split(self) -> (AnalyzerCache<C>, DependencyChecker<C::ClassifierId>) {
         (
             AnalyzerCache::new(self.classifiers),
             DependencyChecker::new(self.ids_relations),

@@ -1,4 +1,4 @@
-use pmc_core::base::id::ClassifierId;
+use pmc_core::base::config::Config;
 use pmc_core::engine::{ClassifierEngine, Rule};
 use pmc_core::loader::ClassifierLoader;
 
@@ -14,18 +14,18 @@ pub struct CaptureData<R: Capture> {
     pub sections: Vec<(usize, usize)>,
 }
 
-pub struct TestConfig<C, T, I: ClassifierId, R: Capture> {
-    pub loader: ClassifierLoader<I>,
+pub struct TestConfig<C: Config, T, R: Capture> {
+    pub loader: ClassifierLoader<C>,
     pub config: C,
-    pub rules: Vec<Rule<T, I>>,
+    pub rules: Vec<Rule<T, C>>,
     pub captures: Vec<CaptureData<R>>,
     pub expected_classification: Vec<T>,
 }
 
-pub fn run_classification_test<C, T, I, R>(test_config: TestConfig<C, T, I, R>)
+pub fn run_classification_test<C, T, R>(test_config: TestConfig<C, T, R>)
 where
     T: fmt::Debug + fmt::Display + Default + Copy + Eq,
-    I: ClassifierId,
+    C: Config,
     R: Capture,
 {
     logger::init();
@@ -46,7 +46,7 @@ where
     }
 
     let mut classifier =
-        ClassifierEngine::<C, T, I>::new(test_config.config, test_config.rules, test_config.loader);
+        ClassifierEngine::<C, T>::new(test_config.config, test_config.rules, test_config.loader);
     let mut injector = Injector::new(&test_config.expected_classification);
 
     for capture_data in test_config.captures {

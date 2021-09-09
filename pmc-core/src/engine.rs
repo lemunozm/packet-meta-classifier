@@ -1,5 +1,5 @@
 use crate::analyzer_cache::{AnalyzerCache, CacheFrame};
-use crate::base::id::ClassifierId;
+use crate::base::config::{ClassifierId, Config};
 use crate::controller::expression_value::ExpressionValueController;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
 use crate::expression::{Expr, ValidatedExpr};
@@ -9,13 +9,13 @@ use crate::packet::Packet;
 
 use std::fmt;
 
-enum CacheFlow<I: ClassifierId> {
+enum CacheFlow<C: Config> {
     Forever,
-    Until(Expr<I>),
+    Until(Expr<C>),
     Never,
 }
 
-impl<I: ClassifierId> CacheFlow<I> {
+impl<C: Config> CacheFlow<C> {
     fn should_cache(&self) -> bool {
         match self {
             Self::Never => false,
@@ -24,15 +24,15 @@ impl<I: ClassifierId> CacheFlow<I> {
     }
 }
 
-pub struct Rule<T, I: ClassifierId> {
+pub struct Rule<T, C: Config> {
     tag: T,
-    expr: Expr<I>,
-    #[allow(dead_code)]
-    cache_flow: CacheFlow<I>,
+    expr: Expr<C>,
+    #[allow(dead_code)] // Disable when cache flow feature is enabled
+    cache_flow: CacheFlow<C>,
 }
 
-impl<T: Copy, I: ClassifierId> Rule<T, I> {
-    pub fn new(tag: T, expr: Expr<I>) -> Self {
+impl<T: Copy, C: Config> Rule<T, C> {
+    pub fn new(tag: T, expr: Expr<C>) -> Self {
         Self {
             tag,
             expr,
@@ -45,13 +45,13 @@ impl<T: Copy, I: ClassifierId> Rule<T, I> {
         self
     }
 
-    pub fn cache_flow_until(mut self, expr: Expr<I>) -> Self {
+    pub fn cache_flow_until(mut self, expr: Expr<C>) -> Self {
         self.cache_flow = CacheFlow::Until(expr);
         //TODO: check that expression is less or equals than the real expr
         self
     }
 
-    pub fn expr(&self) -> &Expr<I> {
+    pub fn expr(&self) -> &Expr<C> {
         &self.expr
     }
 
@@ -67,20 +67,20 @@ pub struct ClassificationResult<T> {
     pub payload_bytes: usize,
 }
 
-pub struct ClassifierEngine<C, T, I: ClassifierId> {
-    _config: C,
-    rules: Vec<Rule<T, I>>,
-    analyzer_cache: AnalyzerCache<I>,
-    dependency_checker: DependencyChecker<I>,
-    flow_pool: FlowPool<I, usize>,
+pub struct ClassifierEngine<C: Config, T> {
+    config: C,
+    rules: Vec<Rule<T, C>>,
+    analyzer_cache: AnalyzerCache<C>,
+    dependency_checker: DependencyChecker<C::ClassifierId>,
+    flow_pool: FlowPool<C, usize>,
 }
 
-impl<C, T, I> ClassifierEngine<C, T, I>
+impl<C, T> ClassifierEngine<C, T>
 where
     T: fmt::Display + Default + Eq + Copy,
-    I: ClassifierId,
+    C: Config,
 {
-    pub fn new(_config: C, rules: Vec<Rule<T, I>>, factory: ClassifierLoader<I>) -> Self {
+    pub fn new(config: C, rules: Vec<Rule<T, C>>, factory: ClassifierLoader<C>) -> Self {
         rules.iter().for_each(|rule| {
             assert!(
                 rule.tag != T::default(),
@@ -91,11 +91,11 @@ where
         let (analyzer_cache, dependency_checker) = factory.split();
 
         ClassifierEngine {
-            _config,
             rules,
             analyzer_cache,
             dependency_checker,
-            flow_pool: FlowPool::default(),
+            flow_pool: FlowPool::new(config.base().flow_pool_initial_size),
+            config,
         }
     }
 
@@ -105,7 +105,7 @@ where
 
     pub fn classify_packet(&mut self, packet: Packet) -> ClassificationResult<T> {
         let Self {
-            _config,
+            config,
             rules,
             analyzer_cache,
             dependency_checker,
@@ -113,8 +113,9 @@ where
         } = self;
 
         let mut state = ClassificationState {
+            config,
             packet,
-            next_classifier_id: I::INITIAL,
+            next_id: C::ClassifierId::INITIAL,
             cache: analyzer_cache.prepare_for_packet(),
             dependency_checker,
             flow_pool,
@@ -229,16 +230,17 @@ enum ClassificationStatus {
     Abort,
 }
 
-struct ClassificationState<'a, I: ClassifierId> {
+struct ClassificationState<'a, C: Config> {
+    config: &'a C,
     packet: Packet<'a>,
-    next_classifier_id: I,
-    cache: CacheFrame<'a, I>,
-    dependency_checker: &'a DependencyChecker<I>,
-    flow_pool: &'a mut FlowPool<I, usize>,
+    next_id: C::ClassifierId,
+    cache: CacheFrame<'a, C>,
+    dependency_checker: &'a DependencyChecker<C::ClassifierId>,
+    flow_pool: &'a mut FlowPool<C, usize>,
     finished_analysis: bool,
 }
 
-impl<'a, I: ClassifierId> ClassificationState<'a, I> {
+impl<'a, C: Config> ClassificationState<'a, C> {
     fn prepare(&mut self) {
         log::trace!(
             "Start {} bytes of {} packet classification",
@@ -248,7 +250,7 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
         self.flow_pool.prepare_for_packet();
     }
 
-    fn check_expr_value(&self, expr_value: &dyn ExpressionValueController<I>) -> ValidatedExpr {
+    fn check_expr_value(&self, expr_value: &dyn ExpressionValueController<C>) -> ValidatedExpr {
         let analyzer = self.cache.get(expr_value.classifier_id());
         let flow = self.flow_pool.get_cached(expr_value.classifier_id());
         let answer = expr_value.check(analyzer, flow.as_deref());
@@ -257,25 +259,23 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
         ValidatedExpr::from_bool(answer)
     }
 
-    fn analyze_classification_for(&mut self, classifier_id: I) -> ClassificationStatus {
+    fn analyze_classification_for(&mut self, id: C::ClassifierId) -> ClassificationStatus {
         loop {
-            let status = self
-                .dependency_checker
-                .check(self.next_classifier_id, classifier_id);
+            let status = self.dependency_checker.check(self.next_id, id);
 
             match status {
                 DependencyStatus::Descendant => {
                     if self.finished_analysis {
-                        return match self.next_classifier_id == classifier_id {
+                        return match self.next_id == id {
                             true => ClassificationStatus::CanClassify,
                             false => ClassificationStatus::NotClassify,
                         };
                     }
 
-                    log::trace!("Analyze for: {:?}", self.next_classifier_id);
-                    let analyzer_result = self
-                        .cache
-                        .build_analyzer(self.next_classifier_id, &self.packet);
+                    log::trace!("Analyze for: {:?}", self.next_id);
+                    let analyzer_result =
+                        self.cache
+                            .build_analyzer(self.next_id, self.config, &self.packet);
 
                     match analyzer_result {
                         Ok(info) => {
@@ -283,16 +283,20 @@ impl<'a, I: ClassifierId> ClassificationState<'a, I> {
                             let should_classify = if info.next_classifier_id == ClassifierId::NONE {
                                 log::trace!("Analysis finished");
                                 self.finished_analysis = true;
-                                match self.next_classifier_id == classifier_id {
+                                match self.next_id == id {
                                     true => ShouldClassify::Yes,
                                     false => ShouldClassify::No,
                                 }
                             } else {
-                                self.next_classifier_id = info.next_classifier_id;
+                                self.next_id = info.next_classifier_id;
                                 ShouldClassify::Continue
                             };
 
-                            match self.flow_pool.update(info.analyzer, self.packet.direction) {
+                            match self.flow_pool.update(
+                                self.config,
+                                info.analyzer,
+                                self.packet.direction,
+                            ) {
                                 Some(priority) => {
                                     break ClassificationStatus::Cached(priority, should_classify)
                                 }

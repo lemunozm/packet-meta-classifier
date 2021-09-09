@@ -1,16 +1,16 @@
-use crate::ClassifierId;
+use crate::Config;
 
 use pmc_core::base::classifier::Classifier;
 
 pub struct UdpClassifier;
-impl<'a> Classifier<'a, ClassifierId> for UdpClassifier {
+impl<'a> Classifier<'a, Config> for UdpClassifier {
     type Analyzer = analyzer::UdpAnalyzer<'a>;
 }
 
 mod analyzer {
     use super::flow::UdpFlow;
 
-    use crate::{ClassifierId, FlowSignature};
+    use crate::{ClassifierId, Config, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
     use pmc_core::packet::{Direction, Packet};
@@ -38,13 +38,16 @@ mod analyzer {
         }
     }
 
-    impl<'a> Analyzer<'a, ClassifierId> for UdpAnalyzer<'a> {
+    impl<'a> Analyzer<'a, Config> for UdpAnalyzer<'a> {
         const ID: ClassifierId = ClassifierId::Udp;
         const PREV_ID: ClassifierId = ClassifierId::Ip;
 
         type Flow = UdpFlow;
 
-        fn build(&Packet { data, direction }: &'a Packet) -> AnalyzerResult<Self, ClassifierId> {
+        fn build(
+            _config: &Config,
+            &Packet { data, direction }: &'a Packet,
+        ) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = 8;
             let payload_len = u16::from_be_bytes(*array_ref![data, 4, 2]) - header_len as u16;
 
@@ -84,7 +87,7 @@ mod analyzer {
             true
         }
 
-        fn update_flow(&self, _flow: &mut UdpFlow, _direction: Direction) {}
+        fn update_flow(&self, _config: &Config, _flow: &mut UdpFlow, _direction: Direction) {}
     }
 }
 
@@ -97,7 +100,7 @@ pub mod expression {
     use super::analyzer::UdpAnalyzer;
     use super::flow::UdpFlow;
 
-    use crate::ClassifierId;
+    use crate::Config;
 
     use pmc_core::base::expression_value::ExpressionValue;
 
@@ -106,7 +109,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct UdpSourcePort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for UdpSourcePort {
+    impl ExpressionValue<Config> for UdpSourcePort {
         type Classifier = super::UdpClassifier;
 
         fn description() -> &'static str {
@@ -121,7 +124,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct UdpDestPort(pub u16);
 
-    impl ExpressionValue<ClassifierId> for UdpDestPort {
+    impl ExpressionValue<Config> for UdpDestPort {
         type Classifier = super::UdpClassifier;
 
         fn description() -> &'static str {
@@ -141,7 +144,7 @@ pub mod expression {
         }
     }
 
-    impl<F> ExpressionValue<ClassifierId> for UdpPayloadLen<F>
+    impl<F> ExpressionValue<Config> for UdpPayloadLen<F>
     where
         F: Fn(u16) -> bool + 'static,
     {
