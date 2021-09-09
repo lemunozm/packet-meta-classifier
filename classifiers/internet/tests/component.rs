@@ -6,14 +6,15 @@ use internet::{
     http::expression::{HttpCode, HttpHeader, HttpMethod},
     ip::expression::IpProto,
     tcp::expression::{
-        TcpDestPort, TcpEstablished, TcpFlag, TcpHandshake, TcpPayloadLen, TcpRetransmission,
-        TcpServerPort, TcpSourcePort, TcpTeardown,
+        TcpDestPort, TcpEstablished, TcpHandshake, TcpPayloadLen, TcpRetransmission, TcpServerPort,
+        TcpSourcePort, TcpTeardown,
     },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
 };
 
 use pmc_core::engine::Rule;
 use pmc_core::expression::Expr;
+
 use pmc_testing::common::{self, CaptureData, TestConfig};
 
 #[test]
@@ -68,8 +69,7 @@ fn tcp_established() {
         rules: vec![
             Rule::new("Retransmision", Expr::value(TcpRetransmission)),
             Rule::new("Handshake", Expr::value(TcpHandshake)),
-            Rule::new("Established", Expr::value(TcpEstablished))
-                .cache_flow_until(Expr::value(TcpFlag::FIN)),
+            Rule::new("Established", Expr::value(TcpEstablished)),
             Rule::new("Teardown", Expr::value(TcpTeardown)),
         ],
         captures: vec![CaptureData {
@@ -99,8 +99,7 @@ fn tcp_retransmission() {
         rules: vec![
             Rule::new("Retransmision", Expr::value(TcpRetransmission)),
             Rule::new("Handshake", Expr::value(TcpHandshake)),
-            Rule::new("Established", Expr::value(TcpEstablished))
-                .cache_flow_until(Expr::value(TcpFlag::FIN)),
+            Rule::new("Established", Expr::value(TcpEstablished)),
             Rule::new("Teardown", Expr::value(TcpTeardown)),
         ],
         captures: vec![CaptureData {
@@ -147,7 +146,10 @@ fn http_get() {
                 "GET",
                 Expr::value(HttpMethod::Get) & Expr::value(HttpHeader("Host", "example.com")),
             ),
-            Rule::new("200OK", Expr::value(HttpCode("200"))),
+            Rule::new(
+                "200OK",
+                Expr::value(HttpCode("200")) & Expr::value(HttpHeader("Content-Type", "text/html")),
+            ),
             Rule::new("Tcp", Expr::value(IpProto::Tcp)),
         ],
         captures: vec![CaptureData {

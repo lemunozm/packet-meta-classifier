@@ -322,11 +322,15 @@ pub mod expression {
         type Classifier = super::HttpHeaderClassifier;
 
         fn description() -> &'static str {
-            "Valid if the http packet contains the pair (key, value) of the header"
+            "Valid if the http packet contains the value (or ; separated values) \
+            given in the second argument for the header name specified in the first one"
         }
 
         fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
-            Some(self.1) == analyzer.find_header(self.0)
+            match analyzer.find_header(self.0) {
+                Some(value) => value.contains(self.1),
+                None => false,
+            }
         }
     }
 }
