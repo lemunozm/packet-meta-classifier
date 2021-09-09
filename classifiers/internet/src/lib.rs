@@ -72,6 +72,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             base: BaseConfig {
+                byte_analysis_rule: ByteAnalysisRule::SkipAnalyzer(1), // Skip IP analyzer
                 flow_pool_initial_size: 100,
             },
         }
@@ -79,8 +80,6 @@ impl Default for Config {
 }
 
 impl ConfigTrait for Config {
-    const BYTE_ANALYSIS_RULE: ByteAnalysisRule = ByteAnalysisRule::Nothing;
-
     type FlowId = FlowSignature;
     type ClassifierId = ClassifierId;
 

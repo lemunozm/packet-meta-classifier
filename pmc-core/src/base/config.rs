@@ -3,8 +3,8 @@ use std::hash::Hash;
 
 pub enum ByteAnalysisRule {
     Nothing,
-    SkipAnalyzers(usize),
-    UnanalyzedPayload,
+    SkipAnalyzer(usize),
+    NoAnalyzed,
 }
 
 pub trait ClassifierId:
@@ -20,12 +20,11 @@ pub trait ClassifierId:
 }
 
 pub struct BaseConfig {
+    pub byte_analysis_rule: ByteAnalysisRule,
     pub flow_pool_initial_size: usize,
 }
 
 pub trait Config: Sized + 'static {
-    const BYTE_ANALYSIS_RULE: ByteAnalysisRule;
-
     type FlowId: Default + Clone + Hash + Eq + Debug;
     type ClassifierId: ClassifierId;
 

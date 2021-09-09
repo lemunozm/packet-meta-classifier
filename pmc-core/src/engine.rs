@@ -140,6 +140,7 @@ where
                             break state.check_expr_value(expr_value)
                         }
                         ClassificationStatus::NotClassify => break ValidatedExpr::NotClassified,
+                        ClassificationStatus::NeedMoreAnalysis => continue,
                         ClassificationStatus::Abort => break ValidatedExpr::Abort,
                         ClassificationStatus::Cached(rule_priority, should_classify) => {
                             let cached_rule = &rules[rule_priority];
@@ -226,6 +227,7 @@ enum ShouldClassify {
 enum ClassificationStatus {
     CanClassify,
     NotClassify,
+    NeedMoreAnalysis,
     Cached(usize, ShouldClassify),
     Abort,
 }
@@ -260,62 +262,58 @@ impl<'a, C: Config> ClassificationState<'a, C> {
     }
 
     fn analyze_classification_for(&mut self, id: C::ClassifierId) -> ClassificationStatus {
-        loop {
-            let status = self.dependency_checker.check(self.next_id, id);
+        match self.dependency_checker.check(self.next_id, id) {
+            DependencyStatus::Descendant => {
+                if self.finished_analysis {
+                    return match self.next_id == id {
+                        true => ClassificationStatus::CanClassify,
+                        false => ClassificationStatus::NotClassify,
+                    };
+                }
 
-            match status {
-                DependencyStatus::Descendant => {
-                    if self.finished_analysis {
-                        return match self.next_id == id {
-                            true => ClassificationStatus::CanClassify,
-                            false => ClassificationStatus::NotClassify,
-                        };
-                    }
+                log::trace!("Analyze for: {:?}", self.next_id);
+                let analyzer_result =
+                    self.cache
+                        .build_analyzer(self.next_id, self.config, &self.packet);
 
-                    log::trace!("Analyze for: {:?}", self.next_id);
-                    let analyzer_result =
-                        self.cache
-                            .build_analyzer(self.next_id, self.config, &self.packet);
-
-                    match analyzer_result {
-                        Ok(info) => {
-                            self.packet.data = &self.packet.data[info.bytes_parsed..];
-                            let should_classify = if info.next_classifier_id == ClassifierId::NONE {
-                                log::trace!("Analysis finished");
-                                self.finished_analysis = true;
-                                match self.next_id == id {
-                                    true => ShouldClassify::Yes,
-                                    false => ShouldClassify::No,
-                                }
-                            } else {
-                                self.next_id = info.next_classifier_id;
-                                ShouldClassify::Continue
-                            };
-
-                            match self.flow_pool.update(
-                                self.config,
-                                info.analyzer,
-                                self.packet.direction,
-                            ) {
-                                Some(priority) => {
-                                    break ClassificationStatus::Cached(priority, should_classify)
-                                }
-                                None => match should_classify {
-                                    ShouldClassify::Yes => break ClassificationStatus::CanClassify,
-                                    ShouldClassify::No => break ClassificationStatus::NotClassify,
-                                    ShouldClassify::Continue => continue,
-                                },
+                match analyzer_result {
+                    Ok(info) => {
+                        self.packet.data = &self.packet.data[info.bytes_parsed..];
+                        let should_classify = if info.next_classifier_id == ClassifierId::NONE {
+                            log::trace!("Analysis finished");
+                            self.finished_analysis = true;
+                            match self.next_id == id {
+                                true => ShouldClassify::Yes,
+                                false => ShouldClassify::No,
                             }
+                        } else {
+                            self.next_id = info.next_classifier_id;
+                            ShouldClassify::Continue
+                        };
+
+                        match self.flow_pool.update(
+                            self.config,
+                            info.analyzer,
+                            self.packet.direction,
+                        ) {
+                            Some(priority) => {
+                                ClassificationStatus::Cached(priority, should_classify)
+                            }
+                            None => match should_classify {
+                                ShouldClassify::Yes => ClassificationStatus::CanClassify,
+                                ShouldClassify::No => ClassificationStatus::NotClassify,
+                                ShouldClassify::Continue => ClassificationStatus::NeedMoreAnalysis,
+                            },
                         }
-                        Err(reason) => {
-                            log::trace!("Analysis aborted. Reason: {}", reason);
-                            break ClassificationStatus::Abort;
-                        }
+                    }
+                    Err(reason) => {
+                        log::trace!("Analysis aborted. Reason: {}", reason);
+                        ClassificationStatus::Abort
                     }
                 }
-                DependencyStatus::Predecessor => break ClassificationStatus::CanClassify,
-                DependencyStatus::NoPath => break ClassificationStatus::NotClassify,
             }
+            DependencyStatus::Predecessor => ClassificationStatus::CanClassify,
+            DependencyStatus::NoPath => ClassificationStatus::NotClassify,
         }
     }
 }
