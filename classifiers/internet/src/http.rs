@@ -238,10 +238,6 @@ pub mod expression {
     impl ExpressionValue<Config> for Http {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the packet is HTTP"
-        }
-
         fn check(&self, _analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             true
         }
@@ -252,10 +248,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the packet is a HTTP request"
-        }
 
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             analyzer.is_request()
@@ -268,10 +260,6 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpResponse {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the packet is a HTTP response"
-        }
-
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             !analyzer.is_request()
         }
@@ -281,10 +269,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for HttpMethod {
         type Classifier = super::HttpStartLineClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the http request method of the packet"
-        }
 
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             Some(*self) == analyzer.method()
@@ -297,10 +281,6 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpCode {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the http response code of the packet"
-        }
-
         fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             Some(self.0) == analyzer.code()
         }
@@ -312,10 +292,6 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpHeaderName {
         type Classifier = super::HttpHeaderClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the http packet contains the header name"
-        }
-
         fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
             analyzer.find_header(self.0).is_some()
         }
@@ -326,11 +302,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for HttpHeader {
         type Classifier = super::HttpHeaderClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the http packet contains the value (or ; separated values) \
-            given in the second argument for the header name specified in the first one"
-        }
 
         fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
             match analyzer.find_header(self.0) {

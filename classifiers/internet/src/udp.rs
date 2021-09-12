@@ -112,10 +112,6 @@ pub mod expression {
     impl ExpressionValue<Config> for UdpSourcePort {
         type Classifier = super::UdpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the source UDP port of the packet matches the given port"
-        }
-
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0 == analyzer.source_port()
         }
@@ -126,10 +122,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for UdpDestPort {
         type Classifier = super::UdpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the destination UDP port of the packet matches the given port"
-        }
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0 == analyzer.dest_port()
@@ -149,10 +141,6 @@ pub mod expression {
         F: Fn(u16) -> bool + 'static,
     {
         type Classifier = super::UdpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the packet payload length meets the user assert"
-        }
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0(analyzer.payload_len())

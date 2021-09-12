@@ -4,9 +4,8 @@ use crate::base::config::Config;
 
 pub trait ExpressionValue<C: Config>: Sized + std::fmt::Debug + 'static {
     type Classifier: for<'a> Classifier<'a, C>;
-    const SHOULD_GRANT_BY_FLOW: bool = false;
 
-    fn description() -> &'static str;
+    const SHOULD_GRANT_BY_FLOW: bool = false;
 
     fn should_break_grant(
         &self,

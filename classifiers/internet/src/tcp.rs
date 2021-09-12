@@ -278,10 +278,6 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpSourcePort {
         type Classifier = TcpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the source TCP port of the packet matches the given port"
-        }
-
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.source_port()
         }
@@ -293,10 +289,6 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpDestPort {
         type Classifier = TcpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the destination TCP port of the packet matches the given port"
-        }
-
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.dest_port()
         }
@@ -307,10 +299,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for TcpServerPort {
         type Classifier = TcpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the server TCP port of the packet matches the given port"
-        }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.server_port()
@@ -331,10 +319,6 @@ pub mod expression {
     {
         type Classifier = super::TcpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the packet payload length meets the user assert"
-        }
-
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0(analyzer.payload_len())
         }
@@ -345,10 +329,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for TcpEstablished {
         type Classifier = TcpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the TCP flow is established"
-        }
 
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             StateTransition::Established == flow.state_transition()
@@ -361,10 +341,6 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpHandshake {
         type Classifier = TcpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the TCP flow is performing the handshake"
-        }
-
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             flow.is_handshake()
         }
@@ -376,10 +352,6 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpTeardown {
         type Classifier = TcpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the TCP flow is performing the teardown"
-        }
-
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             flow.is_teardown()
         }
@@ -389,10 +361,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for TcpFlag {
         type Classifier = TcpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the TCP packet contains the flag"
-        }
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             analyzer.flags().contains(*self)
@@ -404,10 +372,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for TcpRetransmission {
         type Classifier = TcpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the TCP packet is a retransmission"
-        }
 
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             !flow.is_last_packet_expected()

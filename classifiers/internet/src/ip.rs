@@ -125,10 +125,6 @@ pub mod expression {
     impl ExpressionValue<Config> for Ip {
         type Classifier = IpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the packet is TCP"
-        }
-
         fn check(&self, _analyzer: &IpAnalyzer, _: &()) -> bool {
             true
         }
@@ -138,10 +134,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for IpVersion {
         type Classifier = IpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the IP version of the packet matches the given version"
-        }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             match self {
@@ -157,10 +149,6 @@ pub mod expression {
     impl ExpressionValue<Config> for IpSource {
         type Classifier = IpClassifier;
 
-        fn description() -> &'static str {
-            "Valid if the source IP address of the packet matches the given address"
-        }
-
         fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             self.0 == analyzer.source()
         }
@@ -171,10 +159,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for IpDest {
         type Classifier = IpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the destination IP address of the packet matches the given address"
-        }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             self.0 == analyzer.dest()
@@ -189,10 +173,6 @@ pub mod expression {
 
     impl ExpressionValue<Config> for IpProto {
         type Classifier = IpClassifier;
-
-        fn description() -> &'static str {
-            "Valid if the IP protocol of the packet matches the given protocol"
-        }
 
         fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
             *self as u8 == analyzer.protocol_code()
