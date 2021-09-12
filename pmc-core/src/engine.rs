@@ -100,8 +100,6 @@ where
         };
 
         state.prepare();
-        let mut cached_rule_tag: Option<T> = None;
-
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
             let validated_expression = rule.expr.check(&mut |expr_value| {
@@ -120,7 +118,7 @@ where
                             break ValidatedExpr::NotClassified(false)
                         }
                         ClassificationStatus::NeedMoreAnalysis => continue,
-                        ClassificationStatus::Abort => break ValidatedExpr::Abort,
+                        ClassificationStatus::Abort => break ValidatedExpr::Abort(None),
                         ClassificationStatus::Cached(rule_priority, should_classify) => {
                             /*
                             let cached_rule = &rules[rule_priority];
@@ -181,11 +179,11 @@ where
                     };
                 }
                 ValidatedExpr::NotClassified(_) => continue,
-                ValidatedExpr::Abort => match cached_rule_tag {
-                    Some(tag) => {
-                        log::trace!("Classified: rule {} (cached by flow)", rule.tag);
+                ValidatedExpr::Abort(cached) => match cached {
+                    Some(cached_rule) => {
+                        log::trace!("Classified: rule {} (cached by flow)", cached_rule);
                         return ClassificationResult {
-                            rule_tag: tag,
+                            rule_tag: rules[cached_rule].tag,
                             rule_value_kind: RuleValueKind::Cached,
                             payload_bytes: packet_len - state.skipped_bytes,
                         };
@@ -239,7 +237,10 @@ impl<'a, C: Config> ClassificationState<'a, C> {
         self.flow_pool.prepare_for_packet();
     }
 
-    fn check_expr_value(&self, expr_value: &dyn ExpressionValueController<C>) -> ValidatedExpr {
+    fn check_expr_value(
+        &self,
+        expr_value: &dyn ExpressionValueController<C>,
+    ) -> ValidatedExpr<usize> {
         let analyzer = self.cache.get(expr_value.classifier_id());
         let flow = self.flow_pool.get_cached(expr_value.classifier_id());
         let answer = expr_value.check(analyzer, flow.as_deref());

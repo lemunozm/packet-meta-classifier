@@ -5,19 +5,10 @@ use crate::controller::expression_value::ExpressionValueController;
 
 use std::ops::{BitAnd, BitOr, Not};
 
-pub(crate) enum ValidatedExpr {
+pub(crate) enum ValidatedExpr<T> {
     Classified(bool),
     NotClassified(bool),
-    Abort,
-}
-
-impl ValidatedExpr {
-    pub fn new(value: bool, should_cache: bool) -> ValidatedExpr {
-        match value {
-            true => ValidatedExpr::Classified(should_cache),
-            false => ValidatedExpr::NotClassified(false),
-        }
-    }
+    Abort(Option<T>),
 }
 
 pub enum Expr<C: Config> {
@@ -52,16 +43,16 @@ impl<C: Config> Expr<C> {
         Expr::Any(expressions)
     }
 
-    pub(crate) fn check(
+    pub(crate) fn check<T>(
         &self,
-        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<C>) -> ValidatedExpr,
-    ) -> ValidatedExpr {
+        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<C>) -> ValidatedExpr<T>,
+    ) -> ValidatedExpr<T> {
         match self {
             Expr::Value(value) => value_validator(value.as_ref()),
             Expr::Not(rule) => match rule.check(value_validator) {
                 ValidatedExpr::Classified(cache) => ValidatedExpr::NotClassified(cache),
                 ValidatedExpr::NotClassified(cache) => ValidatedExpr::Classified(cache),
-                ValidatedExpr::Abort => ValidatedExpr::Abort,
+                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
             },
             Expr::All(rules) => {
                 let mut cache_result = true;
@@ -71,7 +62,7 @@ impl<C: Config> Expr<C> {
                         ValidatedExpr::NotClassified(cache) => {
                             return ValidatedExpr::NotClassified(cache & cache_result)
                         }
-                        ValidatedExpr::Abort => return ValidatedExpr::Abort,
+                        ValidatedExpr::Abort(cached) => return ValidatedExpr::Abort(cached),
                     }
                 }
                 ValidatedExpr::Classified(false)
@@ -83,7 +74,7 @@ impl<C: Config> Expr<C> {
                             return ValidatedExpr::Classified(cache)
                         }
                         ValidatedExpr::NotClassified(_) => continue,
-                        ValidatedExpr::Abort => return ValidatedExpr::Abort,
+                        ValidatedExpr::Abort(cached) => return ValidatedExpr::Abort(cached),
                     }
                 }
                 ValidatedExpr::NotClassified(false)
@@ -96,15 +87,15 @@ impl<C: Config> Expr<C> {
                     ValidatedExpr::NotClassified(cache_1) => {
                         ValidatedExpr::NotClassified(cache_0 & cache_1)
                     }
-                    ValidatedExpr::Abort => ValidatedExpr::Abort,
+                    ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
                 },
                 ValidatedExpr::NotClassified(cache) => ValidatedExpr::NotClassified(cache),
-                ValidatedExpr::Abort => ValidatedExpr::Abort,
+                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
             },
             Expr::Or(pair) => match pair.0.check(value_validator) {
                 ValidatedExpr::Classified(cache) => ValidatedExpr::Classified(cache),
                 ValidatedExpr::NotClassified(_) => pair.1.check(value_validator),
-                ValidatedExpr::Abort => ValidatedExpr::Abort,
+                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
             },
         }
     }
