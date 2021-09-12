@@ -249,7 +249,7 @@ impl<'a, C: Config> ClassificationState<'a, C> {
         match answer {
             true => {
                 let should_cache = (expr_value.classifier_id() == self.last_id)
-                    && expr_value.check(analyzer, flow.as_deref());
+                    && expr_value.should_grant_by_flow();
                 ValidatedExpr::Classified(should_cache)
             }
             false => ValidatedExpr::NotClassified(false),

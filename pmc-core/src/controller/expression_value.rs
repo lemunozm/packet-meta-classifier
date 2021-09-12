@@ -13,6 +13,11 @@ pub trait ExpressionValueController<C: Config>: fmt::Debug {
         analyzer: &dyn AnalyzerController<C>,
         flow: Option<&dyn FlowController>,
     ) -> bool;
+
+    fn should_grant_by_flow(&self) -> bool;
+
+    fn should_break_grant(&self, analyzer: &dyn AnalyzerController<C>) -> bool;
+
     fn classifier_id(&self) -> C::ClassifierId;
 }
 
@@ -57,6 +62,15 @@ where
                 self.0.check(analyzer, &no_flow)
             }
         }
+    }
+
+    fn should_grant_by_flow(&self) -> bool {
+        V::SHOULD_GRANT_BY_FLOW
+    }
+
+    fn should_break_grant(&self, analyzer: &dyn AnalyzerController<C>) -> bool {
+        let analyzer = analyzer.inner_ref::<B::Analyzer>();
+        self.0.should_break_grant(analyzer)
     }
 
     fn classifier_id(&self) -> C::ClassifierId {

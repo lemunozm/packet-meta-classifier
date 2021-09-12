@@ -2,21 +2,21 @@ use crate::capture::CaptureIterator;
 use crate::logger::{self, PacketProps};
 
 use pmc_core::base::config::Config;
-use pmc_core::engine::{ClassificationResult, ClassifierEngine};
+use pmc_core::engine::{ClassificationResult, ClassifierEngine, RuleValueKind};
 use pmc_core::packet::{Direction, Packet};
 
 use colored::Colorize;
 
 pub struct Injector<T> {
     total_results: InjectionResult<T>,
-    expected_classification: Vec<T>,
+    expected_classification_tags: Vec<T>,
 }
 
 impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
-    pub fn new(expected_classification: &[T]) -> Self {
+    pub fn new(expected_classification_tags: &[T]) -> Self {
         Self {
             total_results: InjectionResult::default(),
-            expected_classification: expected_classification.to_owned(),
+            expected_classification_tags: expected_classification_tags.to_owned(),
         }
     }
 
@@ -43,7 +43,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
             self.log(
                 classifier.rule_tags(),
                 &classification_result,
-                &current_injection_result,
+                current_injection_result.len(),
             );
 
             current_injection_result.add_packet_result(classification_result);
@@ -63,15 +63,15 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
         &self,
         rule_tags: Vec<T>,
         classification_result: &ClassificationResult<T>,
-        current_injection_result: &InjectionResult<T>,
+        current_injection_packet: usize,
     ) {
         let expected_rule_tag = self
-            .expected_classification
-            .get(self.total_results.len() + current_injection_result.len())
+            .expected_classification_tags
+            .get(self.total_results.len() + current_injection_packet)
             .expect("The number of processed packet must be equals to expected");
 
         log::info!(
-            "{} bytes classified as {} -> {}",
+            "{} bytes classified as {} -> {} {}",
             format!("{:>4}", classification_result.payload_bytes).bright_magenta(),
             format!(
                 "{:<tag_width$}",
@@ -92,6 +92,11 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
                     format!("{}", expected_rule_tag).bright_blue(),
                 )
             },
+            match classification_result.rule_value_kind {
+                RuleValueKind::Computed => String::new().bright_white(),
+                RuleValueKind::ComputedAndCached => "(cached)".bright_black(),
+                RuleValueKind::Cached => "(cache)".bright_black(),
+            }
         );
     }
 }

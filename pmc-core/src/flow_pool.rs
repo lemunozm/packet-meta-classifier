@@ -22,7 +22,7 @@ impl<V> FlowInfo<V> {
 
 pub struct FlowPool<C: Config, V> {
     flows: Vec<HashMap<C::FlowId, FlowInfo<V>>>,
-    flow_cache: Vec<Option<SharedFlowController>>,
+    cached: Vec<Option<SharedFlowController>>,
     current_flow_id: C::FlowId,
 }
 
@@ -32,7 +32,7 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
             flows: (0..C::ClassifierId::TOTAL)
                 .map(|_| HashMap::with_capacity(capacity))
                 .collect(),
-            flow_cache: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
+            cached: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
             current_flow_id: C::FlowId::default(),
         }
     }
@@ -61,7 +61,7 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
                     let shared_flow = analyzer.create_flow();
                     analyzer.update_flow(config, &mut *shared_flow.borrow_mut(), direction);
                     entry.insert(FlowInfo::new(shared_flow.clone()));
-                    self.flow_cache[analyzer.id().inner()] = Some(shared_flow);
+                    self.cached[analyzer.id().inner()] = Some(shared_flow);
                 }
                 Entry::Occupied(mut entry) => {
                     if let Some(value) = &entry.get_mut().associated_value {
@@ -75,13 +75,13 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
                 }
             }
         } else {
-            self.flow_cache[analyzer.id().inner()] = None;
+            self.cached[analyzer.id().inner()] = None;
         }
         None
     }
 
     pub fn get_cached(&self, id: C::ClassifierId) -> Option<Ref<dyn FlowController>> {
-        self.flow_cache[id.inner()]
+        self.cached[id.inner()]
             .as_ref()
             .map(|shared_flow| shared_flow.borrow())
     }

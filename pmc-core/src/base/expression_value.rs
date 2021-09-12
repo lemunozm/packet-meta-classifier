@@ -2,18 +2,17 @@ use crate::base::analyzer::Analyzer;
 use crate::base::classifier::Classifier;
 use crate::base::config::Config;
 
-pub enum CacheMode {
-    Never,
-    Until(bool),
-}
-
 pub trait ExpressionValue<C: Config>: Sized + std::fmt::Debug + 'static {
     type Classifier: for<'a> Classifier<'a, C>;
+    const SHOULD_GRANT_BY_FLOW: bool = false;
 
     fn description() -> &'static str;
 
-    fn cache_by_flow(_analyzer: &<Self::Classifier as Classifier<C>>::Analyzer) -> CacheMode {
-        CacheMode::Never
+    fn should_break_grant(
+        &self,
+        _analyzer: &<Self::Classifier as Classifier<C>>::Analyzer,
+    ) -> bool {
+        true
     }
 
     fn check<'a>(
