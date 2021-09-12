@@ -46,7 +46,7 @@ fn tcp_http() {
         config: Config::default(),
         rules: vec![
             Rule::new(
-                "Http",
+                "Http?",
                 Expr::value(TcpServerPort(80)) & Expr::value(TcpPayloadLen(|len| len > 0)),
             ),
             Rule::new("D80", Expr::value(TcpDestPort(80))),
@@ -57,7 +57,7 @@ fn tcp_http() {
             sections: vec![(1, 10)],
         }],
         expected_classification: vec![
-            "D80", "S80", "D80", "Http", "S80", "Http", "D80", "D80", "S80", "D80",
+            "D80", "S80", "D80", "Http?", "S80", "Http?", "D80", "D80", "S80", "D80",
         ],
     });
 }

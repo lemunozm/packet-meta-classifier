@@ -121,7 +121,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct Ip;
-
     impl ExpressionValue<Config> for Ip {
         type Classifier = IpClassifier;
 
@@ -131,7 +130,6 @@ pub mod expression {
     }
 
     pub use super::analyzer::Version as IpVersion;
-
     impl ExpressionValue<Config> for IpVersion {
         type Classifier = IpClassifier;
 
@@ -145,7 +143,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct IpSource(pub IpAddr);
-
     impl ExpressionValue<Config> for IpSource {
         type Classifier = IpClassifier;
 
@@ -156,7 +153,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct IpDest(pub IpAddr);
-
     impl ExpressionValue<Config> for IpDest {
         type Classifier = IpClassifier;
 
@@ -170,7 +166,6 @@ pub mod expression {
         Tcp = 6,
         Udp = 17,
     }
-
     impl ExpressionValue<Config> for IpProto {
         type Classifier = IpClassifier;
 

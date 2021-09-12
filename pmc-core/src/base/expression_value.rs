@@ -11,7 +11,7 @@ pub trait ExpressionValue<C: Config>: Sized + std::fmt::Debug + 'static {
         &self,
         _analyzer: &<Self::Classifier as Classifier<C>>::Analyzer,
     ) -> bool {
-        true
+        false
     }
 
     fn check<'a>(

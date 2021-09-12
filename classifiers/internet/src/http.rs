@@ -202,7 +202,7 @@ mod analyzer {
             let header_len = headers
                 .find("\r\n\r\n")
                 .ok_or("Malformed HTTP header in headers section")?
-                + 4; //becouse of "\r\n\r\n"
+                + 4; //because of "\r\n\r\n"
 
             Ok(AnalyzerInfo {
                 analyzer: Self { headers },
@@ -234,9 +234,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct Http;
-
     impl ExpressionValue<Config> for Http {
         type Classifier = super::HttpStartLineClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, _analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             true
@@ -245,7 +246,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct HttpRequest;
-
     impl ExpressionValue<Config> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
 
@@ -256,7 +256,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct HttpResponse;
-
     impl ExpressionValue<Config> for HttpResponse {
         type Classifier = super::HttpStartLineClassifier;
 
@@ -266,7 +265,6 @@ pub mod expression {
     }
 
     pub use super::analyzer::Method as HttpMethod;
-
     impl ExpressionValue<Config> for HttpMethod {
         type Classifier = super::HttpStartLineClassifier;
 
@@ -277,7 +275,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct HttpCode(pub &'static str);
-
     impl ExpressionValue<Config> for HttpCode {
         type Classifier = super::HttpStartLineClassifier;
 
@@ -288,7 +285,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct HttpHeaderName(pub &'static str);
-
     impl ExpressionValue<Config> for HttpHeaderName {
         type Classifier = super::HttpHeaderClassifier;
 
@@ -299,7 +295,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct HttpHeader(pub &'static str, pub &'static str);
-
     impl ExpressionValue<Config> for HttpHeader {
         type Classifier = super::HttpHeaderClassifier;
 

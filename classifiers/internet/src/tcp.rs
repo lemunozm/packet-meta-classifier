@@ -274,9 +274,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
-
     impl ExpressionValue<Config> for TcpSourcePort {
         type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.source_port()
@@ -285,9 +286,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpDestPort(pub u16);
-
     impl ExpressionValue<Config> for TcpDestPort {
         type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.dest_port()
@@ -296,9 +298,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpServerPort(pub u16);
-
     impl ExpressionValue<Config> for TcpServerPort {
         type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
             self.0 == analyzer.server_port()
@@ -306,13 +309,11 @@ pub mod expression {
     }
 
     pub struct TcpPayloadLen<F>(pub F);
-
     impl<F> fmt::Debug for TcpPayloadLen<F> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
             write!(f, "TcpPayloadLen(USER_FN)")
         }
     }
-
     impl<F> ExpressionValue<Config> for TcpPayloadLen<F>
     where
         F: Fn(u16) -> bool + 'static,
@@ -326,9 +327,13 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpEstablished;
-
     impl ExpressionValue<Config> for TcpEstablished {
         type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+        fn should_break_grant(&self, analyzer: &TcpAnalyzer) -> bool {
+            analyzer.flags().contains(TcpFlag::FIN)
+        }
 
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             StateTransition::Established == flow.state_transition()
@@ -337,7 +342,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpHandshake;
-
     impl ExpressionValue<Config> for TcpHandshake {
         type Classifier = TcpClassifier;
 
@@ -348,9 +352,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpTeardown;
-
     impl ExpressionValue<Config> for TcpTeardown {
         type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             flow.is_teardown()
@@ -358,7 +363,6 @@ pub mod expression {
     }
 
     pub use super::analyzer::Flag as TcpFlag;
-
     impl ExpressionValue<Config> for TcpFlag {
         type Classifier = TcpClassifier;
 
@@ -369,7 +373,6 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct TcpRetransmission;
-
     impl ExpressionValue<Config> for TcpRetransmission {
         type Classifier = TcpClassifier;
 

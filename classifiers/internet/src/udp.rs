@@ -108,9 +108,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct UdpSourcePort(pub u16);
-
     impl ExpressionValue<Config> for UdpSourcePort {
         type Classifier = super::UdpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0 == analyzer.source_port()
@@ -119,9 +120,10 @@ pub mod expression {
 
     #[derive(Debug)]
     pub struct UdpDestPort(pub u16);
-
     impl ExpressionValue<Config> for UdpDestPort {
         type Classifier = super::UdpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0 == analyzer.dest_port()
@@ -129,13 +131,11 @@ pub mod expression {
     }
 
     pub struct UdpPayloadLen<F>(pub F);
-
     impl<F> fmt::Debug for UdpPayloadLen<F> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
             write!(f, "UdpPayloadLen(USER_FN)")
         }
     }
-
     impl<F> ExpressionValue<Config> for UdpPayloadLen<F>
     where
         F: Fn(u16) -> bool + 'static,
