@@ -287,8 +287,8 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0 == analyzer.source_port()
+        fn check(&self, packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            self.0 == packet.source_port()
         }
     }
 
@@ -299,8 +299,8 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0 == analyzer.dest_port()
+        fn check(&self, packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            self.0 == packet.dest_port()
         }
     }
 
@@ -311,8 +311,8 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0 == analyzer.server_port()
+        fn check(&self, packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            self.0 == packet.server_port()
         }
     }
 
@@ -328,8 +328,8 @@ pub mod expression {
     {
         type Classifier = super::TcpClassifier;
 
-        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            self.0(analyzer.payload_len())
+        fn check(&self, packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            self.0(packet.payload_len())
         }
     }
 
@@ -339,11 +339,11 @@ pub mod expression {
         type Classifier = TcpClassifier;
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
-        fn should_break_grant(&self, analyzer: &TcpAnalyzer) -> bool {
-            analyzer.flags().contains(TcpFlag::FIN)
+        fn should_break_grant(&self, packet: &TcpAnalyzer) -> bool {
+            packet.flags().contains(TcpFlag::FIN)
         }
 
-        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+        fn check(&self, _packet: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             StateTransition::Established == flow.state_transition()
         }
     }
@@ -353,7 +353,7 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpHandshake {
         type Classifier = TcpClassifier;
 
-        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+        fn check(&self, _packet: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             flow.is_handshake()
         }
     }
@@ -365,7 +365,7 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+        fn check(&self, _packet: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             flow.is_teardown()
         }
     }
@@ -374,8 +374,8 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpFlag {
         type Classifier = TcpClassifier;
 
-        fn check(&self, analyzer: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
-            analyzer.flags().contains(*self)
+        fn check(&self, packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            packet.flags().contains(*self)
         }
     }
 
@@ -384,7 +384,7 @@ pub mod expression {
     impl ExpressionValue<Config> for TcpRetransmission {
         type Classifier = TcpClassifier;
 
-        fn check(&self, _analyzer: &TcpAnalyzer, flow: &TcpFlow) -> bool {
+        fn check(&self, _packet: &TcpAnalyzer, flow: &TcpFlow) -> bool {
             !flow.is_last_packet_expected()
         }
     }

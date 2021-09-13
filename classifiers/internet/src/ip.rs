@@ -129,7 +129,7 @@ pub mod expression {
     impl ExpressionValue<Config> for Ip {
         type Classifier = IpClassifier;
 
-        fn check(&self, _analyzer: &IpAnalyzer, _: &()) -> bool {
+        fn check(&self, _packet: &IpAnalyzer, _: &()) -> bool {
             true
         }
     }
@@ -138,10 +138,10 @@ pub mod expression {
     impl ExpressionValue<Config> for IpVersion {
         type Classifier = IpClassifier;
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
+        fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
             match self {
-                Self::V4 => matches!(analyzer.version, Version::V4),
-                Self::V6 => matches!(analyzer.version, Version::V6),
+                Self::V4 => matches!(packet.version, Version::V4),
+                Self::V6 => matches!(packet.version, Version::V6),
             }
         }
     }
@@ -151,8 +151,8 @@ pub mod expression {
     impl ExpressionValue<Config> for IpSource {
         type Classifier = IpClassifier;
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
-            self.0 == analyzer.source()
+        fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
+            self.0 == packet.source()
         }
     }
 
@@ -161,8 +161,8 @@ pub mod expression {
     impl ExpressionValue<Config> for IpDest {
         type Classifier = IpClassifier;
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
-            self.0 == analyzer.dest()
+        fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
+            self.0 == packet.dest()
         }
     }
 
@@ -174,8 +174,8 @@ pub mod expression {
     impl ExpressionValue<Config> for IpProto {
         type Classifier = IpClassifier;
 
-        fn check(&self, analyzer: &IpAnalyzer, _: &()) -> bool {
-            *self as u8 == analyzer.protocol_code()
+        fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
+            *self as u8 == packet.protocol_code()
         }
     }
 }

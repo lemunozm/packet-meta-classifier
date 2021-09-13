@@ -280,7 +280,7 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, _analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+        fn check(&self, _packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
             true
         }
     }
@@ -290,8 +290,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            analyzer.is_request()
+        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+            packet.is_request()
         }
     }
 
@@ -300,8 +300,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpResponse {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            !analyzer.is_request()
+        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+            !packet.is_request()
         }
     }
 
@@ -309,8 +309,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpMethod {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            Some(*self) == analyzer.method()
+        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+            Some(*self) == packet.method()
         }
     }
 
@@ -319,8 +319,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpCode {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, analyzer: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            Some(self.0) == analyzer.code()
+        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
+            Some(self.0) == packet.code()
         }
     }
 
@@ -329,8 +329,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpHeaderName {
         type Classifier = super::HttpHeaderClassifier;
 
-        fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
-            analyzer.find_header(self.0).is_some()
+        fn check(&self, packet: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
+            packet.find_header(self.0).is_some()
         }
     }
 
@@ -339,8 +339,8 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpHeader {
         type Classifier = super::HttpHeaderClassifier;
 
-        fn check(&self, analyzer: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
-            match analyzer.find_header(self.0) {
+        fn check(&self, packet: &HttpHeaderAnalyzer, _flow: &HttpFlow) -> bool {
+            match packet.find_header(self.0) {
                 Some(value) => value.contains(self.1),
                 None => false,
             }

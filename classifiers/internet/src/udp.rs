@@ -121,8 +121,8 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
-            self.0 == analyzer.source_port()
+        fn check(&self, packet: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
+            self.0 == packet.source_port()
         }
     }
 
@@ -133,8 +133,8 @@ pub mod expression {
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
-        fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
-            self.0 == analyzer.dest_port()
+        fn check(&self, packet: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
+            self.0 == packet.dest_port()
         }
     }
 
@@ -150,8 +150,8 @@ pub mod expression {
     {
         type Classifier = super::UdpClassifier;
 
-        fn check(&self, analyzer: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
-            self.0(analyzer.payload_len())
+        fn check(&self, packet: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
+            self.0(packet.payload_len())
         }
     }
 }
