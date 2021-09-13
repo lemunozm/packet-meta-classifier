@@ -13,7 +13,7 @@ impl<'a> Classifier<'a, Config> for HttpHeaderClassifier {
 }
 
 mod analyzer {
-    use super::flow::HttpFlow;
+    use super::flow::{HttpFlow, Kind};
 
     use crate::{ClassifierId, Config, FlowSignature};
 
@@ -54,12 +54,20 @@ mod analyzer {
     }
 
     enum StartLine<'a> {
-        Request { method: &'a str, uri: &'a str },
-        Response { code: &'a str, text: &'a str },
+        Request {
+            version: &'a str,
+            method: &'a str,
+            uri: &'a str,
+        },
+        Response {
+            code: &'a str,
+            text: &'a str,
+            version: &'a str,
+        },
+        Unknown,
     }
 
     pub struct HttpStartLineAnalyzer<'a> {
-        version: &'a str,
         start_line: StartLine<'a>,
     }
 
@@ -69,14 +77,14 @@ mod analyzer {
         pub fn method(&self) -> Option<Method> {
             match self.start_line {
                 StartLine::Request { method, .. } => Method::try_from(method).ok(),
-                StartLine::Response { .. } => None,
+                _ => None,
             }
         }
 
         pub fn uri(&self) -> Option<&str> {
             match self.start_line {
                 StartLine::Request { uri, .. } => Some(uri),
-                StartLine::Response { .. } => None,
+                _ => None,
             }
         }
 
@@ -86,20 +94,24 @@ mod analyzer {
 
         pub fn code(&self) -> Option<&str> {
             match self.start_line {
-                StartLine::Request { .. } => None,
                 StartLine::Response { code, .. } => Some(code),
+                _ => None,
             }
         }
 
         pub fn text_code(&self) -> Option<&str> {
             match self.start_line {
-                StartLine::Request { .. } => None,
                 StartLine::Response { text, .. } => Some(text),
+                _ => None,
             }
         }
 
-        pub fn version(&self) -> &str {
-            self.version
+        pub fn version(&self) -> Option<&str> {
+            match self.start_line {
+                StartLine::Request { version, .. } => Some(version),
+                StartLine::Response { version, .. } => Some(version),
+                _ => None,
+            }
         }
     }
 
@@ -116,49 +128,60 @@ mod analyzer {
         fn build(
             _config: &Config,
             &Packet { data, direction }: &'a Packet,
-            _flow: &HttpFlow,
+            flow: &HttpFlow,
         ) -> AnalyzerResult<Self, ClassifierId> {
-            let first_line = unsafe {
+            let header = unsafe {
                 //SAFETY: We only check againts first 128 ascii values
                 std::str::from_utf8_unchecked(data)
             };
 
-            let mut iter = first_line.splitn(3, ' ');
-            let first = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
-            let second = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
-            let third_and_more = iter.next().ok_or(Self::START_LINE_MALFORMED)?;
-            let (third, next_data) = third_and_more
-                .split_once("\r\n")
-                .ok_or(Self::START_LINE_MALFORMED)?;
+            let parse_line: Option<(StartLine, &str)> = (|| {
+                let mut iter = header.splitn(3, ' ');
+                let first = iter.next()?;
+                let second = iter.next()?;
+                let third_and_more = iter.next()?;
+                let (third, next_data) = third_and_more.split_once("\r\n")?;
 
-            let (version, start_line) = match direction {
-                Direction::Uplink => (
-                    third,
-                    StartLine::Request {
+                let start_line = match direction {
+                    Direction::Uplink => StartLine::Request {
                         method: first,
                         uri: second,
+                        version: third,
                     },
-                ),
-                Direction::Downlink => (
-                    first,
-                    StartLine::Response {
+                    Direction::Downlink => StartLine::Response {
+                        version: first,
                         code: second,
                         text: third,
                     },
-                ),
+                };
+
+                Some((start_line, next_data))
+            })();
+
+            let (start_line, next_data) = match parse_line {
+                Some((start_line, next_data)) => (start_line, next_data),
+                None => {
+                    if let Kind::Unknown = flow.kind {
+                        return Err(Self::START_LINE_MALFORMED);
+                    }
+                    (StartLine::Unknown, &header[header.len() - 1..])
+                }
             };
 
             Ok(AnalyzerInfo {
-                analyzer: Self {
-                    version,
-                    start_line,
-                },
+                analyzer: Self { start_line },
                 next_classifier_id: ClassifierId::HttpHeader,
                 bytes_parsed: next_data.as_ptr() as usize - data.as_ptr() as usize,
             })
         }
 
-        fn update_flow(&self, _config: &Config, _flow: &mut HttpFlow, _direction: Direction) {}
+        fn update_flow(&self, _config: &Config, flow: &mut HttpFlow, _direction: Direction) {
+            match self.start_line {
+                StartLine::Request { .. } => flow.kind = Kind::Request,
+                StartLine::Response { .. } => flow.kind = Kind::Response,
+                StartLine::Unknown => (),
+            }
+        }
     }
 
     pub struct HttpHeaderAnalyzer<'a> {
@@ -222,8 +245,24 @@ mod analyzer {
 }
 
 mod flow {
-    #[derive(Default)]
-    pub struct HttpFlow {}
+    #[derive(Clone, Copy)]
+    pub enum Kind {
+        Request,
+        Response,
+        Unknown,
+    }
+
+    pub struct HttpFlow {
+        pub kind: Kind,
+    }
+
+    impl Default for HttpFlow {
+        fn default() -> Self {
+            Self {
+                kind: Kind::Unknown,
+            }
+        }
+    }
 }
 
 pub mod expression {
