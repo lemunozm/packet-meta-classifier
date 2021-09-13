@@ -107,6 +107,7 @@ mod flow {
 pub mod expression {
     use super::analyzer::UdpAnalyzer;
     use super::flow::UdpFlow;
+    use super::UdpClassifier;
 
     use crate::Config;
 
@@ -115,9 +116,21 @@ pub mod expression {
     use std::fmt;
 
     #[derive(Debug)]
+    pub struct Udp;
+    impl ExpressionValue<Config> for Udp {
+        type Classifier = UdpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
+        fn check(&self, _packet: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
+            true
+        }
+    }
+
+    #[derive(Debug)]
     pub struct UdpSourcePort(pub u16);
     impl ExpressionValue<Config> for UdpSourcePort {
-        type Classifier = super::UdpClassifier;
+        type Classifier = UdpClassifier;
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
@@ -129,7 +142,7 @@ pub mod expression {
     #[derive(Debug)]
     pub struct UdpDestPort(pub u16);
     impl ExpressionValue<Config> for UdpDestPort {
-        type Classifier = super::UdpClassifier;
+        type Classifier = UdpClassifier;
 
         const SHOULD_GRANT_BY_FLOW: bool = true;
 
@@ -148,7 +161,7 @@ pub mod expression {
     where
         F: Fn(u16) -> bool + 'static,
     {
-        type Classifier = super::UdpClassifier;
+        type Classifier = UdpClassifier;
 
         fn check(&self, packet: &UdpAnalyzer, _flow: &UdpFlow) -> bool {
             self.0(packet.payload_len())

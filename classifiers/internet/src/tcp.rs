@@ -281,6 +281,18 @@ pub mod expression {
     use std::fmt;
 
     #[derive(Debug)]
+    pub struct Tcp;
+    impl ExpressionValue<Config> for Tcp {
+        type Classifier = TcpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
+        fn check(&self, _packet: &TcpAnalyzer, _flow: &TcpFlow) -> bool {
+            true
+        }
+    }
+
+    #[derive(Debug)]
     pub struct TcpSourcePort(pub u16);
     impl ExpressionValue<Config> for TcpSourcePort {
         type Classifier = TcpClassifier;

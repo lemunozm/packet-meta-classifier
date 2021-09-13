@@ -3,11 +3,10 @@ use util::capture::IpCapture;
 
 use internet::{
     self,
-    http::expression::{HttpCode, HttpHeader, HttpMethod},
-    ip::expression::IpProto,
+    http::expression::{HttpCode, HttpHeader, HttpMethod, HttpRequest, HttpResponse},
     tcp::expression::{
-        TcpDestPort, TcpEstablished, TcpHandshake, TcpPayloadLen, TcpRetransmission, TcpServerPort,
-        TcpSourcePort, TcpTeardown,
+        Tcp, TcpDestPort, TcpEstablished, TcpHandshake, TcpPayloadLen, TcpRetransmission,
+        TcpServerPort, TcpSourcePort, TcpTeardown,
     },
     udp::expression::{UdpDestPort, UdpPayloadLen, UdpSourcePort},
     Config,
@@ -138,6 +137,36 @@ fn tcp_midflow() {
 }
 
 #[test]
+fn http_request_response() {
+    common::run_classification_test(TestConfig {
+        loader: internet::loader(),
+        config: Config::default(),
+        rules: vec![
+            Rule::new("REQ", Expr::value(HttpRequest)),
+            Rule::new("RES", Expr::value(HttpResponse)),
+            Rule::new("Established", Expr::value(TcpEstablished)),
+            Rule::new("Tcp", Expr::value(Tcp)),
+        ],
+        captures: vec![CaptureData {
+            capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),
+            sections: vec![(1, 10)],
+        }],
+        expected_classification: vec![
+            "Tcp",
+            "Tcp",
+            "Established",
+            "REQ",
+            "Established",
+            "RES",
+            "Established",
+            "Tcp",
+            "Tcp",
+            "Tcp",
+        ],
+    });
+}
+
+#[test]
 fn http_get() {
     common::run_classification_test(TestConfig {
         loader: internet::loader(),
@@ -151,7 +180,7 @@ fn http_get() {
                 "200OK",
                 Expr::value(HttpCode("200")) & Expr::value(HttpHeader("Content-Type", "text/html")),
             ),
-            Rule::new("Tcp", Expr::value(IpProto::Tcp)),
+            Rule::new("Tcp", Expr::value(Tcp)),
         ],
         captures: vec![CaptureData {
             capture: IpCapture::open("tests/captures/ipv4-http-get.pcap"),

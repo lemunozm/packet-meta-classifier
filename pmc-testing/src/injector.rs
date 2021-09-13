@@ -95,7 +95,7 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
             match classification_result.rule_value_kind {
                 RuleValueKind::Computed => String::new().bright_white(),
                 RuleValueKind::ComputedAndCached => "(cached)".bright_black(),
-                RuleValueKind::Cached => "(cache)".bright_black(),
+                RuleValueKind::Cached => "(from cache)".bright_black(),
             }
         );
     }

@@ -13,7 +13,7 @@ impl<'a> Classifier<'a, Config> for HttpHeaderClassifier {
 }
 
 mod analyzer {
-    use super::flow::{HttpFlow, Kind};
+    use super::flow::{HttpFlow, State};
 
     use crate::{ClassifierId, Config, FlowSignature};
 
@@ -92,6 +92,10 @@ mod analyzer {
             matches!(self.start_line, StartLine::Request { .. })
         }
 
+        pub fn is_response(&self) -> bool {
+            matches!(self.start_line, StartLine::Response { .. })
+        }
+
         pub fn code(&self) -> Option<&str> {
             match self.start_line {
                 StartLine::Response { code, .. } => Some(code),
@@ -161,7 +165,7 @@ mod analyzer {
             let (start_line, next_data) = match parse_line {
                 Some((start_line, next_data)) => (start_line, next_data),
                 None => {
-                    if let Kind::Unknown = flow.kind {
+                    if let State::Unknown = flow.state {
                         return Err(Self::START_LINE_MALFORMED);
                     }
                     (StartLine::Unknown, &header[header.len() - 1..])
@@ -177,8 +181,8 @@ mod analyzer {
 
         fn update_flow(&self, _config: &Config, flow: &mut HttpFlow, _direction: Direction) {
             match self.start_line {
-                StartLine::Request { .. } => flow.kind = Kind::Request,
-                StartLine::Response { .. } => flow.kind = Kind::Response,
+                StartLine::Request { .. } => flow.state = State::Request,
+                StartLine::Response { .. } => flow.state = State::Response,
                 StartLine::Unknown => (),
             }
         }
@@ -245,21 +249,21 @@ mod analyzer {
 }
 
 mod flow {
-    #[derive(Clone, Copy)]
-    pub enum Kind {
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    pub enum State {
         Request,
         Response,
         Unknown,
     }
 
     pub struct HttpFlow {
-        pub kind: Kind,
+        pub state: State,
     }
 
     impl Default for HttpFlow {
         fn default() -> Self {
             Self {
-                kind: Kind::Unknown,
+                state: State::Unknown,
             }
         }
     }
@@ -267,7 +271,7 @@ mod flow {
 
 pub mod expression {
     use super::analyzer::{HttpHeaderAnalyzer, HttpStartLineAnalyzer};
-    use super::flow::HttpFlow;
+    use super::flow::{HttpFlow, State};
 
     use crate::Config;
 
@@ -290,8 +294,14 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpRequest {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            packet.is_request()
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
+        fn should_break_grant(&self, packet: &HttpStartLineAnalyzer) -> bool {
+            packet.is_response() || packet.is_request()
+        }
+
+        fn check(&self, _packet: &HttpStartLineAnalyzer, flow: &HttpFlow) -> bool {
+            flow.state == State::Request
         }
     }
 
@@ -300,8 +310,14 @@ pub mod expression {
     impl ExpressionValue<Config> for HttpResponse {
         type Classifier = super::HttpStartLineClassifier;
 
-        fn check(&self, packet: &HttpStartLineAnalyzer, _flow: &HttpFlow) -> bool {
-            !packet.is_request()
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
+        fn should_break_grant(&self, packet: &HttpStartLineAnalyzer) -> bool {
+            packet.is_request() || packet.is_response()
+        }
+
+        fn check(&self, _packet: &HttpStartLineAnalyzer, flow: &HttpFlow) -> bool {
+            flow.state == State::Response
         }
     }
 
