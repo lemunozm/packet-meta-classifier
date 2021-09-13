@@ -1,16 +1,22 @@
-use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
 use crate::base::classifier::Classifier;
 use crate::base::config::Config;
 use crate::controller::analyzer::{AnalyzerController, AnalyzerControllerImpl};
+use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Packet;
 
 pub trait ClassifierController<C: Config> {
+    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow;
+
+    fn build_flow(&self) -> SharedFlowController;
+
     /// SAFETY: Satisfied by the caller. The caller must ensure to call clean()
     /// before 'a lifetime ends.
     unsafe fn build_analyzer<'a>(
         &mut self,
         config: &C,
         packet: &Packet<'a>,
+        flow: Option<&dyn FlowController>,
     ) -> AnalyzerResult<&dyn AnalyzerController<'a, C>, C::ClassifierId>;
 
     /// SAFETY: Satisfied by the user. The caller must ensure the lifetime used during
@@ -48,16 +54,37 @@ where
     B: for<'b> Classifier<'b, C> + 'static,
     C: Config,
 {
+    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow {
+        B::Analyzer::update_flow_id(flow_id, packet)
+    }
+
+    fn build_flow(&self) -> SharedFlowController {
+        let flow = <B::Analyzer as Analyzer<C>>::Flow::default();
+        <dyn FlowController>::new_shared(flow)
+    }
+
     unsafe fn build_analyzer<'c>(
         &mut self,
         config: &C,
         packet: &Packet<'c>,
+        flow: Option<&dyn FlowController>,
     ) -> AnalyzerResult<&dyn AnalyzerController<'c, C>, C::ClassifierId> {
         if self.cached_analyzer.is_some() {
             panic!("Analyzer already built. A call to clean() is necessary to rebuild an analyzer");
         }
 
-        B::Analyzer::build(config, packet).map(|info| {
+        let analyzer = match flow {
+            Some(flow) => {
+                let inner_flow = flow.inner_ref::<<B::Analyzer as Analyzer<C>>::Flow>();
+                B::Analyzer::build(config, packet, inner_flow)
+            }
+            None => {
+                let no_flow = <B::Analyzer as Analyzer<C>>::Flow::default();
+                B::Analyzer::build(config, packet, &no_flow)
+            }
+        };
+
+        analyzer.map(|info| {
             let controller = AnalyzerControllerImpl::<B::Analyzer>::new(info.analyzer);
             let controller = unsafe { std::mem::transmute_copy(&controller) };
 

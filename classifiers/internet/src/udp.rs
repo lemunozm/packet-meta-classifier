@@ -12,7 +12,7 @@ mod analyzer {
 
     use crate::{ClassifierId, Config, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
 
     pub struct UdpAnalyzer<'a> {
@@ -44,9 +44,30 @@ mod analyzer {
 
         type Flow = UdpFlow;
 
+        fn update_flow_id(
+            signature: &mut FlowSignature,
+            &Packet { data, direction }: &Packet,
+        ) -> BuildFlow {
+            let (source, dest) = (
+                u16::from_be_bytes(*array_ref![data, 0, 2]),
+                u16::from_be_bytes(*array_ref![data, 2, 2]),
+            );
+
+            let (first, second) = match direction {
+                Direction::Uplink => (source, dest),
+                Direction::Downlink => (dest, source),
+            };
+
+            signature.source_port = first;
+            signature.dest_port = second;
+
+            BuildFlow::Yes
+        }
+
         fn build(
             _config: &Config,
             &Packet { data, direction }: &'a Packet,
+            _flow: &UdpFlow,
         ) -> AnalyzerResult<Self, ClassifierId> {
             let header_len = 8;
             let payload_len = u16::from_be_bytes(*array_ref![data, 4, 2]) - header_len as u16;
@@ -72,19 +93,6 @@ mod analyzer {
                 next_classifier_id: next_protocol,
                 bytes_parsed: header_len,
             })
-        }
-
-        fn update_flow_id(&self, signature: &mut FlowSignature, direction: Direction) -> bool {
-            let (source, dest) = (self.source_port(), self.dest_port());
-            let (first, second) = match direction {
-                Direction::Uplink => (source, dest),
-                Direction::Downlink => (dest, source),
-            };
-
-            signature.source_port = first;
-            signature.dest_port = second;
-
-            true
         }
 
         fn update_flow(&self, _config: &Config, _flow: &mut UdpFlow, _direction: Direction) {}

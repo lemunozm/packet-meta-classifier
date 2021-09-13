@@ -1,4 +1,5 @@
 use crate::analyzer_cache::{AnalyzerCache, CacheFrame};
+use crate::base::analyzer::BuildFlow;
 use crate::base::config::{ClassifierId, Config};
 use crate::controller::expression_value::ExpressionValueController;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
@@ -87,6 +88,12 @@ where
             flow_pool,
         } = self;
 
+        log::trace!(
+            "Classify {} packet with {} bytes...",
+            packet.direction,
+            packet.data.len(),
+        );
+
         let packet_len = packet.data.len();
         let mut state = ClassificationState {
             config,
@@ -94,12 +101,12 @@ where
             skipped_bytes: 0,
             cache: analyzer_cache.prepare_for_packet(),
             flow_pool,
+            current_flow_id: C::FlowId::default(),
             dependency_checker,
             last_id: C::ClassifierId::NONE,
             next_id: C::ClassifierId::INITIAL,
         };
 
-        state.prepare();
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
             let validated_expression = rule.expr.check(&mut |expr_value| {
@@ -118,7 +125,10 @@ where
                             break ValidatedExpr::NotClassified(false)
                         }
                         ClassificationStatus::NeedMoreAnalysis => continue,
-                        ClassificationStatus::Abort => break ValidatedExpr::Abort(None),
+                        ClassificationStatus::Abort(reason) => {
+                            log::trace!("Analysis aborted. Reason: {}", reason);
+                            break ValidatedExpr::Abort(None);
+                        }
                         ClassificationStatus::Cached(rule_priority, should_classify) => {
                             /*
                             let cached_rule = &rules[rule_priority];
@@ -213,30 +223,22 @@ enum ClassificationStatus {
     NotClassify,
     NeedMoreAnalysis,
     Cached(usize, ShouldClassify),
-    Abort,
+    Abort(&'static str),
 }
 
 struct ClassificationState<'a, C: Config> {
     config: &'a C,
     packet: Packet<'a>,
     skipped_bytes: usize,
+    cache: CacheFrame<'a, C>,
+    flow_pool: &'a mut FlowPool<C, usize>,
+    current_flow_id: C::FlowId,
+    dependency_checker: &'a DependencyChecker<C::ClassifierId>,
     last_id: C::ClassifierId,
     next_id: C::ClassifierId,
-    cache: CacheFrame<'a, C>,
-    dependency_checker: &'a DependencyChecker<C::ClassifierId>,
-    flow_pool: &'a mut FlowPool<C, usize>,
 }
 
 impl<'a, C: Config> ClassificationState<'a, C> {
-    fn prepare(&mut self) {
-        log::trace!(
-            "Start {} bytes of {} packet classification",
-            self.packet.data.len(),
-            self.packet.direction
-        );
-        self.flow_pool.prepare_for_packet();
-    }
-
     fn check_expr_value(
         &self,
         expr_value: &dyn ExpressionValueController<C>,
@@ -267,51 +269,63 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                     };
                 }
 
-                let skip_bytes = self.cache.used() < self.config.base().skip_analyzer_bytes;
-
                 log::trace!("Analyze for: {:?}", self.next_id);
-                let analyzer_result =
-                    self.cache
-                        .build_analyzer(self.next_id, self.config, &self.packet);
+
+                let flow = match self.cache.update_flow_id(
+                    self.next_id,
+                    &mut self.current_flow_id,
+                    &self.packet,
+                ) {
+                    BuildFlow::Yes => {
+                        let cache = &self.cache;
+                        let next_id = self.next_id;
+                        Some(self.flow_pool.get_or_create(
+                            self.next_id,
+                            &self.current_flow_id,
+                            || cache.build_flow(next_id),
+                        ))
+                    }
+                    BuildFlow::No => None,
+                    BuildFlow::Abort(reason) => return ClassificationStatus::Abort(reason),
+                };
+
+                let analyzers_cached = self.cache.analyzers_cached();
+                let analyzer_result = self.cache.build_analyzer(
+                    self.next_id,
+                    self.config,
+                    &self.packet,
+                    flow.as_deref(),
+                );
 
                 match analyzer_result {
                     Ok(info) => {
+                        if let Some(mut flow) = flow {
+                            info.analyzer.update_flow(
+                                self.config,
+                                &mut *flow,
+                                self.packet.direction,
+                            );
+                        }
+
                         self.packet.data = &self.packet.data[info.bytes_parsed..];
                         self.last_id = self.next_id;
-                        if skip_bytes {
+
+                        if analyzers_cached < self.config.base().skip_analyzer_bytes {
                             self.skipped_bytes += info.bytes_parsed;
                         }
 
-                        let should_classify = if info.next_classifier_id == ClassifierId::NONE {
+                        if info.next_classifier_id == ClassifierId::NONE {
                             log::trace!("Analysis finished");
                             match self.next_id == id {
-                                true => ShouldClassify::Yes,
-                                false => ShouldClassify::No,
+                                true => ClassificationStatus::CanClassify,
+                                false => ClassificationStatus::NotClassify,
                             }
                         } else {
                             self.next_id = info.next_classifier_id;
-                            ShouldClassify::Continue
-                        };
-
-                        match self.flow_pool.update(
-                            self.config,
-                            info.analyzer,
-                            self.packet.direction,
-                        ) {
-                            Some(priority) => {
-                                ClassificationStatus::Cached(priority, should_classify)
-                            }
-                            None => match should_classify {
-                                ShouldClassify::Yes => ClassificationStatus::CanClassify,
-                                ShouldClassify::No => ClassificationStatus::NotClassify,
-                                ShouldClassify::Continue => ClassificationStatus::NeedMoreAnalysis,
-                            },
+                            ClassificationStatus::NeedMoreAnalysis
                         }
                     }
-                    Err(reason) => {
-                        log::trace!("Analysis aborted. Reason: {}", reason);
-                        ClassificationStatus::Abort
-                    }
+                    Err(reason) => ClassificationStatus::Abort(reason),
                 }
             }
             DependencyStatus::Predecessor => ClassificationStatus::CanClassify,

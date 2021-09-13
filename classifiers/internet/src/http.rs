@@ -17,7 +17,7 @@ mod analyzer {
 
     use crate::{ClassifierId, Config, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
 
     use std::convert::TryFrom;
@@ -109,9 +109,14 @@ mod analyzer {
 
         type Flow = HttpFlow;
 
+        fn update_flow_id(_signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
+            BuildFlow::Yes
+        }
+
         fn build(
             _config: &Config,
             &Packet { data, direction }: &'a Packet,
+            _flow: &HttpFlow,
         ) -> AnalyzerResult<Self, ClassifierId> {
             let first_line = unsafe {
                 //SAFETY: We only check againts first 128 ascii values
@@ -153,10 +158,6 @@ mod analyzer {
             })
         }
 
-        fn update_flow_id(&self, _signature: &mut FlowSignature, _direction: Direction) -> bool {
-            true
-        }
-
         fn update_flow(&self, _config: &Config, _flow: &mut HttpFlow, _direction: Direction) {}
     }
 
@@ -190,9 +191,14 @@ mod analyzer {
 
         type Flow = HttpFlow;
 
+        fn update_flow_id(_signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
+            BuildFlow::Yes
+        }
+
         fn build(
             _config: &Config,
             &Packet { data, .. }: &'a Packet,
+            _flow: &HttpFlow,
         ) -> AnalyzerResult<Self, ClassifierId> {
             let headers = unsafe {
                 //SAFETY: We only check againts first 128 ascii values
@@ -209,10 +215,6 @@ mod analyzer {
                 next_classifier_id: ClassifierId::None,
                 bytes_parsed: header_len,
             })
-        }
-
-        fn update_flow_id(&self, _signature: &mut FlowSignature, _direction: Direction) -> bool {
-            true
         }
 
         fn update_flow(&self, _config: &Config, _flow: &mut HttpFlow, _direction: Direction) {}

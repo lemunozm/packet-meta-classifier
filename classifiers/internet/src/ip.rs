@@ -10,7 +10,7 @@ impl<'a> Classifier<'a, Config> for IpClassifier {
 mod analyzer {
     use crate::{ClassifierId, Config, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
 
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -55,9 +55,38 @@ mod analyzer {
 
         type Flow = ();
 
+        fn update_flow_id(
+            signature: &mut FlowSignature,
+            &Packet { data, direction }: &Packet,
+        ) -> BuildFlow {
+            let ip_version = (data[0] & 0xF0) >> 4;
+            let (source, dest) = match ip_version {
+                4 => (
+                    Ipv4Addr::from(*array_ref![data, 12, 4]).to_ipv6_mapped(),
+                    Ipv4Addr::from(*array_ref![data, 16, 4]).to_ipv6_mapped(),
+                ),
+                6 => (
+                    Ipv6Addr::from(*array_ref![data, 8, 16]),
+                    Ipv6Addr::from(*array_ref![data, 24, 16]),
+                ),
+                _ => return BuildFlow::Abort("Ip version not valid"),
+            };
+
+            let (first, second) = match direction {
+                Direction::Uplink => (source, dest),
+                Direction::Downlink => (dest, source),
+            };
+
+            signature.source_ip = first;
+            signature.dest_ip = second;
+
+            BuildFlow::No
+        }
+
         fn build(
             _config: &Config,
             &Packet { data, .. }: &'a Packet,
+            _: &(),
         ) -> AnalyzerResult<Self, ClassifierId> {
             let ip_version = (data[0] & 0xF0) >> 4;
 
@@ -81,30 +110,6 @@ mod analyzer {
                 next_classifier_id,
                 bytes_parsed: header_len,
             })
-        }
-
-        fn update_flow_id(&self, signature: &mut FlowSignature, direction: Direction) -> bool {
-            let (source, dest) = match &self.version {
-                Version::V4 => (
-                    Ipv4Addr::from(*array_ref![self.header, 12, 4]).to_ipv6_mapped(),
-                    Ipv4Addr::from(*array_ref![self.header, 16, 4]).to_ipv6_mapped(),
-                ),
-                Version::V6 => (
-                    Ipv6Addr::from(*array_ref![self.header, 8, 16]),
-                    Ipv6Addr::from(*array_ref![self.header, 24, 16]),
-                ),
-            };
-
-            let (first, second) = match direction {
-                Direction::Uplink => (source, dest),
-                Direction::Downlink => (dest, source),
-            };
-
-            signature.source_ip = first;
-            signature.dest_ip = second;
-
-            // For IP, we only add the to signature but we do not want to create an IP flow
-            false
         }
     }
 }

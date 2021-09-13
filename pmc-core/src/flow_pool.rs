@@ -1,9 +1,7 @@
 use crate::base::config::{ClassifierId, Config};
-use crate::controller::analyzer::AnalyzerController;
 use crate::controller::flow::{FlowController, SharedFlowController};
-use crate::packet::Direction;
 
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 use std::collections::{hash_map::Entry, HashMap};
 
 struct FlowInfo<V> {
@@ -23,7 +21,6 @@ impl<V> FlowInfo<V> {
 pub struct FlowPool<C: Config, V> {
     flows: Vec<HashMap<C::FlowId, FlowInfo<V>>>,
     cached: Vec<Option<SharedFlowController>>,
-    current_flow_id: C::FlowId,
 }
 
 impl<C: Config, V: Copy> FlowPool<C, V> {
@@ -33,51 +30,29 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
                 .map(|_| HashMap::with_capacity(capacity))
                 .collect(),
             cached: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
-            current_flow_id: C::FlowId::default(),
         }
     }
 
-    pub fn prepare_for_packet(&mut self) {
-        self.current_flow_id = C::FlowId::default();
-    }
-
-    pub fn update(
+    pub fn get_or_create(
         &mut self,
-        config: &C,
-        analyzer: &dyn AnalyzerController<C>,
-        direction: Direction,
-    ) -> Option<V> {
-        if analyzer.update_flow_id(&mut self.current_flow_id, direction) {
-            let entry = self.flows[analyzer.id().inner()].entry(self.current_flow_id.clone());
-
-            log::trace!(
-                "Use {:?} flow. Sig: {:?}",
-                analyzer.id(),
-                self.current_flow_id,
-            );
-
-            match entry {
-                Entry::Vacant(entry) => {
-                    let shared_flow = analyzer.create_flow();
-                    analyzer.update_flow(config, &mut *shared_flow.borrow_mut(), direction);
-                    entry.insert(FlowInfo::new(shared_flow.clone()));
-                    self.cached[analyzer.id().inner()] = Some(shared_flow);
-                }
-                Entry::Occupied(mut entry) => {
-                    if let Some(value) = &entry.get_mut().associated_value {
-                        return Some(*value);
-                    }
-                    analyzer.update_flow(
-                        config,
-                        &mut *entry.get_mut().flow.borrow_mut(),
-                        direction,
-                    );
-                }
+        id: C::ClassifierId,
+        flow_id: &C::FlowId,
+        builder: impl Fn() -> SharedFlowController,
+    ) -> RefMut<dyn FlowController> {
+        match self.flows[id.inner()].entry(flow_id.clone()) {
+            Entry::Vacant(entry) => {
+                let shared_flow = builder();
+                log::trace!("Create {:?} flow. Sig: {:?}", id, flow_id);
+                entry.insert(FlowInfo::new(shared_flow.clone()));
+                self.cached[id.inner()] = Some(shared_flow);
+                self.cached[id.inner()].as_ref().unwrap().borrow_mut()
             }
-        } else {
-            self.cached[analyzer.id().inner()] = None;
+            Entry::Occupied(entry) => {
+                log::trace!("Use {:?} flow. Sig: {:?}", id, flow_id);
+                self.cached[id.inner()] = Some(entry.get().flow.clone());
+                self.cached[id.inner()].as_ref().unwrap().borrow_mut()
+            }
         }
-        None
     }
 
     pub fn get_cached(&self, id: C::ClassifierId) -> Option<Ref<dyn FlowController>> {

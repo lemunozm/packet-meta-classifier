@@ -1,7 +1,8 @@
-use crate::base::analyzer::AnalyzerResult;
+use crate::base::analyzer::{AnalyzerResult, BuildFlow};
 use crate::base::config::{ClassifierId, Config};
 use crate::controller::analyzer::AnalyzerController;
 use crate::controller::classifier::ClassifierController;
+use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Packet;
 
 pub struct AnalyzerCache<C: Config> {
@@ -27,18 +28,38 @@ pub struct CacheFrame<'a, C: Config> {
 }
 
 impl<'a, C: Config> CacheFrame<'a, C> {
+    pub fn update_flow_id(
+        &self,
+        id: C::ClassifierId,
+        flow_id: &mut C::FlowId,
+        packet: &Packet,
+    ) -> BuildFlow {
+        self.cache.classifiers[id.inner()]
+            .as_ref()
+            .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+            .update_flow_id(flow_id, packet)
+    }
+
+    pub fn build_flow(&self, id: C::ClassifierId) -> SharedFlowController {
+        self.cache.classifiers[id.inner()]
+            .as_ref()
+            .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
+            .build_flow()
+    }
+
     pub fn build_analyzer(
         &mut self,
         id: C::ClassifierId,
         config: &C,
         packet: &Packet<'a>,
+        flow: Option<&dyn FlowController>,
     ) -> AnalyzerResult<&dyn AnalyzerController<'a, C>, C::ClassifierId> {
         let result = unsafe {
             // SAFETY: Cleaned before packet lifetime ends.
             self.cache.classifiers[id.inner()]
                 .as_mut()
                 .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))
-                .build_analyzer(config, packet)
+                .build_analyzer(config, packet, flow)
         };
 
         if result.is_ok() {
@@ -59,7 +80,7 @@ impl<'a, C: Config> CacheFrame<'a, C> {
         }
     }
 
-    pub fn used(&self) -> usize {
+    pub fn analyzers_cached(&self) -> usize {
         self.cache.current_ids.len()
     }
 }
