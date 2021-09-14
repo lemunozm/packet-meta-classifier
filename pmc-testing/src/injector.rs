@@ -2,7 +2,7 @@ use crate::capture::CaptureIterator;
 use crate::logger::{self, PacketProps};
 
 use pmc_core::base::config::Config;
-use pmc_core::engine::{ClassificationResult, ClassifierEngine, RuleValueKind};
+use pmc_core::engine::{ClassificationResult, ClassifierEngine, RuleValueAction};
 use pmc_core::packet::{Direction, Packet};
 
 use colored::Colorize;
@@ -92,10 +92,10 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
                     format!("{}", expected_rule_tag).bright_blue(),
                 )
             },
-            match classification_result.rule_value_kind {
-                RuleValueKind::Computed => String::new().bright_white(),
-                RuleValueKind::ComputedAndCached => "(cached)".bright_black(),
-                RuleValueKind::Cached => "(from cache)".bright_black(),
+            match classification_result.rule_value_action {
+                RuleValueAction::Computed => String::new().bright_white(),
+                RuleValueAction::ComputedAndCached => "(cached)".bright_black(),
+                RuleValueAction::Cached => "(from cache)".bright_black(),
             }
         );
     }

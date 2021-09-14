@@ -50,19 +50,23 @@ impl<C: Config> Expr<C> {
         match self {
             Expr::Value(value) => value_validator(value.as_ref()),
             Expr::Not(rule) => match rule.check(value_validator) {
-                ValidatedExpr::Classified(cache) => ValidatedExpr::NotClassified(cache),
-                ValidatedExpr::NotClassified(cache) => ValidatedExpr::Classified(cache),
-                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
+                ValidatedExpr::Classified(should_grant) => {
+                    ValidatedExpr::NotClassified(should_grant)
+                }
+                ValidatedExpr::NotClassified(should_grant) => {
+                    ValidatedExpr::Classified(should_grant)
+                }
+                ValidatedExpr::Abort(granted) => ValidatedExpr::Abort(granted),
             },
             Expr::All(rules) => {
                 let mut cache_result = true;
                 for rule in rules.iter() {
                     match rule.check(value_validator) {
-                        ValidatedExpr::Classified(cache) => cache_result &= cache,
-                        ValidatedExpr::NotClassified(cache) => {
-                            return ValidatedExpr::NotClassified(cache & cache_result)
+                        ValidatedExpr::Classified(should_grant) => cache_result &= should_grant,
+                        ValidatedExpr::NotClassified(should_grant) => {
+                            return ValidatedExpr::NotClassified(should_grant & cache_result)
                         }
-                        ValidatedExpr::Abort(cached) => return ValidatedExpr::Abort(cached),
+                        ValidatedExpr::Abort(granted) => return ValidatedExpr::Abort(granted),
                     }
                 }
                 ValidatedExpr::Classified(false)
@@ -70,33 +74,51 @@ impl<C: Config> Expr<C> {
             Expr::Any(rules) => {
                 for rule in rules.iter() {
                     match rule.check(value_validator) {
-                        ValidatedExpr::Classified(cache) => {
-                            return ValidatedExpr::Classified(cache)
+                        ValidatedExpr::Classified(should_grant) => {
+                            return ValidatedExpr::Classified(should_grant)
                         }
                         ValidatedExpr::NotClassified(_) => continue,
-                        ValidatedExpr::Abort(cached) => return ValidatedExpr::Abort(cached),
+                        ValidatedExpr::Abort(granted) => return ValidatedExpr::Abort(granted),
                     }
                 }
                 ValidatedExpr::NotClassified(false)
             }
             Expr::And(pair) => match pair.0.check(value_validator) {
-                ValidatedExpr::Classified(cache_0) => match pair.1.check(value_validator) {
-                    ValidatedExpr::Classified(cache_1) => {
-                        ValidatedExpr::Classified(cache_0 & cache_1)
+                ValidatedExpr::Classified(should_grant_0) => match pair.1.check(value_validator) {
+                    ValidatedExpr::Classified(should_grant_1) => {
+                        ValidatedExpr::Classified(should_grant_0 & should_grant_1)
                     }
-                    ValidatedExpr::NotClassified(cache_1) => {
-                        ValidatedExpr::NotClassified(cache_0 & cache_1)
+                    ValidatedExpr::NotClassified(should_grant_1) => {
+                        ValidatedExpr::NotClassified(should_grant_0 & should_grant_1)
                     }
-                    ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
+                    val @ ValidatedExpr::Abort(_) => val,
                 },
-                ValidatedExpr::NotClassified(cache) => ValidatedExpr::NotClassified(cache),
-                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
+                val @ ValidatedExpr::NotClassified(_) => val,
+                val @ ValidatedExpr::Abort(_) => val,
             },
             Expr::Or(pair) => match pair.0.check(value_validator) {
-                ValidatedExpr::Classified(cache) => ValidatedExpr::Classified(cache),
+                val @ ValidatedExpr::Classified(_) => val,
                 ValidatedExpr::NotClassified(_) => pair.1.check(value_validator),
-                ValidatedExpr::Abort(cached) => ValidatedExpr::Abort(cached),
+                val @ ValidatedExpr::Abort(_) => val,
             },
+        }
+    }
+
+    pub(crate) fn should_break(
+        &self,
+        value_validator: &mut dyn FnMut(&dyn ExpressionValueController<C>) -> bool,
+    ) -> bool {
+        match self {
+            Expr::Value(value) => value_validator(value.as_ref()),
+            Expr::Not(rule) => !rule.should_break(value_validator),
+            Expr::All(rules) => rules.iter().all(|rule| rule.should_break(value_validator)),
+            Expr::Any(rules) => rules.iter().any(|rule| rule.should_break(value_validator)),
+            Expr::And(pair) => {
+                pair.0.should_break(value_validator) && pair.1.should_break(value_validator)
+            }
+            Expr::Or(pair) => {
+                pair.0.should_break(value_validator) || pair.1.should_break(value_validator)
+            }
         }
     }
 }

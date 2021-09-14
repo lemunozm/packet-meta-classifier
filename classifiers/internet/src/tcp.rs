@@ -95,8 +95,8 @@ mod analyzer {
                 Direction::Downlink => (dest, source),
             };
 
-            signature.source_port = first;
-            signature.dest_port = second;
+            signature.client_port = first;
+            signature.server_port = second;
 
             BuildFlow::Yes
         }

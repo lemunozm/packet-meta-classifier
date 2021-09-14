@@ -49,8 +49,8 @@ impl ClassifierIdTrait for ClassifierId {
 pub struct FlowSignature {
     source_ip: Ipv6Addr,
     dest_ip: Ipv6Addr,
-    source_port: u16,
-    dest_port: u16,
+    client_port: u16,
+    server_port: u16,
 }
 
 impl Default for FlowSignature {
@@ -58,8 +58,8 @@ impl Default for FlowSignature {
         Self {
             source_ip: Ipv6Addr::UNSPECIFIED,
             dest_ip: Ipv6Addr::UNSPECIFIED,
-            source_port: 0,
-            dest_port: 0,
+            client_port: 0,
+            server_port: 0,
         }
     }
 }

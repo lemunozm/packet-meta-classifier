@@ -129,6 +129,8 @@ pub mod expression {
     impl ExpressionValue<Config> for Ip {
         type Classifier = IpClassifier;
 
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
         fn check(&self, _packet: &IpAnalyzer, _: &()) -> bool {
             true
         }
@@ -137,6 +139,8 @@ pub mod expression {
     pub use super::analyzer::Version as IpVersion;
     impl ExpressionValue<Config> for IpVersion {
         type Classifier = IpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
             match self {
@@ -151,6 +155,8 @@ pub mod expression {
     impl ExpressionValue<Config> for IpSource {
         type Classifier = IpClassifier;
 
+        const SHOULD_GRANT_BY_FLOW: bool = true;
+
         fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
             self.0 == packet.source()
         }
@@ -160,6 +166,8 @@ pub mod expression {
     pub struct IpDest(pub IpAddr);
     impl ExpressionValue<Config> for IpDest {
         type Classifier = IpClassifier;
+
+        const SHOULD_GRANT_BY_FLOW: bool = true;
 
         fn check(&self, packet: &IpAnalyzer, _: &()) -> bool {
             self.0 == packet.dest()
