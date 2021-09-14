@@ -48,7 +48,7 @@ pub struct ClassifierEngine<C: Config, T> {
     rules: Vec<Rule<T, C>>,
     analyzer_cache: AnalyzerCache<C>,
     dependency_checker: DependencyChecker<C::ClassifierId>,
-    flow_pool: FlowPool<C, usize>,
+    flow_pool: FlowPool<C>,
 }
 
 impl<C, T> ClassifierEngine<C, T>
@@ -175,7 +175,7 @@ where
                 ValidatedExpr::Classified(should_cache) => {
                     let rule_value_kind = match should_cache {
                         true => {
-                            state.flow_pool.associate_value_to_last_flow(priority);
+                            state.flow_pool.last_flow().associate_index(priority);
                             RuleValueKind::ComputedAndCached
                         }
                         false => RuleValueKind::Computed,
@@ -231,7 +231,7 @@ struct ClassificationState<'a, C: Config> {
     packet: Packet<'a>,
     skipped_bytes: usize,
     cache: CacheFrame<'a, C>,
-    flow_pool: &'a mut FlowPool<C, usize>,
+    flow_pool: &'a mut FlowPool<C>,
     current_flow_id: C::FlowId,
     dependency_checker: &'a DependencyChecker<C::ClassifierId>,
     last_id: C::ClassifierId,

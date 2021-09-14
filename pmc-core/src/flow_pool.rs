@@ -4,32 +4,20 @@ use crate::controller::flow::{FlowController, SharedFlowController};
 use std::cell::{Ref, RefMut};
 use std::collections::{hash_map::Entry, HashMap};
 
-struct FlowInfo<V> {
-    flow: SharedFlowController,
-    associated_value: Option<V>,
-}
-
-impl<V> FlowInfo<V> {
-    fn new(flow: SharedFlowController) -> FlowInfo<V> {
-        Self {
-            flow,
-            associated_value: None,
-        }
-    }
-}
-
-pub struct FlowPool<C: Config, V> {
-    flows: Vec<HashMap<C::FlowId, FlowInfo<V>>>,
+pub struct FlowPool<C: Config> {
+    flows: Vec<HashMap<C::FlowId, SharedFlowController>>,
     cached: Vec<Option<SharedFlowController>>,
+    last_cache_index: Option<usize>,
 }
 
-impl<C: Config, V: Copy> FlowPool<C, V> {
+impl<C: Config> FlowPool<C> {
     pub fn new(capacity: usize) -> Self {
         Self {
             flows: (0..C::ClassifierId::TOTAL)
                 .map(|_| HashMap::with_capacity(capacity))
                 .collect(),
             cached: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
+            last_cache_index: None,
         }
     }
 
@@ -43,13 +31,15 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
             Entry::Vacant(entry) => {
                 let shared_flow = builder();
                 log::trace!("Create {:?} flow. Sig: {:?}", id, flow_id);
-                entry.insert(FlowInfo::new(shared_flow.clone()));
-                self.cached[id.inner()] = Some(shared_flow);
+                entry.insert(shared_flow.clone());
+                self.cached[id.inner()] = Some(shared_flow.clone());
+                self.last_cache_index = Some(id.inner());
                 self.cached[id.inner()].as_ref().unwrap().borrow_mut()
             }
             Entry::Occupied(entry) => {
                 log::trace!("Use {:?} flow. Sig: {:?}", id, flow_id);
-                self.cached[id.inner()] = Some(entry.get().flow.clone());
+                self.cached[id.inner()] = Some(entry.get().clone());
+                self.last_cache_index = Some(id.inner());
                 self.cached[id.inner()].as_ref().unwrap().borrow_mut()
             }
         }
@@ -61,15 +51,10 @@ impl<C: Config, V: Copy> FlowPool<C, V> {
             .map(|shared_flow| shared_flow.borrow())
     }
 
-    pub fn associate_value_to_last_flow(&mut self, _value: V) {
-        //TODO
-    }
-
-    pub fn delete_value_to_last_flow(&mut self) {
-        //TODO
-    }
-
-    pub fn update_last_flow(&mut self) {
-        //TODO
+    pub fn last_flow(&mut self) -> RefMut<dyn FlowController> {
+        self.cached[self.last_cache_index.unwrap()]
+            .as_ref()
+            .unwrap()
+            .borrow_mut()
     }
 }
