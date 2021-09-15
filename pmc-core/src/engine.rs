@@ -13,11 +13,16 @@ use std::fmt;
 pub struct Rule<T, C: Config> {
     tag: T,
     expr: Expr<C>,
+    max_classifier_id: C::ClassifierId,
 }
 
 impl<T: Copy, C: Config> Rule<T, C> {
     pub fn new(tag: T, expr: Expr<C>) -> Self {
-        Self { tag, expr }
+        Self {
+            tag,
+            max_classifier_id: expr.max_classifier_id(),
+            expr,
+        }
     }
 
     pub fn expr(&self) -> &Expr<C> {
@@ -26,6 +31,10 @@ impl<T: Copy, C: Config> Rule<T, C> {
 
     pub fn tag(&self) -> T {
         self.tag
+    }
+
+    pub fn max_classifier_id(&self) -> C::ClassifierId {
+        self.max_classifier_id
     }
 }
 
@@ -107,6 +116,7 @@ where
             next_id: C::ClassifierId::INITIAL,
         };
 
+        let previous_rule_max_classifier_id = C::ClassifierId::NONE;
         for (priority, rule) in rules.iter().enumerate() {
             log::trace!("Check rule {}: {}", priority, rule.tag);
             let validated_expression = rule.expr.check(&mut |expr_value| {
@@ -247,12 +257,9 @@ impl<'a, C: Config> ClassificationState<'a, C> {
         let answer = expr_value.check(analyzer, flow.as_deref());
         log::trace!("Expression value: [{:?}] = {}", expr_value, answer);
 
-        let should_grant =
-            (expr_value.classifier_id() == self.last_id) && expr_value.should_grant_by_flow();
-
         match answer {
-            true => ValidatedExpr::Classified(should_grant),
-            false => ValidatedExpr::NotClassified(should_grant),
+            true => ValidatedExpr::Classified(expr_value.should_grant_by_flow()),
+            false => ValidatedExpr::NotClassified(expr_value.should_grant_by_flow()),
         }
     }
 

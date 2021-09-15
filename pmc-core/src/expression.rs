@@ -3,6 +3,7 @@ use crate::base::config::Config;
 use crate::base::expression_value::ExpressionValue;
 use crate::controller::expression_value::ExpressionValueController;
 
+use std::cmp;
 use std::ops::{BitAnd, BitOr, Not};
 
 pub(crate) enum ValidatedExpr<T> {
@@ -119,6 +120,25 @@ impl<C: Config> Expr<C> {
             Expr::Or(pair) => {
                 pair.0.should_break(value_validator) || pair.1.should_break(value_validator)
             }
+        }
+    }
+
+    pub(crate) fn max_classifier_id(&self) -> C::ClassifierId {
+        match self {
+            Expr::Value(value) => value.classifier_id(),
+            Expr::Not(rule) => rule.max_classifier_id(),
+            Expr::All(rules) => rules
+                .iter()
+                .map(|rule| rule.max_classifier_id())
+                .max()
+                .unwrap(),
+            Expr::Any(rules) => rules
+                .iter()
+                .map(|rule| rule.max_classifier_id())
+                .max()
+                .unwrap(),
+            Expr::And(pair) => cmp::max(pair.0.max_classifier_id(), pair.1.max_classifier_id()),
+            Expr::Or(pair) => cmp::max(pair.0.max_classifier_id(), pair.1.max_classifier_id()),
         }
     }
 }
