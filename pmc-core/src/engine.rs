@@ -65,7 +65,7 @@ where
     T: fmt::Display + Default + Eq + Copy,
     C: Config,
 {
-    pub fn new(config: C, rules: Vec<Rule<T, C>>, factory: ClassifierLoader<C>) -> Self {
+    pub fn new(factory: ClassifierLoader<C>, config: C, rules: Vec<Rule<T, C>>) -> Self {
         rules.iter().for_each(|rule| {
             assert!(
                 rule.tag != T::default(),
@@ -114,6 +114,7 @@ where
             dependency_checker,
             last_id: C::ClassifierId::NONE,
             next_id: C::ClassifierId::INITIAL,
+            last_flow_id: C::ClassifierId::NONE,
         };
 
         let previous_rule_max_classifier_id = C::ClassifierId::NONE;
@@ -153,7 +154,11 @@ where
 
                             log::trace!("Break grant value at flow level");
 
-                            state.flow_pool.last_flow().delete_associated_index();
+                            state
+                                .flow_pool
+                                .get_cached_mut(state.last_flow_id)
+                                .unwrap()
+                                .delete_associated_index();
 
                             let analyzer = state.cache.get(state.last_id);
 
@@ -165,7 +170,7 @@ where
 
                             analyzer.update_flow(
                                 state.config,
-                                &mut *state.flow_pool.last_flow(),
+                                &mut *state.flow_pool.get_cached_mut(state.last_flow_id).unwrap(),
                                 state.packet.direction,
                             );
 
@@ -182,11 +187,15 @@ where
             match validated_expression {
                 ValidatedExpr::Classified(should_grant) => {
                     let action = match should_grant {
-                        true => {
-                            state.flow_pool.last_flow().associate_index(priority);
+                        true if state.last_flow_id != C::ClassifierId::NONE => {
+                            state
+                                .flow_pool
+                                .get_cached_mut(state.last_flow_id)
+                                .unwrap()
+                                .associate_index(priority);
                             RuleValueAction::ComputedAndCached
                         }
-                        false => RuleValueAction::Computed,
+                        _ => RuleValueAction::Computed,
                     };
 
                     log::trace!("Classified: rule {}, action: {:?}", rule.tag, action);
@@ -245,6 +254,7 @@ struct ClassificationState<'a, C: Config> {
     dependency_checker: &'a DependencyChecker<C::ClassifierId>,
     last_id: C::ClassifierId,
     next_id: C::ClassifierId,
+    last_flow_id: C::ClassifierId,
 }
 
 impl<'a, C: Config> ClassificationState<'a, C> {
@@ -284,6 +294,7 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                     UseFlow::Yes => {
                         let cache = &self.cache;
                         let next_id = self.next_id;
+                        self.last_flow_id = self.next_id;
                         Some(self.flow_pool.get_or_create(
                             self.next_id,
                             &self.current_flow_id,

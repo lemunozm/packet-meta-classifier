@@ -46,7 +46,7 @@ where
     }
 
     let mut classifier =
-        ClassifierEngine::<C, T>::new(test_config.config, test_config.rules, test_config.loader);
+        ClassifierEngine::<C, T>::new(test_config.loader, test_config.config, test_config.rules);
     let mut injector = Injector::new(&test_config.expected_classification);
 
     for capture_data in test_config.captures {

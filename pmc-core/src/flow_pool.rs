@@ -7,7 +7,6 @@ use std::collections::{hash_map::Entry, HashMap};
 pub struct FlowPool<C: Config> {
     flows: HashMap<C::FlowId, SharedFlowController>,
     cached: Vec<Option<SharedFlowController>>,
-    last_cache_index: Option<usize>,
 }
 
 impl<C: Config> FlowPool<C> {
@@ -15,7 +14,6 @@ impl<C: Config> FlowPool<C> {
         Self {
             flows: HashMap::with_capacity(capacity),
             cached: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
-            last_cache_index: None,
         }
     }
 
@@ -31,13 +29,11 @@ impl<C: Config> FlowPool<C> {
                 log::trace!("Create {:?} flow. Sig: {:?}", id, flow_id);
                 entry.insert(shared_flow.clone());
                 self.cached[id.inner()] = Some(shared_flow.clone());
-                self.last_cache_index = Some(id.inner());
                 self.cached[id.inner()].as_ref().unwrap().borrow_mut()
             }
             Entry::Occupied(entry) => {
                 log::trace!("Use {:?} flow. Sig: {:?}", id, flow_id);
                 self.cached[id.inner()] = Some(entry.get().clone());
-                self.last_cache_index = Some(id.inner());
                 self.cached[id.inner()].as_ref().unwrap().borrow_mut()
             }
         }
@@ -49,10 +45,9 @@ impl<C: Config> FlowPool<C> {
             .map(|shared_flow| shared_flow.borrow())
     }
 
-    pub fn last_flow(&mut self) -> RefMut<dyn FlowController> {
-        self.cached[self.last_cache_index.unwrap()]
+    pub fn get_cached_mut(&self, id: C::ClassifierId) -> Option<RefMut<dyn FlowController>> {
+        self.cached[id.inner()]
             .as_ref()
-            .unwrap()
-            .borrow_mut()
+            .map(|shared_flow| shared_flow.borrow_mut())
     }
 }

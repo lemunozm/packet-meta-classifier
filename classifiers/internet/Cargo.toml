@@ -16,3 +16,5 @@ strum = { version = "0.21.0", features = ["derive"]}
 [dev-dependencies]
 pmc-testing = { path = "../../pmc-testing" }
 pcap-file = "1.1.0"
+pcap = "0.9.0"
+mac_address = "1.1.2"
