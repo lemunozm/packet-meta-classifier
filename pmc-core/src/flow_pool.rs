@@ -5,7 +5,7 @@ use std::cell::{Ref, RefMut};
 use std::collections::{hash_map::Entry, HashMap};
 
 pub struct FlowPool<C: Config> {
-    flows: Vec<HashMap<C::FlowId, SharedFlowController>>,
+    flows: HashMap<C::FlowId, SharedFlowController>,
     cached: Vec<Option<SharedFlowController>>,
     last_cache_index: Option<usize>,
 }
@@ -13,9 +13,7 @@ pub struct FlowPool<C: Config> {
 impl<C: Config> FlowPool<C> {
     pub fn new(capacity: usize) -> Self {
         Self {
-            flows: (0..C::ClassifierId::TOTAL)
-                .map(|_| HashMap::with_capacity(capacity))
-                .collect(),
+            flows: HashMap::with_capacity(capacity),
             cached: (0..C::ClassifierId::TOTAL).map(|_| None).collect(),
             last_cache_index: None,
         }
@@ -27,7 +25,7 @@ impl<C: Config> FlowPool<C> {
         flow_id: &C::FlowId,
         builder: impl Fn() -> SharedFlowController,
     ) -> RefMut<dyn FlowController> {
-        match self.flows[id.inner()].entry(flow_id.clone()) {
+        match self.flows.entry(flow_id.clone()) {
             Entry::Vacant(entry) => {
                 let shared_flow = builder();
                 log::trace!("Create {:?} flow. Sig: {:?}", id, flow_id);

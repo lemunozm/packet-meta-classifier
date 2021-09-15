@@ -10,7 +10,7 @@ impl<'a> Classifier<'a, Config> for UdpClassifier {
 mod analyzer {
     use super::flow::UdpFlow;
 
-    use crate::{ClassifierId, Config, FlowSignature};
+    use crate::{ClassifierId, Config, FlowKind, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
@@ -60,6 +60,7 @@ mod analyzer {
 
             signature.client_port = first;
             signature.server_port = second;
+            signature.kind = FlowKind::Udp;
 
             BuildFlow::Yes
         }

@@ -15,7 +15,7 @@ impl<'a> Classifier<'a, Config> for HttpHeaderClassifier {
 mod analyzer {
     use super::flow::{HttpFlow, State};
 
-    use crate::{ClassifierId, Config, FlowSignature};
+    use crate::{ClassifierId, Config, FlowKind, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
@@ -125,7 +125,8 @@ mod analyzer {
 
         type Flow = HttpFlow;
 
-        fn update_flow_id(_signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
+        fn update_flow_id(signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
+            signature.kind = FlowKind::Http;
             BuildFlow::Yes
         }
 

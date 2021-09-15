@@ -46,11 +46,20 @@ impl ClassifierIdTrait for ClassifierId {
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub enum FlowKind {
+    None,
+    Tcp,
+    Udp,
+    Http,
+}
+
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct FlowSignature {
     source_ip: Ipv6Addr,
     dest_ip: Ipv6Addr,
     client_port: u16,
     server_port: u16,
+    kind: FlowKind,
 }
 
 impl Default for FlowSignature {
@@ -60,6 +69,7 @@ impl Default for FlowSignature {
             dest_ip: Ipv6Addr::UNSPECIFIED,
             client_port: 0,
             server_port: 0,
+            kind: FlowKind::None,
         }
     }
 }

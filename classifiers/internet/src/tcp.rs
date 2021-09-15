@@ -10,7 +10,7 @@ impl<'a> Classifier<'a, Config> for TcpClassifier {
 mod analyzer {
     use super::flow::TcpFlow;
 
-    use crate::{ClassifierId, Config, FlowSignature};
+    use crate::{ClassifierId, Config, FlowKind, FlowSignature};
 
     use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
     use pmc_core::packet::{Direction, Packet};
@@ -97,6 +97,7 @@ mod analyzer {
 
             signature.client_port = first;
             signature.server_port = second;
+            signature.kind = FlowKind::Tcp;
 
             BuildFlow::Yes
         }
