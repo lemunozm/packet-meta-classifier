@@ -17,7 +17,7 @@ mod analyzer {
 
     use crate::{ClassifierId, Config, FlowKind, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, UseFlow};
     use pmc_core::packet::{Direction, Packet};
 
     use std::convert::TryFrom;
@@ -125,9 +125,9 @@ mod analyzer {
 
         type Flow = HttpFlow;
 
-        fn update_flow_id(signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
+        fn update_flow_id(signature: &mut FlowSignature, _packet: &Packet) -> UseFlow {
             signature.kind = FlowKind::Http;
-            BuildFlow::Yes
+            UseFlow::Yes
         }
 
         fn build(
@@ -219,8 +219,8 @@ mod analyzer {
 
         type Flow = HttpFlow;
 
-        fn update_flow_id(_signature: &mut FlowSignature, _packet: &Packet) -> BuildFlow {
-            BuildFlow::Yes
+        fn update_flow_id(_signature: &mut FlowSignature, _packet: &Packet) -> UseFlow {
+            UseFlow::Yes
         }
 
         fn build(

@@ -1,5 +1,5 @@
 use crate::analyzer_cache::{AnalyzerCache, CacheFrame};
-use crate::base::analyzer::BuildFlow;
+use crate::base::analyzer::UseFlow;
 use crate::base::config::{ClassifierId, Config};
 use crate::controller::expression_value::ExpressionValueController;
 use crate::dependency_checker::{DependencyChecker, DependencyStatus};
@@ -281,7 +281,7 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                     &mut self.current_flow_id,
                     &self.packet,
                 ) {
-                    BuildFlow::Yes => {
+                    UseFlow::Yes => {
                         let cache = &self.cache;
                         let next_id = self.next_id;
                         Some(self.flow_pool.get_or_create(
@@ -290,8 +290,8 @@ impl<'a, C: Config> ClassificationState<'a, C> {
                             || cache.build_flow(next_id),
                         ))
                     }
-                    BuildFlow::No => None,
-                    BuildFlow::Abort(reason) => return ClassificationStatus::Abort(reason),
+                    UseFlow::No => None,
+                    UseFlow::Abort(reason) => return ClassificationStatus::Abort(reason),
                 };
 
                 let analyzers_cached = self.cache.analyzers_cached();

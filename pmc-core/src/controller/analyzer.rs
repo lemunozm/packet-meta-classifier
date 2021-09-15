@@ -1,12 +1,11 @@
-use crate::base::analyzer::{Analyzer, BuildFlow};
+use crate::base::analyzer::Analyzer;
 use crate::base::config::Config;
 use crate::controller::flow::FlowController;
-use crate::packet::{Direction, Packet};
+use crate::packet::Direction;
 
 pub trait AnalyzerController<'a, C: Config> {
     fn id(&self) -> C::ClassifierId;
     fn prev_id(&self) -> C::ClassifierId;
-    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow;
     fn update_flow(&self, config: &C, flow: &mut dyn FlowController, direction: Direction);
 }
 
@@ -52,10 +51,6 @@ where
 
     fn prev_id(&self) -> C::ClassifierId {
         A::PREV_ID
-    }
-
-    fn update_flow_id(&self, mut flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow {
-        A::update_flow_id(&mut flow_id, packet)
     }
 
     fn update_flow(&self, config: &C, flow: &mut dyn FlowController, direction: Direction) {

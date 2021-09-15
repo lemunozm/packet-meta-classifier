@@ -1,4 +1,4 @@
-use crate::base::analyzer::{AnalyzerResult, BuildFlow};
+use crate::base::analyzer::{AnalyzerResult, UseFlow};
 use crate::base::config::{ClassifierId, Config};
 use crate::controller::analyzer::AnalyzerController;
 use crate::controller::classifier::ClassifierController;
@@ -33,7 +33,7 @@ impl<'a, C: Config> CacheFrame<'a, C> {
         id: C::ClassifierId,
         flow_id: &mut C::FlowId,
         packet: &Packet,
-    ) -> BuildFlow {
+    ) -> UseFlow {
         self.cache.classifiers[id.inner()]
             .as_ref()
             .unwrap_or_else(|| panic!("The ID {:?} must have an associated builder", id))

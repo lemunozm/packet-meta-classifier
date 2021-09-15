@@ -2,7 +2,7 @@ use crate::base::config::{ClassifierId, Config};
 
 use crate::packet::{Direction, Packet};
 
-pub enum BuildFlow {
+pub enum UseFlow {
     Yes,
     No,
     Abort(&'static str),
@@ -14,8 +14,8 @@ pub trait Analyzer<'a, C: Config>: Sized {
 
     type Flow: Default + 'static;
 
-    fn update_flow_id(_flow_id: &mut C::FlowId, _packet: &Packet) -> BuildFlow {
-        BuildFlow::No
+    fn update_flow_id(_flow_id: &mut C::FlowId, _packet: &Packet) -> UseFlow {
+        UseFlow::No
     }
 
     fn build(

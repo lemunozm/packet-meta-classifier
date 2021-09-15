@@ -12,7 +12,7 @@ mod analyzer {
 
     use crate::{ClassifierId, Config, FlowKind, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, UseFlow};
     use pmc_core::packet::{Direction, Packet};
 
     pub struct UdpAnalyzer<'a> {
@@ -47,7 +47,7 @@ mod analyzer {
         fn update_flow_id(
             signature: &mut FlowSignature,
             &Packet { data, direction }: &Packet,
-        ) -> BuildFlow {
+        ) -> UseFlow {
             let (source, dest) = (
                 u16::from_be_bytes(*array_ref![data, 0, 2]),
                 u16::from_be_bytes(*array_ref![data, 2, 2]),
@@ -62,7 +62,7 @@ mod analyzer {
             signature.server_port = second;
             signature.kind = FlowKind::Udp;
 
-            BuildFlow::Yes
+            UseFlow::Yes
         }
 
         fn build(

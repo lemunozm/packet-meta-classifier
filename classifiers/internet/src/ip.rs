@@ -10,7 +10,7 @@ impl<'a> Classifier<'a, Config> for IpClassifier {
 mod analyzer {
     use crate::{ClassifierId, Config, FlowSignature};
 
-    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
+    use pmc_core::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, UseFlow};
     use pmc_core::packet::{Direction, Packet};
 
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -58,7 +58,7 @@ mod analyzer {
         fn update_flow_id(
             signature: &mut FlowSignature,
             &Packet { data, direction }: &Packet,
-        ) -> BuildFlow {
+        ) -> UseFlow {
             let ip_version = (data[0] & 0xF0) >> 4;
             let (source, dest) = match ip_version {
                 4 => (
@@ -69,7 +69,7 @@ mod analyzer {
                     Ipv6Addr::from(*array_ref![data, 8, 16]),
                     Ipv6Addr::from(*array_ref![data, 24, 16]),
                 ),
-                _ => return BuildFlow::Abort("Ip version not valid"),
+                _ => return UseFlow::Abort("Ip version not valid"),
             };
 
             let (first, second) = match direction {
@@ -80,7 +80,7 @@ mod analyzer {
             signature.source_ip = first;
             signature.dest_ip = second;
 
-            BuildFlow::No
+            UseFlow::No
         }
 
         fn build(

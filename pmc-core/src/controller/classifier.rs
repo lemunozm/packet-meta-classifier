@@ -1,4 +1,4 @@
-use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, BuildFlow};
+use crate::base::analyzer::{Analyzer, AnalyzerInfo, AnalyzerResult, UseFlow};
 use crate::base::classifier::Classifier;
 use crate::base::config::Config;
 use crate::controller::analyzer::{AnalyzerController, AnalyzerControllerImpl};
@@ -6,7 +6,7 @@ use crate::controller::flow::{FlowController, SharedFlowController};
 use crate::packet::Packet;
 
 pub trait ClassifierController<C: Config> {
-    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow;
+    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> UseFlow;
 
     fn build_flow(&self) -> SharedFlowController;
 
@@ -54,7 +54,7 @@ where
     B: for<'b> Classifier<'b, C> + 'static,
     C: Config,
 {
-    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> BuildFlow {
+    fn update_flow_id(&self, flow_id: &mut C::FlowId, packet: &Packet) -> UseFlow {
         B::Analyzer::update_flow_id(flow_id, packet)
     }
 
