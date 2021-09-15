@@ -97,11 +97,7 @@ where
             flow_pool,
         } = self;
 
-        log::trace!(
-            "Classify {} packet with {} bytes...",
-            packet.direction,
-            packet.data.len(),
-        );
+        log::trace!("Classify {} packet with {} bytes...", packet.direction, packet.data.len(),);
 
         let packet_len = packet.data.len();
         let mut state = ClassificationState {

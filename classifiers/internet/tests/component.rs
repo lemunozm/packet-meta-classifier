@@ -23,10 +23,7 @@ fn udp_echo() {
         loader: internet::loader(),
         config: Config::default(),
         rules: vec![
-            Rule::new(
-                "MoreThan10Bytes",
-                Expr::value(UdpPayloadLen(|len| len > 10)),
-            ),
+            Rule::new("MoreThan10Bytes", Expr::value(UdpPayloadLen(|len| len > 10))),
             Rule::new("ToServer", Expr::value(UdpDestPort(12345))),
             Rule::new("ToClient", Expr::value(UdpSourcePort(12345))),
         ],

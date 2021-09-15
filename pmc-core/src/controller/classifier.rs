@@ -30,9 +30,7 @@ pub trait ClassifierController<C: Config> {
 
 impl<C: Config> dyn ClassifierController<C> {
     pub fn new<B>(classifier: B) -> Box<dyn ClassifierController<C>>
-    where
-        B: for<'a> Classifier<'a, C> + 'static,
-    {
+    where B: for<'a> Classifier<'a, C> + 'static {
         Box::new(ControllerImpl {
             _classifier: classifier,
             cached_analyzer: None,

@@ -336,8 +336,7 @@ pub mod expression {
         }
     }
     impl<F> ExpressionValue<Config> for TcpPayloadLen<F>
-    where
-        F: Fn(u16) -> bool + 'static,
+    where F: Fn(u16) -> bool + 'static
     {
         type Classifier = super::TcpClassifier;
 

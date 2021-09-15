@@ -23,9 +23,7 @@ impl<C: Config> Default for ClassifierLoader<C> {
 
 impl<C: Config> ClassifierLoader<C> {
     pub fn with<B>(mut self, classifier: B) -> Self
-    where
-        B: for<'a> Classifier<'a, C> + 'static,
-    {
+    where B: for<'a> Classifier<'a, C> + 'static {
         assert!(
             B::Analyzer::ID > self.last_id.into(),
             "Expected ID with higher value than {:?}",
@@ -41,9 +39,6 @@ impl<C: Config> ClassifierLoader<C> {
     }
 
     pub(crate) fn split(self) -> (AnalyzerCache<C>, DependencyChecker<C::ClassifierId>) {
-        (
-            AnalyzerCache::new(self.classifiers),
-            DependencyChecker::new(self.ids_relations),
-        )
+        (AnalyzerCache::new(self.classifiers), DependencyChecker::new(self.ids_relations))
     }
 }

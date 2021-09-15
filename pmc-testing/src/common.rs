@@ -55,15 +55,9 @@ where
         }
     }
 
-    log::info!(
-        "{}",
-        Summary::new(classifier.rule_tags(), &injector.results().classifications)
-    );
+    log::info!("{}", Summary::new(classifier.rule_tags(), &injector.results().classifications));
 
     for (index, classification) in injector.results().classifications.iter().enumerate() {
-        assert_eq!(
-            classification.rule_tag,
-            test_config.expected_classification[index]
-        );
+        assert_eq!(classification.rule_tag, test_config.expected_classification[index]);
     }
 }

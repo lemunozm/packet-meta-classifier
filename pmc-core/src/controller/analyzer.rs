@@ -11,15 +11,9 @@ pub trait AnalyzerController<'a, C: Config> {
 
 impl<'a, C: Config> dyn AnalyzerController<'a, C> + '_ {
     pub fn inner_ref<A>(&self) -> &A
-    where
-        A: Analyzer<'a, C>,
-    {
+    where A: Analyzer<'a, C> {
         if self.id() != A::ID {
-            panic!(
-                "Trying to cast analyzer of type {:?} into {:?}",
-                self.id(),
-                A::ID
-            );
+            panic!("Trying to cast analyzer of type {:?} into {:?}", self.id(), A::ID);
         }
 
         let controller = unsafe {

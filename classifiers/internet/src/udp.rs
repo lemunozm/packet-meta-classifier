@@ -159,8 +159,7 @@ pub mod expression {
         }
     }
     impl<F> ExpressionValue<Config> for UdpPayloadLen<F>
-    where
-        F: Fn(u16) -> bool + 'static,
+    where F: Fn(u16) -> bool + 'static
     {
         type Classifier = UdpClassifier;
 
