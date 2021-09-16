@@ -27,8 +27,7 @@ fn main() {
         vec![
             Rule::new("example.com", Expr::value(HttpHeader("Host", "example.com"))),
             Rule::new("Get", Expr::value(HttpMethod::Get)),
-            Rule::new("Post", Expr::value(HttpMethod::Post)),
-            Rule::new("Put", Expr::value(HttpMethod::Put)),
+            Rule::new("Post/Put", Expr::value(HttpMethod::Post) | Expr::value(HttpMethod::Put)),
             Rule::new("Http", Expr::value(Http)),
             Rule::new("Tcp", Expr::value(Tcp)),
             Rule::new("Udp", Expr::value(Udp)),

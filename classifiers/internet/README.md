@@ -11,7 +11,7 @@ A classifier for the *tcp-ip-stack* using the [pmc-core](../../pmc-core) library
 - Component tests can be found in `tests/component.rs`
 - Captures can be found in `tests/captures/`
 
-To know how to test it, read the main [Testing](../../#testing) section.
+To know how to test it, read the main [Testing](../.././README.md#testing) section.
 
 ## Examples
 
@@ -30,4 +30,4 @@ Steps:
 
 3. Navigate to [`http://example.com`](http://example.com) in your browser.
 
-You can found the code [here](example/real_traffic/main.rs) to inspect the classification rules.
+You can found the code [here](examples/real_traffic/main.rs) to inspect the classification rules.

@@ -94,8 +94,9 @@ impl<T: std::fmt::Display + Default + Copy + Eq> Injector<T> {
             },
             match classification_result.rule_value_action {
                 RuleValueAction::Computed => String::new().bright_white(),
-                RuleValueAction::ComputedAndCached => "(cached)".bright_black(),
-                RuleValueAction::Cached => "(from cache)".bright_black(),
+                //TODO: enable when grant feature is done
+                RuleValueAction::ComputedAndCached => String::new().bright_white(), //"(granted now)".bright_black(),
+                RuleValueAction::Cached => String::new().bright_white(), //"(granted)".bright_black(),
             }
         );
     }
